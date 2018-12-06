@@ -76,7 +76,12 @@ class Viewer( QWidget ):
 
     ##
     # \brief update the UI on given info
-    def updateUI(self):
+    #
+    # The UI has three parts
+    #  - header - This is the top line of the UI including title, etc.
+    #  - body   - This is where the work is done
+    #  - footer - Theis contains the top-level interactions (exit button)
+    def createBody(self):
         #Create the body layout
         self.bodyLayout  = QVBoxLayout()
         self.bodyLayout.addStretch(1)
@@ -99,7 +104,7 @@ class Viewer( QWidget ):
         self.createHeader()
         self.createFooter()
 
-        self.updateUI()
+        self.createBody()
 
         #Define window parameters
         self.resize(self.width, self.height )
