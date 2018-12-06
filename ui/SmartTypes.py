@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Widgets
+Types
 
 Arrays and objects require new layouts?
 
@@ -32,10 +32,7 @@ an undefined type can be anything, but it will not be included in the interface 
 
 """
 
-from PyQt5.QtWidgets import QWidget
-
-
-class SmartWidget:
+class SmartType:
    types = ["string", "integer", "float", "list", "dict"]
 
    def __init__(self):
@@ -52,7 +49,7 @@ class SmartWidget:
        self.setvalue(value)
 
    ##
-   # \brief sets the template for the widget
+   # \brief sets the template for the Type
    # \param [in] template Json object that specifies information about the object
    # \return true on success, false on failure
    #
@@ -63,14 +60,14 @@ class SmartWidget:
        try:
            value = self.types.index(template["type"])
        except:
-           print("SmartWidget::Error - Invalid template type of "+str(template["type"]))
+           print("SmartType::Error - Invalid template type of "+str(template["type"]))
            return False
 
        #Make sure we have a key
        try:
            value = template["key"]
        except:
-           print("SmartWidget::Error - template missing key")
+           print("SmartType::Error - template missing key")
            return False
 
 
@@ -79,11 +76,11 @@ class SmartWidget:
            try: 
                subTemplate = template["template"]
            except:
-               print("SmartWidget::Error - dict and list types must have sub template fields")
+               print("SmartType::Error - dict and list types must have sub template fields")
                return False
 
-           self.subWidget = SmartWidget()
-           if not self.subWidget.setTemplate(subTemplate):
+           self.subType = SmartType()
+           if not self.subType.setTemplate(subTemplate):
                print("Invalid subTemplate for "+template["key"])
 
        # Make sure optional fields have reasonable values
@@ -104,7 +101,7 @@ class SmartWidget:
        try:
            self.template 
        except:
-           print("SmartWidget::Error - trying to set value without template")
+           print("SmartType::Error - trying to set value without template")
            return False
 
        #check template type
@@ -112,35 +109,35 @@ class SmartWidget:
            if isinstance( value, str):
                self.value = value
            else:
-               print("SmartWidget::Error - Value type does not match template type of \"string\"")
+               print("SmartType::Error - Value type does not match template type of \"string\"")
                return False
 
        if self.template["type"] == "integer":
            if isinstance( value, int ):
                self.value = value
            else:
-               print("SmartWidget::Error - Value type does not match template type of \"integer\"")
+               print("SmartType::Error - Value type does not match template type of \"integer\"")
                return False
 
        if self.template["type"] == "float":
            if isinstance( value, float ):
                self.value = value
            else:
-               print("SmartWidget::Error - Value type does not match template type of \"float\"")
+               print("SmartType::Error - Value type does not match template type of \"float\"")
                return False
 
        if self.template["type"] == "dict":
            if isinstance( value, dict ):
                self.value = value
            else:
-               print("SmartWidget::Error - Value type does not match template type of \"dict\"")
+               print("SmartType::Error - Value type does not match template type of \"dict\"")
                return False
 
        if self.template["type"] == "list":
            if isinstance( value, list ):
                self.value = value
            else:
-               print("SmartWidget::Error - Value type does not match template type of \"list\"")
+               print("SmartType::Error - Value type does not match template type of \"list\"")
                return False
 
        return True
@@ -330,7 +327,7 @@ class SmartWidget:
 
 
 if __name__ == '__main__':
-    result = SmartWidget().unitTest()
+    result = SmartType().unitTest()
 
     if result == True:
         print( "Unit test passed")
