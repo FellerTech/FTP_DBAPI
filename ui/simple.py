@@ -14,8 +14,11 @@ Last edited: November 2018
 """
 
 import sys
+import argparse
 from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget
 from PyQt5.QtCore import pyqtSlot
+
+version = "0.0.1.0"
 
 ##
 # \brief This class makes a generic viewer. 
@@ -112,10 +115,31 @@ class Viewer( QWidget ):
         self.show()
 
 
-if __name__ == '__main__':
+def main():
     
-    app = QApplication(sys.argv)
+    # parse command line arguments
+    parser = argparse.ArgumentParser(description='AWARE Database Script') 
+    parser.add_argument('-v', action='store_const', dest='version', const='True', help='Prints the software version and exits') 
+    parser.add_argument('-test', action='store_const', dest='test', const='True', help='run unit tests') 
+    args=parser.parse_args()
+
+    #If version, print the version and exit
+    if args.version:
+        print("SmartWidget version: "+version)
+        exit(1)
+   
+    app = QApplication( sys.argv )
     window = Viewer()
 
-    
+    #If test, use the integrated test file
+    if args.test:
+        print("Test application")
+
+
+
+
+
     sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
