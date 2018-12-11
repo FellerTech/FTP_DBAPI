@@ -41,8 +41,6 @@ from SmartType import SmartType
 
 class SmartWidget(SmartType):
    def __init__(self):
-       SmartType.__init__(self)
-#       SmartType.__init__(self)
        return 
 
    ##
@@ -50,33 +48,50 @@ class SmartWidget(SmartType):
    # \param [in] key name of the item
    # \param [in] value value to set the item to
    # \param [in] template Json object that defines what the object may contain
-   def init(self, key, value, template):
-       self.key      = key
-       if not SmartType.setTemplate( self, template ):
-           return False
+   def init(self, key, value, template = None):
+       #For standard types, do the following:
+       SmartType.__init__(self, key, value, template )
 
-       if not SmartType.setValue(self, value):
-           return False
-
+       #Set our key to the appropriate value
+       self.key = key
+       self.layout = QHBoxLayout()
 
        #Create Label
        label = QLabel()
        label.setText(str(self.key)+" : ")
-
-       #Determine what type of data
-
-       #default is for it to be a text box 
-       self.widget = QLineEdit()
-       self.ss = self.widget.styleSheet()
-       self.valid = True
-       self.widget.setText(str(value))
-       self.widget.editingFinished.connect( lambda: self.validate() )
-
-       #create layout
-       self.layout = QHBoxLayout()
        self.layout.addWidget( label )
-       self.layout.addWidget( self.widget )
-      
+
+       if template != None:
+          #If we are a list, create a vertical layout and add subwidgets
+          if template["type"] == "list":
+              self.subLayout = QVBoxLayout()
+              self.layout.addLayout( self.subLayout)
+              print("VALUE:"+str(value ))
+              self.value = value
+
+          #If we are a dict, create a vertical layout and add subwidgets
+          elif template["type"] == "dictionary":
+              print("Received a dictionary object")
+              self.subLayout = QVBoxLayout()
+              self.layout.addLayout( self.subLayout)
+
+          else:
+              #default is for it to be a text box 
+              self.widget = QLineEdit()
+              self.ss = self.widget.styleSheet()
+              self.valid = True
+              self.widget.setText(str(value))
+              self.widget.editingFinished.connect( lambda: self.validate() )
+
+              #create layout
+              self.layout.addWidget( self.widget )
+       else:
+           self.value = value;
+           self.widget = QLabel()
+           self.widget.setText( str(value))
+           self.layout.addWidget( self.widget )
+           self.layout.addStretch(1)
+
        return self
 
    ##
@@ -95,6 +110,24 @@ class SmartWidget(SmartType):
            self.widget.setStyleSheet(self.ss)
            self.valid = True
 
+   ##
+   #\brief function to get the value.
+   #
+   # For complex types, this function will build hte the value recursively
+   def getValue(self):
+       if self.template == None:
+           try:
+               return self.value
+           except:
+               return ""
+       elif self.template["type"] == "dictionary":
+           print("dictionary value")
+       elif self.template["type"] == "list":
+           print("dictionary value")
+       else:
+           return self.value
+
+
 
 class unitTestViewer( QWidget ):
    def __init__(self):
@@ -108,7 +141,7 @@ class unitTestViewer( QWidget ):
        self.height = QDesktopWidget().availableGeometry().height();
 
        #Define window parameters
-       self.resize(self.width*.75, self.height*.75 )
+       self.resize(self.width*.5, self.height*.5 )
        self.setWindowTitle("SmartWidget unit test")
        self.show()
 
@@ -131,13 +164,7 @@ class unitTestViewer( QWidget ):
        ###############
        #Test strings
        ###############
-       tplate={} 
-       tplate["key"] = "string"
-       tplate["type"]="string"
-
-       widget = SmartWidget()
-
-       widget.init("string", "test", tplate)
+       widget = SmartWidget().init("string", "test", {"type":"string"})
        if widget is False:
            print( "Unable to create string widget. Failure")
            return False
@@ -145,7 +172,7 @@ class unitTestViewer( QWidget ):
        self.mainLayout.addLayout( widget.layout)
 
        #Check to make sure we have the expected value
-       value = widget.value
+       value = widget.getValue()
        if value != "test":
            print("String value mismatch("+str(value))
            result = false
@@ -154,13 +181,7 @@ class unitTestViewer( QWidget ):
        ###############
        #Test Integers
        ###############
-       tplate2={} 
-       tplate2["key"] = "integer"
-       tplate2["type"]="integer"
-
-       widget2 = SmartWidget()
-
-       widget2.init("int", 2, tplate2)
+       widget2 = SmartWidget().init("integer", 2, {"type":"integer"})
        if widget2 is False:
            print( "Unable to create string widget. Failure")
            return False
@@ -168,22 +189,15 @@ class unitTestViewer( QWidget ):
        self.mainLayout.addLayout( widget2.layout)
 
        #Check to make sure we have the expected value
-       value = widget2.value
+       value = widget2.getValue()
        if value != 2:
-           print("String value mismatch: "+str(value))
+           print("Integer value mismatch: "+str(value))
            return False
-
 
        ###############
        #Test Floats
        ###############
-       tplate3={} 
-       tplate3["key"] = "float"
-       tplate3["type"]="float"
-
-       widget3 = SmartWidget()
-
-       widget3.init("float", 2.1, tplate3)
+       widget3 = SmartWidget().init("float", 2.1, {"type":"float"})
        if widget3 is False:
            print( "Unable to create string widget. Failure")
            return False
@@ -191,52 +205,37 @@ class unitTestViewer( QWidget ):
        self.mainLayout.addLayout( widget3.layout)
 
        #Check to make sure we have the expected value
-       value = widget3.value
+       value = widget3.getValue()
        if value != 2.1:
-           print("String value mismatch: "+str(value))
+           print("Float value mismatch: "+str(value))
            return False
 
        ###############
        #Test Bools
        ###############
-       tplate={} 
-       tplate["key"] = "bool"
-       tplate["type"]="bool"
-
-       widget4 = SmartWidget()
-       widget4.init("bool", True, tplate)
-       if widget4 is False:
-           print( "Unable to create string widget. Failure")
-           return False
-
+       widget4 = SmartWidget().init("bool", True, {"type":"bool"})
        self.mainLayout.addLayout( widget4.layout)
 
        #Check to make sure we have the expected value
-       value = widget4.value
+       value = widget4.getValue()
        if value != True:
-           print("String value mismatch: "+str(value))
+           print("Bool value mismatch: "+str(value))
            return False
-
+  
        ###############
        #Test Lists
        ###############
-       tplate={} 
-       tplate["key"] = "list"
-       tplate["type"]="bool"
-
-       widget4 = SmartWidget()
-       widget4.init("bool", True, tplate)
-       if widget4 is False:
-           print( "Unable to create string widget. Failure")
-           return False
-
-       self.mainLayout.addLayout( widget4.layout)
+       data = ["a", 2, 3, 4]
+#       widget5 = SmartWidget().init("list", data, {"type":"list"})
+       widget5 = SmartWidget().init("list", data)
+       self.mainLayout.addLayout( widget5.layout)
 
        #Check to make sure we have the expected value
-       value = widget4.value
-       if value != True:
-           print("String value mismatch: "+str(value))
+       value = widget5.getValue()
+       if value != data:
+           print("List value mismatch: "+str(value))
            return False
+      
 
        ####
        #Add stretch to push all entries to the top
