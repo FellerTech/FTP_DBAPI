@@ -86,11 +86,11 @@ class SmartWidget(SmartType):
               #create layout
               self.layout.addWidget( self.widget )
        else:
-           self.value = value;
-           self.widget = QLabel()
-           self.widget.setText( str(value))
-           self.layout.addWidget( self.widget )
-           self.layout.addStretch(1)
+              self.value = value;
+              self.widget = QLabel()
+              self.widget.setText( str(value))
+              self.layout.addWidget( self.widget )
+              self.layout.addStretch(1)
 
        return self
 
@@ -101,14 +101,14 @@ class SmartWidget(SmartType):
 
        #If we failed, set background as pink and state to invalid
        if not self.setStringAsValue( text ):
-           print( "Invalid field. Type not "+self.template["type"])
-           self.widget.setAutoFillBackground(True)
-           self.widget.setStyleSheet("QLineEdit{background:pink;}")
-           self.valid = False
+          print( "Invalid field. Type not "+self.template["type"])
+          self.widget.setAutoFillBackground(True)
+          self.widget.setStyleSheet("QLineEdit{background:pink;}")
+          self.valid = False
        else:
-           self.widget.setAutoFillBackground(False)
-           self.widget.setStyleSheet(self.ss)
-           self.valid = True
+          self.widget.setAutoFillBackground(False)
+          self.widget.setStyleSheet(self.ss)
+          self.valid = True
 
    ##
    #\brief function to get the value.
@@ -116,17 +116,16 @@ class SmartWidget(SmartType):
    # For complex types, this function will build hte the value recursively
    def getValue(self):
        if self.template == None:
-           try:
-               return self.value
-           except:
-               return ""
+          try:
+              return self.value
+          except:
+              return ""
        elif self.template["type"] == "dictionary":
            print("dictionary value")
        elif self.template["type"] == "list":
            print("dictionary value")
        else:
            return self.value
-
 
 
 class unitTestViewer( QWidget ):
