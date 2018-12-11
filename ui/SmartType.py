@@ -65,7 +65,7 @@ class SmartType:
        try:
            value = self.types.index(template["type"])
        except:
-           print("SmartType::Error - Invalid template type of "+str(template["type"]))
+           print("SmartType::Error - Invalid template")
            return False
 
        """

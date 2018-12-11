@@ -62,18 +62,34 @@ class SmartWidget(SmartType):
        self.layout.addWidget( label )
 
        if template != None:
-          #If we are a list, create a vertical layout and add subwidgets
+          #If we are a list, create a vertical layout and add subwidgets. Each subwidget
+          #must have a specified type
           if template["type"] == "list":
-              self.subLayout = QVBoxLayout()
-              self.layout.addLayout( self.subLayout)
-              print("VALUE:"+str(value ))
-              self.value = value
+
+              #If we have a sub-template, we can create objects for a layout
+              subLayout = QVBoxLayout()
+              if "template" in template:
+                  count = 0
+                  for item in value:
+                      widget = SmartWidget().init(count, item, template["template"])
+                      subLayout.addLayout( widget.layout )
+                      self.layout.addLayout( subLayout)
+                      count = count + 1
 
           #If we are a dict, create a vertical layout and add subwidgets
           elif template["type"] == "dictionary":
-              print("Received a dictionary object")
+              print("CREATING"+str(template))
               self.subLayout = QVBoxLayout()
-              self.layout.addLayout( self.subLayout)
+
+              #If we have a sub-template, we can create objects for a layout
+              subLayout = QVBoxLayout()
+              if "template" in template:
+                  for k,v in value.items():
+                      if k in template["template"]:
+                         print("Value: "+template["template"][k])
+                         widget = SmartWidget().init(k, v, template["template"][k])
+                         subLayout.addLayout( widget.layout )
+                         self.layout.addLayout( subLayout)
 
           else:
               #default is for it to be a text box 
@@ -86,11 +102,40 @@ class SmartWidget(SmartType):
               #create layout
               self.layout.addWidget( self.widget )
        else:
+           if( isinstance( value, list )):
+              subLayout = QVBoxLayout()
+              count = 0
+              for item in value:
+                  widget = SmartWidget().init(count, item)
+                  if widget is False:
+                      print( "Unable to create string widget. Failure")
+                      return False
+
+                  subLayout.addLayout( widget.layout)
+                  count = count + 1
+              subLayout.addStretch(1)
+              self.layout.addLayout( subLayout)
+
+           if( isinstance( value, dict)):
+              subLayout = QVBoxLayout()
+              print( str(value))
+              for k, v in value.items():
+                 widget = SmartWidget().init(k,v, )
+                 if widget is False:
+                     print( "Unable to create string widget. Failure")
+                     return False
+
+                 subLayout.addLayout( widget.layout)
+              subLayout.addStretch(1)
+              self.layout.addLayout( subLayout)
+
+           else:
+              #TODO: Iterate through and generate sub items
               self.value = value;
               self.widget = QLabel()
               self.widget.setText( str(value))
               self.layout.addWidget( self.widget )
-              self.layout.addStretch(1)
+       self.layout.addStretch(1)
 
        return self
 
@@ -143,7 +188,6 @@ class unitTestViewer( QWidget ):
        self.resize(self.width*.5, self.height*.5 )
        self.setWindowTitle("SmartWidget unit test")
        self.show()
-
 
        self.mainLayout = QVBoxLayout()
        self.setLayout( self.mainLayout )
@@ -224,16 +268,38 @@ class unitTestViewer( QWidget ):
        ###############
        #Test Lists
        ###############
-       data = ["a", 2, 3, 4]
-#       widget5 = SmartWidget().init("list", data, {"type":"list"})
+       #Test uneditable list
+       data = ["abc", 2, 3.2, 4]
        widget5 = SmartWidget().init("list", data)
        self.mainLayout.addLayout( widget5.layout)
 
+       #Test editable
+       data2 = [1,2,3,4]
+       widget6 = SmartWidget().init("list", data2, {"type":"list","template":{"type":"integer"}})
+       self.mainLayout.addLayout( widget6.layout)
        #Check to make sure we have the expected value
-       value = widget5.getValue()
-       if value != data:
-           print("List value mismatch: "+str(value))
-           return False
+#       value = widget5.getValue()
+#       if value != data:
+#           print("List value mismatch: "+str(value))
+#           return False
+      
+
+       ###############
+       #Test Dicts
+       ###############
+       #Test uneditable list
+       data = {"key1":"test1", "key2":"test2"}
+       widget7 = SmartWidget().init("dictionary", data)
+       self.mainLayout.addLayout( widget7.layout)
+
+       #Test editable
+       widget8 = SmartWidget().init("dictionary", data, {"type":"dictionary","template":{"type":"string"}})
+       self.mainLayout.addLayout( widget8.layout)
+       #Check to make sure we have the expected value
+#       value = widget5.getValue()
+#       if value != data:
+#           print("List value mismatch: "+str(value))
+#           return False
       
 
        ####
