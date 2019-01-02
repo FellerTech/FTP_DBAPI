@@ -35,8 +35,6 @@ an undefined type can be anything, but it will not be included in the interface 
 class SmartType:
    types = ["string", "integer", "float", "bool", "list", "dict"]
 
-#   def __init__(self):
- #      return 
    ##
    # \brief Default initializer
    # \param [in] key name of the item
@@ -68,35 +66,23 @@ class SmartType:
            print("SmartType::Error - Invalid template")
            return False
 
-       """
-       - This is not necessary.
-       #Make sure we have a key
-       try:
-           value = template["key"]
-       except:
-           print("SmartType::Error - template missing key")
-           return False
+       if template == None:
+           self.template = template
+           return True
 
-       #Make sure array and dict types have sub templates
-       if template["type"] == "dict" or template["type"] == "list":
-           try: 
-               subTemplate = template["template"]
-           except:
-               print("SmartType::Error - dict and list types must have sub template fields to be editable")
-               readOnly = True 
-
-           self.subType = SmartType()
-           if not self.subType.setTemplate(subTemplate):
-               print("Invalid subTemplate for "+template["key"])
-
-       # Make sure optional fields have reasonable values
-       """
+       #Make sure we are a dictionary with a type field
+       if isinstance( template, dict ):
+           if 'type' in template.keys():
+               if template["type"] in self.types: 
+                   self.template = template
+                   return True
+               else: 
+                   print("No type specified in template "+str(template))
+           else:
+               print("No type specified in template "+str(template))
 
 
-       #Make sure required required data is needed
-       self.template = template
-
-       return True
+       return False
 
    ##
    # \brief specifies the value that the device should have

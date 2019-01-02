@@ -52,6 +52,8 @@ class SmartWidget(SmartType):
        #For standard types, do the following:
        SmartType.__init__(self, key, value, template )
 
+       self.components = []
+
        #Set our key to the appropriate value
        self.key = key
        self.layout = QHBoxLayout()
@@ -61,10 +63,12 @@ class SmartWidget(SmartType):
        label.setText(str(self.key)+" : ")
        self.layout.addWidget( label )
 
+       #Check if we have a defined template
        if template != None:
           #If we are a list, create a vertical layout and add subwidgets. Each subwidget
           #must have a specified type
           if template["type"] == "list":
+              #We are an array, so we need to track a list of components. 
 
               #If we have a sub-template, we can create objects for a layout
               subLayout = QVBoxLayout()
@@ -72,13 +76,18 @@ class SmartWidget(SmartType):
                   count = 0
                   for item in value:
                       widget = SmartWidget().init(count, item, template["template"])
-                      subLayout.addLayout( widget.layout )
-                      self.layout.addLayout( subLayout)
-                      count = count + 1
+
+                      if widget == False:
+                          print("Error!")
+                      else:
+                          self.components.append(self) 
+                          subLayout.addLayout( widget.layout ) 
+                          self.layout.addLayout( subLayout) 
+                          self.components.append(widget) 
+                          count = count + 1
 
           #If we are a dict, create a vertical layout and add subwidgets
           elif template["type"] == "dictionary":
-              print("CREATING"+str(template))
               self.subLayout = QVBoxLayout()
 
               #If we have a sub-template, we can create objects for a layout
@@ -88,6 +97,7 @@ class SmartWidget(SmartType):
                       if k in template["template"]:
                          print("Value: "+template["template"][k])
                          widget = SmartWidget().init(k, v, template["template"][k])
+                         self.components.append(self)
                          subLayout.addLayout( widget.layout )
                          self.layout.addLayout( subLayout)
 
@@ -138,6 +148,15 @@ class SmartWidget(SmartType):
        self.layout.addStretch(1)
 
        return self
+
+
+   ##
+   # \brief getValue
+   def getValue(self):
+       for item in self.components:
+           item.getValue()
+       return 
+
 
    ##
    # \brief Callback to handle changes
