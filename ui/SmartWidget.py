@@ -79,7 +79,7 @@ class SmartWidget(SmartType):
                       if widget == False:
                           print("Error!")
                       else:
-                          self.components.append(self) 
+                          self.components.append(widget) 
                           subLayout.addLayout( widget.layout ) 
                           self.layout.addLayout( subLayout) 
                           self.components.append(widget) 
@@ -175,14 +175,17 @@ class SmartWidget(SmartType):
           except:
               return ""
        elif self.template["type"] == "dict":
-           print(self.key+" dict value")
+           print(str(self.key)+" dict value")
            value = {}
            for item in self.components:
                print("Getting for: "+item.key)
                value[item.key] = item.getValue()
            return value
        elif self.template["type"] == "list":
-           print("list value")
+           value = []
+           for item in self.components:
+               value.append(item.getValue())
+           return value
        else:
            print(self.key+" Returning: "+str(self.value))
            return self.value
@@ -312,9 +315,13 @@ class unitTestViewer( QWidget ):
        self.widget8 = SmartWidget().init("dict", data, {"type":"dict","template":{"type":"string"}})
        self.mainLayout.addLayout( self.widget8.layout)
 
+
+       ###############
+       # Check all
+       ###############
        print("Creating widget 9")
-       template={"type":"dict","template":{"type":"dict","template":{"type":"integer"}}}
-       value = {"level1":{"value1":1, "value2":2}}
+       template={"type":"list","template":{"type":"dict","template":{"type":"integer"}}}
+       value = [{"value1":1, "value2":2},{"value3":3, "value4":4}]
        self.widget9 = SmartWidget().init("Test2",value,template)
        self.mainLayout.addLayout( self.widget9.layout )
     
