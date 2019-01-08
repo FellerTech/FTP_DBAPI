@@ -41,6 +41,7 @@ from SmartType import SmartType
 
 class SmartWidget(SmartType):
    def __init__(self):
+       self.value=""
        return 
 
    ##
@@ -52,11 +53,11 @@ class SmartWidget(SmartType):
        #For standard types, do the following:
        SmartType.__init__(self, key, value, template )
 
-       self.components = []
 
        #Set our key to the appropriate value
-       self.key = key
-       self.layout = QHBoxLayout()
+       self.key = key                                      #!< The is the key descriptor for object
+       self.layout = QHBoxLayout()                         #!< Display out.
+       self.components = []                                #!< Sub components
 
        #Create Label
        label = QLabel()
@@ -68,8 +69,6 @@ class SmartWidget(SmartType):
           #If we are a list, create a vertical layout and add subwidgets. Each subwidget
           #must have a specified type
           if template["type"] == "list":
-              #We are an array, so we need to track a list of components. 
-
               #If we have a sub-template, we can create objects for a layout
               subLayout = QVBoxLayout()
               if "template" in template:
@@ -87,19 +86,18 @@ class SmartWidget(SmartType):
                           count = count + 1
 
           #If we are a dict, create a vertical layout and add subwidgets
-          elif template["type"] == "dictionary":
+          elif template["type"] == "dict":
               self.subLayout = QVBoxLayout()
 
               #If we have a sub-template, we can create objects for a layout
               subLayout = QVBoxLayout()
               if "template" in template:
                   for k,v in value.items():
-                      if k in template["template"]:
-                         print("Value: "+template["template"][k])
-                         widget = SmartWidget().init(k, v, template["template"][k])
-                         self.components.append(self)
-                         subLayout.addLayout( widget.layout )
-                         self.layout.addLayout( subLayout)
+                      print("ADDING LAYOUT: "+k+" with value: "+ str(v))
+                      self.widget = SmartWidget().init(k, v, template["template"])
+                      self.components.append(self.widget)
+                      subLayout.addLayout( self.widget.layout )
+                      self.layout.addLayout( subLayout)
 
           else:
               #default is for it to be a text box 
@@ -151,14 +149,6 @@ class SmartWidget(SmartType):
 
 
    ##
-   # \brief getValue
-   def getValue(self):
-       for item in self.components:
-           item.getValue()
-       return 
-
-
-   ##
    # \brief Callback to handle changes
    def validate(self):
        text = self.widget.text()
@@ -184,11 +174,17 @@ class SmartWidget(SmartType):
               return self.value
           except:
               return ""
-       elif self.template["type"] == "dictionary":
-           print("dictionary value")
+       elif self.template["type"] == "dict":
+           print(self.key+" dict value")
+           value = {}
+           for item in self.components:
+               print("Getting for: "+item.key)
+               value[item.key] = item.getValue()
+           return value
        elif self.template["type"] == "list":
-           print("dictionary value")
+           print("list value")
        else:
+           print(self.key+" Returning: "+str(self.value))
            return self.value
 
 
@@ -199,7 +195,7 @@ class unitTestViewer( QWidget ):
        ###############
        super().__init__()
        #Determine screen settings
-       geo = self.frameGeometry()
+       geo         = self.frameGeometry()
        self.width  = QDesktopWidget().availableGeometry().width();
        self.height = QDesktopWidget().availableGeometry().height();
 
@@ -220,7 +216,8 @@ class unitTestViewer( QWidget ):
        self.titleLayout.addStretch(1)
        self.mainLayout.addLayout( self.titleLayout )
 
-
+   ###
+   # \brief Test function
    def test(self):
 
        ###############
@@ -308,23 +305,38 @@ class unitTestViewer( QWidget ):
        ###############
        #Test uneditable list
        data = {"key1":"test1", "key2":"test2"}
-       widget7 = SmartWidget().init("dictionary", data)
-       self.mainLayout.addLayout( widget7.layout)
+       self.widget7 = SmartWidget().init("read only dict", data)
+       self.mainLayout.addLayout( self.widget7.layout)
 
        #Test editable
-       widget8 = SmartWidget().init("dictionary", data, {"type":"dictionary","template":{"type":"string"}})
-       self.mainLayout.addLayout( widget8.layout)
-       #Check to make sure we have the expected value
-#       value = widget5.getValue()
-#       if value != data:
-#           print("List value mismatch: "+str(value))
-#           return False
-      
+       self.widget8 = SmartWidget().init("dict", data, {"type":"dict","template":{"type":"string"}})
+       self.mainLayout.addLayout( self.widget8.layout)
+
+       print("Creating widget 9")
+       template={"type":"dict","template":{"type":"dict","template":{"type":"integer"}}}
+       value = {"level1":{"value1":1, "value2":2}}
+       self.widget9 = SmartWidget().init("Test2",value,template)
+       self.mainLayout.addLayout( self.widget9.layout )
+    
 
        ####
        #Add stretch to push all entries to the top
        ####
        self.mainLayout.addStretch(1)
+
+       ###
+       # Add a check button
+       ###
+       self.testButton = QPushButton('Test',self)
+       self.testButton.clicked.connect( lambda: self.submitButtonPressEvent())
+       self.mainLayout.addWidget( self.testButton )
+
+   def submitButtonPressEvent(self):
+       print("SUBMIT")
+       print( self.widget9.getValue())
+
+
+
 
 
 if __name__ == '__main__':
@@ -340,7 +352,13 @@ if __name__ == '__main__':
         
     app = QApplication( sys.argv )
     window = unitTestViewer()
+
+    #Check individual components
     window.test()
+
+
+
+    
 
     sys.exit(app.exec_())
 
