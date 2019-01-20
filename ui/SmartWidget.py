@@ -35,7 +35,7 @@ an undefined type can be anything, but it will not be included in the interface 
 """
 import argparse
 import sys
-from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget, QLabel, QLineEdit
+from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget, QLabel, QLineEdit, QFrame
 from PyQt5.QtCore import pyqtSlot
 from SmartType import SmartType
 
@@ -59,6 +59,9 @@ class SmartWidget(SmartType):
        self.layout = QHBoxLayout()                         #!< Display out.
        self.components = []                                #!< Sub components
 
+
+       self.editable = True                                #!< Flag to indicate if editing is ok
+
        #Create Label
        label = QLabel()
        label.setText(str(self.key)+" : ")
@@ -66,9 +69,17 @@ class SmartWidget(SmartType):
 
        #Check if we have a defined template
        if template != None:
+          #Check if we have a specific editable flag
+          try:
+             if isinstance(template["editable"], bool ):
+                self.editable = template["editable"]
+          except:
+             pass
+
           #If we are a list, create a vertical layout and add subwidgets. Each subwidget
           #must have a specified type
           if template["type"] == "list":
+              #See if we have write permissions"
               #If we have a sub-template, we can create objects for a layout
               subLayout = QVBoxLayout()
               if "template" in template:
@@ -80,8 +91,12 @@ class SmartWidget(SmartType):
                           print("Error!")
                       else:
                           self.components.append(widget) 
-                          subLayout.addLayout( widget.layout ) 
-                          self.layout.addLayout( subLayout) 
+
+#                          subLayout.addLayout( widget.layout ) 
+#                          self.layout.addLayout( subLayout) 
+                          self.layout.addWidget(widget.frame)
+
+                          #If editable, this each sub-component can be removed
                           self.components.append(widget) 
                           count = count + 1
 
@@ -90,15 +105,16 @@ class SmartWidget(SmartType):
               self.subLayout = QVBoxLayout()
 
               #If we have a sub-template, we can create objects for a layout
+
               subLayout = QVBoxLayout()
               if "template" in template:
                   for k,v in value.items():
-                      print("ADDING LAYOUT: "+k+" with value: "+ str(v))
                       self.widget = SmartWidget().init(k, v, template["template"])
                       self.components.append(self.widget)
-                      subLayout.addLayout( self.widget.layout )
+#                      subLayout.addLayout( self.widget.layout )
+                      subLayout.addWidget(self.widget.frame)
                       self.layout.addLayout( subLayout)
-
+#                      self.layout.addWidget(widget.frame)
           else:
               #default is for it to be a text box 
               self.widget = QLineEdit()
@@ -109,6 +125,12 @@ class SmartWidget(SmartType):
 
               #create layout
               self.layout.addWidget( self.widget )
+
+
+          #Add remove button
+          self.removeButton = QPushButton("-")
+          self.removeButton.clicked.connect( lambda: self.removeButtonPressEvent(str(self.key)))
+          self.layout.addWidget( self.removeButton )
        else:
            if( isinstance( value, list )):
               subLayout = QVBoxLayout()
@@ -145,7 +167,16 @@ class SmartWidget(SmartType):
               self.layout.addWidget( self.widget )
        self.layout.addStretch(1)
 
+       #Create frame
+       self.frame = QFrame()
+       self.frame.setLayout(self.layout)
+       self.frame.adjustSize()
+       self.frame.setFrameStyle( 1 )
+       self.frame.setLineWidth(1)
+       
        return self
+
+       
 
 
    ##
@@ -190,6 +221,8 @@ class SmartWidget(SmartType):
            print(self.key+" Returning: "+str(self.value))
            return self.value
 
+   def removeButtonPressEvent( self, key ):
+       print("Request to remove "+key)
 
 class unitTestViewer( QWidget ):
    def __init__(self):
@@ -231,7 +264,8 @@ class unitTestViewer( QWidget ):
            print( "Unable to create string widget. Failure")
            return False
 
-       self.mainLayout.addLayout( widget.layout)
+#       self.mainLayout.addLayout( widget.layout)
+       self.mainLayout.addWidget(widget.frame)
 
        #Check to make sure we have the expected value
        value = widget.getValue()
@@ -248,7 +282,8 @@ class unitTestViewer( QWidget ):
            print( "Unable to create string widget. Failure")
            return False
 
-       self.mainLayout.addLayout( widget2.layout)
+#       self.mainLayout.addLayout( widget2.layout)
+       self.mainLayout.addWidget( widget2.frame)
 
        #Check to make sure we have the expected value
        value = widget2.getValue()
@@ -264,7 +299,8 @@ class unitTestViewer( QWidget ):
            print( "Unable to create string widget. Failure")
            return False
 
-       self.mainLayout.addLayout( widget3.layout)
+       #self.mainLayout.addLayout( widget3.layout)
+       self.mainLayout.addWidget(widget3.frame)
 
        #Check to make sure we have the expected value
        value = widget3.getValue()
@@ -276,7 +312,8 @@ class unitTestViewer( QWidget ):
        #Test Bools
        ###############
        widget4 = SmartWidget().init("bool", True, {"type":"bool"})
-       self.mainLayout.addLayout( widget4.layout)
+#       self.mainLayout.addLayout( widget4.layout)
+       self.mainLayout.addWidget(widget4.frame)
 
        #Check to make sure we have the expected value
        value = widget4.getValue()
@@ -290,12 +327,15 @@ class unitTestViewer( QWidget ):
        #Test uneditable list
        data = ["abc", 2, 3.2, 4]
        widget5 = SmartWidget().init("list", data)
-       self.mainLayout.addLayout( widget5.layout)
+#       self.mainLayout.addLayout( widget5.layout)
+       self.mainLayout.addWidget(widget5.frame)
 
        #Test editable
        data2 = [1,2,3,4]
        widget6 = SmartWidget().init("list", data2, {"type":"list","template":{"type":"integer"}})
-       self.mainLayout.addLayout( widget6.layout)
+#       self.mainLayout.addLayout( widget6.layout)
+       self.mainLayout.addWidget(widget6.frame)
+
        #Check to make sure we have the expected value
 #       value = widget5.getValue()
 #       if value != data:
@@ -309,11 +349,13 @@ class unitTestViewer( QWidget ):
        #Test uneditable list
        data = {"key1":"test1", "key2":"test2"}
        self.widget7 = SmartWidget().init("read only dict", data)
-       self.mainLayout.addLayout( self.widget7.layout)
+#       self.mainLayout.addLayout( self.widget7.layout)
+       self.mainLayout.addWidget(self.widget7.frame)
 
        #Test editable
        self.widget8 = SmartWidget().init("dict", data, {"type":"dict","template":{"type":"string"}})
-       self.mainLayout.addLayout( self.widget8.layout)
+#       self.mainLayout.addLayout( self.widget8.layout)
+       self.mainLayout.addWidget(self.widget8.frame)
 
 
        ###############
@@ -341,6 +383,7 @@ class unitTestViewer( QWidget ):
    def submitButtonPressEvent(self):
        print("SUBMIT")
        print( self.widget9.getValue())
+
 
 
 
