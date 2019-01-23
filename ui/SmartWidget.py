@@ -49,7 +49,9 @@ class SmartWidget(SmartType):
    # \param [in] key name of the item
    # \param [in] value value to set the item to
    # \param [in] template Json object that defines what the object may contain
-   def init(self, key, value, template = None):
+   def init(self, key, value, template = None, removeCallback=None):
+       self.callback = removeCallback
+
        #For standard types, do the following:
        SmartType.__init__(self, key, value, template )
 
@@ -85,16 +87,16 @@ class SmartWidget(SmartType):
               if "template" in template:
                   count = 0
                   for item in value:
-                      widget = SmartWidget().init(count, item, template["template"])
+                      widget = SmartWidget().init(count, item, template["template"], self.removeCallback)
 
                       if widget == False:
                           print("Error!")
                       else:
                           self.components.append(widget) 
 
-#                          subLayout.addLayout( widget.layout ) 
-#                          self.layout.addLayout( subLayout) 
-                          self.layout.addWidget(widget.frame)
+                          subLayout.addWidget( widget.frame ) 
+                          self.layout.addLayout( subLayout) 
+#                          self.layout.addWidget(widget.frame)
 
                           #If editable, this each sub-component can be removed
                           self.components.append(widget) 
@@ -109,7 +111,7 @@ class SmartWidget(SmartType):
               subLayout = QVBoxLayout()
               if "template" in template:
                   for k,v in value.items():
-                      self.widget = SmartWidget().init(k, v, template["template"])
+                      self.widget = SmartWidget().init(k, v, template["template"], self.removeCallback )
                       self.components.append(self.widget)
 #                      subLayout.addLayout( self.widget.layout )
                       subLayout.addWidget(self.widget.frame)
@@ -129,7 +131,7 @@ class SmartWidget(SmartType):
 
           #Add remove button
           self.removeButton = QPushButton("-")
-          self.removeButton.clicked.connect( lambda: self.removeButtonPressEvent(str(self.key)))
+          self.removeButton.clicked.connect( lambda: self.removeButtonPressEvent())
           self.layout.addWidget( self.removeButton )
        else:
            if( isinstance( value, list )):
@@ -176,9 +178,6 @@ class SmartWidget(SmartType):
        
        return self
 
-       
-
-
    ##
    # \brief Callback to handle changes
    def validate(self):
@@ -221,8 +220,23 @@ class SmartWidget(SmartType):
            print(self.key+" Returning: "+str(self.value))
            return self.value
 
-   def removeButtonPressEvent( self, key ):
-       print("Request to remove "+key)
+   def getKey():
+       return self.key
+
+   def removeCallback(self, key ):
+       print("Remove callback for "+str(key))
+       return 
+
+   ##
+   # Callback for removing an element frmo an array or a dictionary
+   def removeButtonPressEvent( self):
+       print("Request to remove "+str(self.key))
+
+       if self.callback != None:
+          print("Callback to remove "+str(self.key))
+          self.callback( self.key)
+       else:
+          print("No callback specified. Unable to remove")
 
 class unitTestViewer( QWidget ):
    def __init__(self):
