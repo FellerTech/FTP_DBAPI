@@ -1,6 +1,14 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+"""
+Steps:
+    - Draw items
+    - Handle remove requests
+    - redraw items 
+    - extract data
+"""
+
 version="0.0.1.0"
 
 """
@@ -223,8 +231,14 @@ class SmartWidget(SmartType):
    def getKey():
        return self.key
 
+   ##
+   # \brief callback called by a child to remove itself
    def removeCallback(self, key ):
-       print("Remove callback for "+str(key))
+       print(self.key+" remove callback for "+str(key))
+
+       #remove key
+       del self.value[key]
+
        return 
 
    ##
@@ -397,9 +411,6 @@ class unitTestViewer( QWidget ):
    def submitButtonPressEvent(self):
        print("SUBMIT")
        print( self.widget9.getValue())
-
-
-
 
 
 
