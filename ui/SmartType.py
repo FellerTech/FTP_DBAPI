@@ -42,10 +42,12 @@ class SmartType:
    # \param [in] template Json object that defines what the object may contain
    def __init__(self, key, value, template=None):
        self.key = key
+       self.type = "Unknonw"
 
        self.template = None
        if template != None:
           self.setTemplate( template)
+          self.type = template["type"]
 
        self.setValue(value)
 

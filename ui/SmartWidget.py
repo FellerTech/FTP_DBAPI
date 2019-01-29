@@ -50,6 +50,8 @@ from SmartType import SmartType
 class SmartWidget(SmartType):
    def __init__(self):
        self.value=""
+       self.widgets={}
+       self.frame = QFrame()
        return 
 
    ##
@@ -66,71 +68,72 @@ class SmartWidget(SmartType):
 
        #Set our key to the appropriate value
        self.key = key                                      #!< The is the key descriptor for object
-       self.layout = QHBoxLayout()                         #!< Display out.
-       self.components = []                                #!< Sub components
-
-
        self.editable = True                                #!< Flag to indicate if editing is ok
+       self.layout = QHBoxLayout()                         #!< Display out.
+       self.frame = QFrame ()                              #!< Frame around entry
 
+       self.draw()
+       self.template = template
+       self.value = value;
+
+       return self
+
+   def draw(self):
        #Create Label
        label = QLabel()
        label.setText(str(self.key)+" : ")
        self.layout.addWidget( label )
 
        #Check if we have a defined template
-       if template != None:
+       if self.template != None:
           #Check if we have a specific editable flag
           try:
-             if isinstance(template["editable"], bool ):
-                self.editable = template["editable"]
+             if isinstance(self.template["editable"], bool ):
+                self.editable = self.template["editable"]
           except:
              pass
 
           #If we are a list, create a vertical layout and add subwidgets. Each subwidget
           #must have a specified type
-          if template["type"] == "list":
+          if self.template["type"] == "list":
               #See if we have write permissions"
               #If we have a sub-template, we can create objects for a layout
-              subLayout = QVBoxLayout()
-              if "template" in template:
+              self.subLayout = QVBoxLayout()
+              if "template" in self.template:
                   count = 0
-                  for item in value:
-                      widget = SmartWidget().init(count, item, template["template"], self.removeCallback)
+                  for item in self.value:
+                      widget = SmartWidget().init(count, item, self.template["template"], self.removeCallback)
 
                       if widget == False:
                           print("Error!")
                       else:
-                          self.components.append(widget) 
+#                          self.components.append(widget) 
 
-                          subLayout.addWidget( widget.frame ) 
-                          self.layout.addLayout( subLayout) 
+                          self.subLayout.addWidget( widget.frame ) 
+                          self.layout.addLayout( self.subLayout) 
 #                          self.layout.addWidget(widget.frame)
 
                           #If editable, this each sub-component can be removed
-                          self.components.append(widget) 
+#                          self.components.append(widget) 
                           count = count + 1
 
           #If we are a dict, create a vertical layout and add subwidgets
-          elif template["type"] == "dict":
-              self.subLayout = QVBoxLayout()
-
-              #If we have a sub-template, we can create objects for a layout
-
-              subLayout = QVBoxLayout()
-              if "template" in template:
-                  for k,v in value.items():
-                      self.widget = SmartWidget().init(k, v, template["template"], self.removeCallback )
-                      self.components.append(self.widget)
-#                      subLayout.addLayout( self.widget.layout )
-                      subLayout.addWidget(self.widget.frame)
-                      self.layout.addLayout( subLayout)
-#                      self.layout.addWidget(widget.frame)
+          elif self.template["type"] == "dict":
+              if "template" in self.template:
+                  subLayout = QVBoxLayout()
+                  for k,v in self.value.items():
+                      widget = SmartWidget().init(k, v, self.template["template"], self.removeCallback )
+                      subLayout.addWidget(widget.frame)
+                  subFrame = QFrame()
+                  subFrame.setLayout(subLayout)
+                  self.layout.addWidget(subFrame)
+                      
           else:
               #default is for it to be a text box 
               self.widget = QLineEdit()
               self.ss = self.widget.styleSheet()
               self.valid = True
-              self.widget.setText(str(value))
+              self.widget.setText(str(self.value))
               self.widget.editingFinished.connect( lambda: self.validate() )
 
               #create layout
@@ -142,49 +145,48 @@ class SmartWidget(SmartType):
           self.removeButton.clicked.connect( lambda: self.removeButtonPressEvent())
           self.layout.addWidget( self.removeButton )
        else:
-           if( isinstance( value, list )):
-              subLayout = QVBoxLayout()
+           if( isinstance( self.value, list )):
+              self.subLayout = QVBoxLayout()
               count = 0
-              for item in value:
+              for item in self.value:
                   widget = SmartWidget().init(count, item)
                   if widget is False:
                       print( "Unable to create string widget. Failure")
                       return False
 
-                  subLayout.addLayout( widget.layout)
+                  self.subLayout.addLayout( widget.layout)
                   count = count + 1
-              subLayout.addStretch(1)
-              self.layout.addLayout( subLayout)
+              self.subLayout.addStretch(1)
+              self.layout.addLayout( self.subLayout)
 
-           if( isinstance( value, dict)):
-              subLayout = QVBoxLayout()
-              print( str(value))
+           if( isinstance( self.value, dict)):
+              self.subLayout = QVBoxLayout()
+              print( str(self.value))
               for k, v in value.items():
                  widget = SmartWidget().init(k,v, )
                  if widget is False:
                      print( "Unable to create string widget. Failure")
                      return False
 
-                 subLayout.addLayout( widget.layout)
-              subLayout.addStretch(1)
-              self.layout.addLayout( subLayout)
+              self.draw()
+
 
            else:
               #TODO: Iterate through and generate sub items
-              self.value = value;
               self.widget = QLabel()
-              self.widget.setText( str(value))
+              self.widget.setText( str(self.value))
               self.layout.addWidget( self.widget )
+
        self.layout.addStretch(1)
 
        #Create frame
-       self.frame = QFrame()
        self.frame.setLayout(self.layout)
        self.frame.adjustSize()
        self.frame.setFrameStyle( 1 )
        self.frame.setLineWidth(1)
        
        return self
+
 
    ##
    # \brief Callback to handle changes
@@ -237,7 +239,11 @@ class SmartWidget(SmartType):
        print(self.key+" remove callback for "+str(key))
 
        #remove key
+       del self.widgets[key]
        del self.value[key]
+
+       #recreate the layout
+       self.draw()
 
        return 
 
@@ -248,6 +254,7 @@ class SmartWidget(SmartType):
 
        if self.callback != None:
           print("Callback to remove "+str(self.key))
+          self.frame.deleteLater()
           self.callback( self.key)
        else:
           print("No callback specified. Unable to remove")
