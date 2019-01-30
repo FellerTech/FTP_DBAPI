@@ -47,6 +47,18 @@ from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplic
 from PyQt5.QtCore import pyqtSlot
 from SmartType import SmartType
 
+class IndexButton(QPushButton):
+    def __init__(self, value, index, callback):
+        QPushButton.__init__(self, value)
+        self.index =index
+        self.callback = callback
+        self.clicked.connect( lambda: self.pressEvent())
+
+
+    def pressEvent(self):
+        self.callback( self.index)
+
+
 class SmartWidget(SmartType):
    def __init__(self):
        self.value=""
@@ -72,13 +84,41 @@ class SmartWidget(SmartType):
        self.layout = QHBoxLayout()                         #!< Display out.
        self.frame = QFrame ()                              #!< Frame around entry
 
+       self.frame.setLayout(self.layout)
+       self.frame.adjustSize()
+       self.frame.setFrameStyle( 1 )
+       self.frame.setLineWidth(1)
+       
+       #DEBUG 
+       self.noDraw = False
+
        self.draw()
        self.template = template
        self.value = value;
 
+
        return self
 
+   ##
+   # \brief Function to draw the frame
    def draw(self):
+       #Remove all widgets
+       while self.layout.count():
+           item = self.layout.takeAt(0)
+           widget = item.widget()
+           if widget is not None:
+               widget.deleteLater()
+#           else:
+#               self.deleteLayout( item.Layout)
+#       sip.delete(layout)
+
+#       #Remove all widgets
+ #      itemCount = self.layout.count()
+ #      for i in range(0, itemCount):
+ #          print(str(self.key)+" Removing "+str(i)+" of "+str(itemCount)+" objects")
+ #          self.layout.removeItem(self.layout.itemAt(i))
+
+
        #Create Label
        label = QLabel()
        label.setText(str(self.key)+" : ")
@@ -98,24 +138,37 @@ class SmartWidget(SmartType):
           if self.template["type"] == "list":
               #See if we have write permissions"
               #If we have a sub-template, we can create objects for a layout
-              self.subLayout = QVBoxLayout()
               if "template" in self.template:
+                  dataLayout = QVBoxLayout()
+                  dataFrame  = QFrame()
                   count = 0
                   for item in self.value:
+                      subFrame = QFrame()
+                      subLayout = QHBoxLayout()
                       widget = SmartWidget().init(count, item, self.template["template"], self.removeCallback)
-
                       if widget == False:
                           print("Error!")
                       else:
-#                          self.components.append(widget) 
+                          subLayout.addWidget(widget.frame)
 
-                          self.subLayout.addWidget( widget.frame ) 
-                          self.layout.addLayout( self.subLayout) 
-#                          self.layout.addWidget(widget.frame)
-
-                          #If editable, this each sub-component can be removed
-#                          self.components.append(widget) 
+                          #Add remove button
+                          removeButton = IndexButton("-", count, self.removeCallback)
+                          subLayout.addWidget( removeButton )
                           count = count + 1
+                     
+                      subFrame.setLayout( subLayout)
+                      subFrame.setFrameStyle( 1 )
+                      subFrame.setLineWidth(1)
+
+                      dataLayout.addWidget(subFrame)
+
+                  #Add a add button
+                  addButton = QPushButton("+")
+                  addButton.clicked.connect( lambda: self.addButtonPressEvent())
+                  dataLayout.addWidget(addButton)
+
+                  dataFrame.setLayout(dataLayout)
+                  self.layout.addWidget(dataFrame)
 
           #If we are a dict, create a vertical layout and add subwidgets
           elif self.template["type"] == "dict":
@@ -126,6 +179,8 @@ class SmartWidget(SmartType):
                       subLayout.addWidget(widget.frame)
                   subFrame = QFrame()
                   subFrame.setLayout(subLayout)
+                  subFrame.setFrameStyle( 1 )
+                  subFrame.setLineWidth(1)
                   self.layout.addWidget(subFrame)
                       
           else:
@@ -140,10 +195,6 @@ class SmartWidget(SmartType):
               self.layout.addWidget( self.widget )
 
 
-          #Add remove button
-          self.removeButton = QPushButton("-")
-          self.removeButton.clicked.connect( lambda: self.removeButtonPressEvent())
-          self.layout.addWidget( self.removeButton )
        else:
            if( isinstance( self.value, list )):
               self.subLayout = QVBoxLayout()
@@ -168,9 +219,6 @@ class SmartWidget(SmartType):
                      print( "Unable to create string widget. Failure")
                      return False
 
-              self.draw()
-
-
            else:
               #TODO: Iterate through and generate sub items
               self.widget = QLabel()
@@ -180,10 +228,14 @@ class SmartWidget(SmartType):
        self.layout.addStretch(1)
 
        #Create frame
-       self.frame.setLayout(self.layout)
-       self.frame.adjustSize()
-       self.frame.setFrameStyle( 1 )
-       self.frame.setLineWidth(1)
+#       print("Setting layout")
+#       self.frame.setLayout(self.layout)
+#       self.frame.adjustSize()
+#       self.frame.setFrameStyle( 1 )
+#       self.frame.setLineWidth(1)
+
+       #DEBUG
+       self.noDraw = True
        
        return self
 
@@ -217,14 +269,15 @@ class SmartWidget(SmartType):
        elif self.template["type"] == "dict":
            print(str(self.key)+" dict value")
            value = {}
-           for item in self.components:
-               print("Getting for: "+item.key)
-               value[item.key] = item.getValue()
+#           for item in self.components:
+#               print("Getting for: "+item.key)
+#               value[item.key] = item.getValue()
            return value
        elif self.template["type"] == "list":
+           
            value = []
-           for item in self.components:
-               value.append(item.getValue())
+#           for item in self.components:
+#               value.append(item.getValue())
            return value
        else:
            print(self.key+" Returning: "+str(self.value))
@@ -239,18 +292,27 @@ class SmartWidget(SmartType):
        print(self.key+" remove callback for "+str(key))
 
        #remove key
-       del self.widgets[key]
        del self.value[key]
+       print(str(self.value))
+       #del self.widgets[key]
+       #del self.value[key]
+
+       #Call the parents remove callback if available. If not, draw
+       if self.callback is not None:
+          self.callback(key)
+       else:
+           print(str(self.key)+" is drawing")
+           self.draw()
+           self.frame.update()
 
        #recreate the layout
-       self.draw()
-
+#       self.draw()
        return 
 
    ##
    # Callback for removing an element frmo an array or a dictionary
-   def removeButtonPressEvent( self):
-       print("Request to remove "+str(self.key))
+   def removeButtonPressEvent( self, index):
+       print("Request to remove "+str(index))
 
        if self.callback != None:
           print("Callback to remove "+str(self.key))
@@ -258,6 +320,9 @@ class SmartWidget(SmartType):
           self.callback( self.key)
        else:
           print("No callback specified. Unable to remove")
+
+   def addButtonPressEvent(self):
+       print("Adding list entry to key "+str(self.key))
 
 class unitTestViewer( QWidget ):
    def __init__(self):
@@ -270,7 +335,7 @@ class unitTestViewer( QWidget ):
        self.width  = QDesktopWidget().availableGeometry().width();
        self.height = QDesktopWidget().availableGeometry().height();
 
-       #Define window parameters
+       #Define window par meters
        self.resize(self.width*.5, self.height*.5 )
        self.setWindowTitle("SmartWidget unit test")
        self.show()
