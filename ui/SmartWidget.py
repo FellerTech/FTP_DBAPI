@@ -64,6 +64,7 @@ class SmartWidget(SmartType):
        self.value=""
        self.widgets={}
        self.frame = QFrame()
+       self.components = {}
        return 
 
    ##
@@ -112,12 +113,6 @@ class SmartWidget(SmartType):
 #               self.deleteLayout( item.Layout)
 #       sip.delete(layout)
 
-#       #Remove all widgets
- #      itemCount = self.layout.count()
- #      for i in range(0, itemCount):
- #          print(str(self.key)+" Removing "+str(i)+" of "+str(itemCount)+" objects")
- #          self.layout.removeItem(self.layout.itemAt(i))
-
 
        #Create Label
        label = QLabel()
@@ -149,6 +144,9 @@ class SmartWidget(SmartType):
                       if widget == False:
                           print("Error!")
                       else:
+                          #Add item to the component list
+                          self.components[str(item)] = widget
+
                           subLayout.addWidget(widget.frame)
 
                           #Add remove button
@@ -220,23 +218,15 @@ class SmartWidget(SmartType):
                      return False
 
            else:
-              #TODO: Iterate through and generate sub items
+              #Generate all basic types. If no value provided, leave field blank
               self.widget = QLabel()
-              self.widget.setText( str(self.value))
+              if self.value is not None:
+                  print("None value detected")
+                  self.widget.setText( str(self.value))
               self.layout.addWidget( self.widget )
 
        self.layout.addStretch(1)
 
-       #Create frame
-#       print("Setting layout")
-#       self.frame.setLayout(self.layout)
-#       self.frame.adjustSize()
-#       self.frame.setFrameStyle( 1 )
-#       self.frame.setLineWidth(1)
-
-       #DEBUG
-       self.noDraw = True
-       
        return self
 
 
@@ -261,28 +251,10 @@ class SmartWidget(SmartType):
    #
    # For complex types, this function will build hte the value recursively
    def getValue(self):
-       if self.template == None:
-          try:
-              return self.value
-          except:
-              return ""
-       elif self.template["type"] == "dict":
-           print(str(self.key)+" dict value")
-           value = {}
-#           for item in self.components:
-#               print("Getting for: "+item.key)
-#               value[item.key] = item.getValue()
-           return value
-       elif self.template["type"] == "list":
-           
-           value = []
-#           for item in self.components:
-#               value.append(item.getValue())
-           return value
-       else:
-           print(self.key+" Returning: "+str(self.value))
-           return self.value
+       return self.value
 
+   ##
+   # \brief returns the key of the object
    def getKey():
        return self.key
 
@@ -291,11 +263,11 @@ class SmartWidget(SmartType):
    def removeCallback(self, key ):
        print(self.key+" remove callback for "+str(key))
 
+       del self.components[str(key)]
+
        #remove key
        del self.value[key]
        print(str(self.value))
-       #del self.widgets[key]
-       #del self.value[key]
 
        #Call the parents remove callback if available. If not, draw
        if self.callback is not None:
@@ -303,11 +275,24 @@ class SmartWidget(SmartType):
        else:
            print(str(self.key)+" is drawing")
            self.draw()
-           self.frame.update()
 
-       #recreate the layout
-#       self.draw()
        return 
+
+   ##
+   # \brief Callback to add an item to a list
+   def addCallback(self):
+       #Make sure we're a list
+       if not isinstance( self.value, list ):
+           print("Can only add elements to a list")
+           return
+
+       self.value.append(None)
+       print("New value: "+str(self.value))
+       if self.callback is not None:
+          self.callback(self.key)
+       else:
+          self.draw()
+
 
    ##
    # Callback for removing an element frmo an array or a dictionary
@@ -323,6 +308,7 @@ class SmartWidget(SmartType):
 
    def addButtonPressEvent(self):
        print("Adding list entry to key "+str(self.key))
+       self.addCallback()
 
 class unitTestViewer( QWidget ):
    def __init__(self):
@@ -432,16 +418,9 @@ class unitTestViewer( QWidget ):
 
        #Test editable
        data2 = [1,2,3,4]
-       widget6 = SmartWidget().init("list", data2, {"type":"list","template":{"type":"integer"}})
+       self.widget6 = SmartWidget().init("list", data2, {"type":"list","template":{"type":"integer"}})
 #       self.mainLayout.addLayout( widget6.layout)
-       self.mainLayout.addWidget(widget6.frame)
-
-       #Check to make sure we have the expected value
-#       value = widget5.getValue()
-#       if value != data:
-#           print("List value mismatch: "+str(value))
-#           return False
-      
+       self.mainLayout.addWidget(self.widget6.frame)
 
        ###############
        #Test Dicts
@@ -482,7 +461,7 @@ class unitTestViewer( QWidget ):
 
    def submitButtonPressEvent(self):
        print("SUBMIT")
-       print( self.widget9.getValue())
+       print( self.widget6.getValue())
 
 
 
