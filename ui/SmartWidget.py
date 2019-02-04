@@ -43,7 +43,7 @@ an undefined type can be anything, but it will not be included in the interface 
 """
 import argparse
 import sys
-from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget, QLabel, QLineEdit, QFrame
+from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget, QLabel, QLineEdit, QFrame, QDialog, QComboBox, QRadioButton, QCheckBox
 from PyQt5.QtCore import pyqtSlot
 from SmartType import SmartType
 
@@ -58,13 +58,113 @@ class IndexButton(QPushButton):
     def pressEvent(self):
         self.callback( self.index)
 
+##
+# \brief dialog for modifying dictionaries
+class DictDialog(QDialog):
+    def __init__(self, callback):
+       super().__init__()
+
+       self.callback = callback
+
+       self.layout = QVBoxLayout()
+       self.keyLayout = QHBoxLayout()
+       keyLabel = QLabel()
+       keyLabel.setText("key")
+       self.keyLayout.addWidget( keyLabel )
+
+
+       #default is for it to be a text box 
+       self.key = QLineEdit()
+       self.ss = self.key.styleSheet()
+#       self.key.editingFinished.connect( lambda: self.validate() )
+       self.keyLayout.addWidget(self.key)
+
+#       self.valueLayout = QHBoxLayout()
+#      valueLabel = QLabel()
+#       valueLabel.setText("value")
+#       self.valueLayout.addWidget( valueLabel )
+
+#       #default is for it to be a text box 
+#       self.valueEdit = QLineEdit()
+#       self.ss = self.valueEdit.styleSheet()
+#       self.valueLayout.addWidget(self.valueEdit)
+
+       typeLayout = QHBoxLayout()
+       typeLabel = QLabel()
+       typeLabel.setText("type")
+       typeLayout.addWidget(typeLabel)
+
+       self.types = QComboBox()
+       self.types.addItems(SmartType.types)
+       typeLayout.addWidget(self.types)
+
+       reqLayout = QHBoxLayout()
+       reqLabel = QLabel()
+       reqLabel.setText("required")
+       self.reqCheck = QCheckBox()
+       reqLayout.addWidget(reqLabel)
+       reqLayout.addWidget(self.reqCheck)
+
+       #Create submit button
+       controlLayout = QHBoxLayout()
+       submitButton = QPushButton("submit")
+       submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
+       controlLayout.addWidget(submitButton)
+       cancelButton = QPushButton("cancel")
+       cancelButton.clicked.connect( lambda: self.cancelButtonPressEvent())
+       controlLayout.addWidget(cancelButton)
+
+       #create layout
+       keyFrame = QFrame()
+       keyFrame.setLayout(self.keyLayout)
+#       valueFrame = QFrame()
+#       valueFrame.setLayout(self.valueLayout)
+       typeFrame = QFrame()
+       typeFrame.setLayout(typeLayout)
+       reqFrame = QFrame()
+       reqFrame.setLayout( reqLayout )
+       controlFrame = QFrame()
+       controlFrame.setLayout(controlLayout)
+
+       self.layout = QVBoxLayout()
+       self.layout.addWidget(keyFrame)
+#       self.layout.addWidget(valueFrame)
+       self.layout.addWidget(typeFrame)
+       self.layout.addWidget( reqFrame )
+       self.layout.addWidget( controlFrame)
+       self.setLayout(self.layout)
+
+       self.show()
+
+       self.exec_()
+
+    def submitButtonPressEvent(self):
+       key = self.key.text()
+       mytype = self.types.currentText()
+       req = self.reqCheck.isChecked()
+
+       if key == "":
+           print("Must enter a key")
+           return
+
+       print("\n\nSubmitting!")
+       print("\n")
+
+       tplate = {}
+       tplate["type"] = mytype
+       tplate["required"] = req
+
+       self.callback(key, None, tplate )
+
+       self.done(True)
+
 
 class SmartWidget(SmartType):
    def __init__(self):
        self.value=""
        self.widgets={}
        self.frame = QFrame()
-       self.components = {}
+#       self.components = {}
        return 
 
    ##
@@ -72,8 +172,9 @@ class SmartWidget(SmartType):
    # \param [in] key name of the item
    # \param [in] value value to set the item to
    # \param [in] template Json object that defines what the object may contain
-   def init(self, key, value, template = None, removeCallback=None):
-       self.callback = removeCallback
+#   def init(self, key, value, template = None, removeCallback=None):
+   def init(self, key, value, template = None, parent=None):
+       self.parent = parent 
 
        #For standard types, do the following:
        SmartType.__init__(self, key, value, template )
@@ -109,10 +210,6 @@ class SmartWidget(SmartType):
            widget = item.widget()
            if widget is not None:
                widget.deleteLater()
-#           else:
-#               self.deleteLayout( item.Layout)
-#       sip.delete(layout)
-
 
        #Create Label
        label = QLabel()
@@ -130,30 +227,45 @@ class SmartWidget(SmartType):
 
           #If we are a list, create a vertical layout and add subwidgets. Each subwidget
           #must have a specified type
-          if self.template["type"] == "list":
+          if self.template["type"] == "list" or self.template["type"] == "dict":
+              if self.value is not None and not isinstance(self.value,list) and not isinstance(self.value, dict):
+                  print("Type does not match template!"+str(self.template))
+                  return False
+
               #See if we have write permissions"
               #If we have a sub-template, we can create objects for a layout
               if "template" in self.template:
                   dataLayout = QVBoxLayout()
                   dataFrame  = QFrame()
+                  subLayout = QHBoxLayout()
+
+                  array = []
+                  if self.value is not None: 
+                      if self.template["type"] == "list":
+                          array = range( 0, len(self.value)) 
+                      else: 
+                          array = list(self.value.keys())
+
                   count = 0
-                  for item in self.value:
-                      subFrame = QFrame()
-                      subLayout = QHBoxLayout()
-                      widget = SmartWidget().init(count, item, self.template["template"], self.removeCallback)
+                  for item in array:
+                      if self.template["type"]== "dict":
+                          print("Item: "+item+", template: "+str(self.template["template"][item]))
+                          widget = SmartWidget().init(item, self.value[item], self.template["template"][item], self)
+                      else:
+                          widget = SmartWidget().init(item, self.value[item], self.template, self)
                       if widget == False:
-                          print("Error!")
+                          print("List Error!")
                       else:
                           #Add item to the component list
-                          self.components[str(item)] = widget
-
+#                          self.components[str(item)] = widget
                           subLayout.addWidget(widget.frame)
 
                           #Add remove button
-                          removeButton = IndexButton("-", count, self.removeCallback)
+                          removeButton = IndexButton("-", item, self.removeCallback)
                           subLayout.addWidget( removeButton )
                           count = count + 1
                      
+                      subFrame = QFrame()
                       subFrame.setLayout( subLayout)
                       subFrame.setFrameStyle( 1 )
                       subFrame.setLineWidth(1)
@@ -168,19 +280,7 @@ class SmartWidget(SmartType):
                   dataFrame.setLayout(dataLayout)
                   self.layout.addWidget(dataFrame)
 
-          #If we are a dict, create a vertical layout and add subwidgets
-          elif self.template["type"] == "dict":
-              if "template" in self.template:
-                  subLayout = QVBoxLayout()
-                  for k,v in self.value.items():
-                      widget = SmartWidget().init(k, v, self.template["template"], self.removeCallback )
-                      subLayout.addWidget(widget.frame)
-                  subFrame = QFrame()
-                  subFrame.setLayout(subLayout)
-                  subFrame.setFrameStyle( 1 )
-                  subFrame.setLineWidth(1)
-                  self.layout.addWidget(subFrame)
-                      
+          # We're a basic type
           else:
               #default is for it to be a text box 
               self.widget = QLineEdit()
@@ -246,6 +346,10 @@ class SmartWidget(SmartType):
           self.widget.setStyleSheet(self.ss)
           self.valid = True
 
+          #Tell our parent to update
+          if self.parent != None:
+             self.parent.updateChild(self.key, self.value)
+
    ##
    #\brief function to get the value.
    #
@@ -263,15 +367,26 @@ class SmartWidget(SmartType):
    def removeCallback(self, key ):
        print(self.key+" remove callback for "+str(key))
 
-       del self.components[str(key)]
+#       print("Removing key "+str(key)+" in "+str(self.components))
+#       del self.components[str(key)]
 
        #remove key
-       del self.value[key]
+       if isinstance( self.value, list ):
+          del self.value[key]
+ 
+       elif isinstance( self.value, dict ):
+          print("Removing key: "+key)
+          self.value.pop(key)
+       else:
+          print("Cannot remove item from unknown type")
+
        print(str(self.value))
 
        #Call the parents remove callback if available. If not, draw
-       if self.callback is not None:
-          self.callback(key)
+       if self.parent is not None:
+           self.parent.removeCallback(key)
+#       if self.callback is not None:
+#          self.callback(key)
        else:
            print(str(self.key)+" is drawing")
            self.draw()
@@ -281,17 +396,38 @@ class SmartWidget(SmartType):
    ##
    # \brief Callback to add an item to a list
    def addCallback(self):
-       #Make sure we're a list
-       if not isinstance( self.value, list ):
-           print("Can only add elements to a list")
-           return
+      if self.template == None:
+          print("Cannot add to a list without a template")
+          return
 
-       self.value.append(None)
-       print("New value: "+str(self.value))
-       if self.callback is not None:
-          self.callback(self.key)
-       else:
-          self.draw()
+      if self.template["type"] is "list":
+         self.value.append(None)
+         print("New value: "+str(self.value))
+         if self.parent is not None:
+             self.parent.updateChild(self.key, None)
+         else:
+            print("No parent!")
+            self.draw()
+      elif self.template["type"] is "dict":
+         dictDialog = DictDialog(self.updateChild)
+
+
+   ##
+   #\brief updates the children of this complex type
+   def updateChild( self, key, value, template=None ):
+       print(self.key+" is updating child "+str(key)+" with "+str(value))
+       #if we are a list, check for the specified item
+       if isinstance( self.value, list ):
+           self.value[key] = value
+
+       elif isinstance( self.value, dict ):
+           self.value[key] = value
+           self.template["template"][key] = template
+
+           print( "\nNew template: "+str(self.template)+"\n")
+
+           self.draw()
+           
 
 
    ##
@@ -299,13 +435,15 @@ class SmartWidget(SmartType):
    def removeButtonPressEvent( self, index):
        print("Request to remove "+str(index))
 
-       if self.callback != None:
-          print("Callback to remove "+str(self.key))
-          self.frame.deleteLater()
-          self.callback( self.key)
+       print("Callback to remove "+str(self.key))
+       if self.parent != None:
+           self.frame.deleteLate()
+           self.parent.removeCallback( self.key)
        else:
           print("No callback specified. Unable to remove")
 
+   ##
+   #\brief handle the addButton press event
    def addButtonPressEvent(self):
        print("Adding list entry to key "+str(self.key))
        self.addCallback()
@@ -426,14 +564,23 @@ class unitTestViewer( QWidget ):
        #Test Dicts
        ###############
        #Test uneditable list
-       data = {"key1":"test1", "key2":"test2"}
+       data = {"key1":"test1", "key2":1}
+       template = {}
+       template["type"] = "dict"
+       t = {}
+       t["type"] = "string"
+       tplate = {}
+       tplate["key1"] = t
+       t["type"] = "integer"
+       tplate["key2"] = t
+       template["template"] = tplate
+
+
        self.widget7 = SmartWidget().init("read only dict", data)
-#       self.mainLayout.addLayout( self.widget7.layout)
        self.mainLayout.addWidget(self.widget7.frame)
 
        #Test editable
-       self.widget8 = SmartWidget().init("dict", data, {"type":"dict","template":{"type":"string"}})
-#       self.mainLayout.addLayout( self.widget8.layout)
+       self.widget8 = SmartWidget().init("NewDict", data, template)
        self.mainLayout.addWidget(self.widget8.frame)
 
 
@@ -441,7 +588,7 @@ class unitTestViewer( QWidget ):
        # Check all
        ###############
        print("Creating widget 9")
-       template={"type":"list","template":{"type":"dict","template":{"type":"integer"}}}
+       template= { "type":"list", "template":{ "type":"dict", "template":{ "value1":"integer", "value2":"integer" } } }
        value = [{"value1":1, "value2":2},{"value3":3, "value4":4}]
        self.widget9 = SmartWidget().init("Test2",value,template)
        self.mainLayout.addLayout( self.widget9.layout )
@@ -455,13 +602,13 @@ class unitTestViewer( QWidget ):
        ###
        # Add a check button
        ###
-       self.testButton = QPushButton('Test',self)
+       self.testButton = QPushButton('Submit',self)
        self.testButton.clicked.connect( lambda: self.submitButtonPressEvent())
        self.mainLayout.addWidget( self.testButton )
 
    def submitButtonPressEvent(self):
        print("SUBMIT")
-       print( self.widget6.getValue())
+       print( self.widget8.getValue())
 
 
 

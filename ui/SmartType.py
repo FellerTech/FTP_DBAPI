@@ -42,12 +42,18 @@ class SmartType:
    # \param [in] template Json object that defines what the object may contain
    def __init__(self, key, value, template=None):
        self.key = key
-       self.type = "Unknonw"
+       self.type = "Unknown"
+
+       print(str(key)+" template: "+str(template))
 
        self.template = None
        if template != None:
           self.setTemplate( template)
-          self.type = template["type"]
+
+          try:
+             self.type = template["type"]
+          except: 
+              pass
 
        self.setValue(value)
 
@@ -57,32 +63,18 @@ class SmartType:
    # \return true on success, false on failure
    #
    def setTemplate( self, template ):
-       # If no template is provided, this means all values are read only and treated as strings
-
-
-       # Check required fields
-       # Make sure we have the required fields
-       try:
-           value = self.types.index(template["type"])
-       except:
-           print("SmartType::Error - Invalid template")
-           return False
-
+       #If not specified, read only. 
        if template == None:
            self.template = template
            return True
 
-       #Make sure we are a dictionary with a type field
-       if isinstance( template, dict ):
-           if 'type' in template.keys():
-               if template["type"] in self.types: 
-                   self.template = template
-                   return True
-               else: 
-                   print("No type specified in template "+str(template))
-           else:
-               print("No type specified in template "+str(template))
+       #Make sure we are a dictionary
+       if not isinstance( template, dict ):
+           print("Error: Template is not a dictionary"+str(template))
+           print([adf])
+           return False
 
+       self.template = template
 
        return False
 
@@ -102,42 +94,42 @@ class SmartType:
        if self.template["type"] == "string":
            if isinstance( value, str):
                self.value = value
-           else:
-               print("SmartType::Error - Value type does not match template type of \"string\"")
+           elif self.value != None:
+               print("SmartType::Error - Value type "+str(self.value)+" does not match template type of \"string\"")
                return False
 
        elif self.template["type"] == "integer":
            if isinstance( value, int ):
                self.value = value
-           else:
+           elif self.value != None:
                print("SmartType::Error - Value type does not match template type of \"integer\"")
                return False
 
        elif self.template["type"] == "float":
            if isinstance( value, float ):
                self.value = value
-           else:
+           elif self.value != None:
                print("SmartType::Error - Value type does not match template type of \"float\"")
                return False
 
        elif self.template["type"] == "bool":
            if isinstance( value, bool ):
                self.value = value
-           else:
+           elif self.value != None:
                print("SmartType::Error - Value type does not match template type of \"bool\"")
                return False
 
        elif self.template["type"] == "dict":
            if isinstance( value, dict ):
                self.value = value
-           else:
+           elif self.value != None:
                print("SmartType::Error - Value type does not match template type of \"dict\"")
                return False
 
        elif self.template["type"] == "list":
            if isinstance( value, list ):
                self.value = value
-           else:
+           elif self.value != None:
                print("SmartType::Error - Value type does not match template type of \"list\"")
                return False
 
