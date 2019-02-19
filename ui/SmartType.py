@@ -55,7 +55,15 @@ class SmartType:
           except: 
               pass
 
-       self.setValue(value)
+       print(str(key)+" Setting value to "+str(value)+" with template: "+str(self.template))
+       self.value = value
+
+       #If a template is undefined, the value is converted to a reado-only string
+       if self.template == None:
+           print("No template for key "+str(self.key))
+           self.value = str( value )
+           self.readOnly = True
+
 
    ##
    # \brief sets the template for the Type
@@ -63,20 +71,20 @@ class SmartType:
    # \return true on success, false on failure
    #
    def setTemplate( self, template ):
+       print("New template: "+str(template))
        #If not specified, read only. 
        if template == None:
            self.template = template
            return True
 
        #Make sure we are a dictionary
-       if not isinstance( template, dict ):
+       elif not isinstance( template, dict ):
            print("Error: Template is not a dictionary"+str(template))
-           print([adf])
            return False
 
        self.template = template
 
-       return False
+       return True
 
    ##
    # \brief specifies the value that the device should have
@@ -86,9 +94,13 @@ class SmartType:
    def setValue(self, value ):
        #If a template is undefined, the value is converted to a reado-only string
        if self.template == None:
-           self.value = str( value )
+           print("No template for key "+str(self.key))
+#           self.value = str( value )
+           self.value = value
            self.readOnly = True
            return True
+
+       print(str(self.key)+" value:"+str(self.value)+", template:"+str(self.template))
 
        #check template type
        if self.template["type"] == "string":
@@ -120,11 +132,16 @@ class SmartType:
                return False
 
        elif self.template["type"] == "dict":
+           print(str(self.key)+" dict value:"+str(value)+", template:"+str(self.template))
+         
            if isinstance( value, dict ):
                self.value = value
            elif self.value != None:
+               print( "Value:"+self.value)
                print("SmartType::Error - Value type does not match template type of \"dict\"")
                return False
+           print(str(self.key)+" set dict value:"+str(self.value)+", template:"+str(self.template))
+
 
        elif self.template["type"] == "list":
            if isinstance( value, list ):

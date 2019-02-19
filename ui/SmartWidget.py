@@ -40,6 +40,17 @@ an undefined type can be anything, but it will not be included in the interface 
 
 }
 
+{
+   value:<value>,
+   template: {
+      type:"dict",
+      items: {
+         "a":{ 
+         }
+      }
+   }
+}
+
 """
 import argparse
 import sys
@@ -76,18 +87,7 @@ class DictDialog(QDialog):
        #default is for it to be a text box 
        self.key = QLineEdit()
        self.ss = self.key.styleSheet()
-#       self.key.editingFinished.connect( lambda: self.validate() )
        self.keyLayout.addWidget(self.key)
-
-#       self.valueLayout = QHBoxLayout()
-#      valueLabel = QLabel()
-#       valueLabel.setText("value")
-#       self.valueLayout.addWidget( valueLabel )
-
-#       #default is for it to be a text box 
-#       self.valueEdit = QLineEdit()
-#       self.ss = self.valueEdit.styleSheet()
-#       self.valueLayout.addWidget(self.valueEdit)
 
        typeLayout = QHBoxLayout()
        typeLabel = QLabel()
@@ -117,8 +117,6 @@ class DictDialog(QDialog):
        #create layout
        keyFrame = QFrame()
        keyFrame.setLayout(self.keyLayout)
-#       valueFrame = QFrame()
-#       valueFrame.setLayout(self.valueLayout)
        typeFrame = QFrame()
        typeFrame.setLayout(typeLayout)
        reqFrame = QFrame()
@@ -146,13 +144,10 @@ class DictDialog(QDialog):
        if key == "":
            print("Must enter a key")
            return
-
-       print("\n\nSubmitting!")
-       print("\n")
-
        tplate = {}
        tplate["type"] = mytype
        tplate["required"] = req
+       tplate["items"] = {}
 
        self.callback(key, None, tplate )
 
@@ -172,17 +167,13 @@ class SmartWidget(SmartType):
    # \param [in] key name of the item
    # \param [in] value value to set the item to
    # \param [in] template Json object that defines what the object may contain
-#   def init(self, key, value, template = None, removeCallback=None):
    def init(self, key, value, template = None, parent=None):
        self.parent = parent 
 
        #For standard types, do the following:
        SmartType.__init__(self, key, value, template )
 
-
        #Set our key to the appropriate value
-       self.key = key                                      #!< The is the key descriptor for object
-       self.editable = True                                #!< Flag to indicate if editing is ok
        self.layout = QHBoxLayout()                         #!< Display out.
        self.frame = QFrame ()                              #!< Frame around entry
 
@@ -194,10 +185,9 @@ class SmartWidget(SmartType):
        #DEBUG 
        self.noDraw = False
 
+       self.setTemplate(template)
+       self.setValue(value)
        self.draw()
-       self.template = template
-       self.value = value;
-
 
        return self
 
@@ -217,83 +207,17 @@ class SmartWidget(SmartType):
        self.layout.addWidget( label )
 
        #Check if we have a defined template
-       if self.template != None:
-          #Check if we have a specific editable flag
-          try:
-             if isinstance(self.template["editable"], bool ):
-                self.editable = self.template["editable"]
-          except:
-             pass
-
-          #If we are a list, create a vertical layout and add subwidgets. Each subwidget
-          #must have a specified type
-          if self.template["type"] == "list" or self.template["type"] == "dict":
-              if self.value is not None and not isinstance(self.value,list) and not isinstance(self.value, dict):
-                  print("Type does not match template!"+str(self.template))
-                  return False
-
-              #See if we have write permissions"
-              #If we have a sub-template, we can create objects for a layout
-              if "template" in self.template:
-                  dataLayout = QVBoxLayout()
-                  dataFrame  = QFrame()
-                  subLayout = QHBoxLayout()
-
-                  array = []
-                  if self.value is not None: 
-                      if self.template["type"] == "list":
-                          array = range( 0, len(self.value)) 
-                      else: 
-                          array = list(self.value.keys())
-
-                  count = 0
-                  for item in array:
-                      if self.template["type"]== "dict":
-                          print("Item: "+item+", template: "+str(self.template["template"][item]))
-                          widget = SmartWidget().init(item, self.value[item], self.template["template"][item], self)
-                      else:
-                          widget = SmartWidget().init(item, self.value[item], self.template, self)
-                      if widget == False:
-                          print("List Error!")
-                      else:
-                          #Add item to the component list
-#                          self.components[str(item)] = widget
-                          subLayout.addWidget(widget.frame)
-
-                          #Add remove button
-                          removeButton = IndexButton("-", item, self.removeCallback)
-                          subLayout.addWidget( removeButton )
-                          count = count + 1
-                     
-                      subFrame = QFrame()
-                      subFrame.setLayout( subLayout)
-                      subFrame.setFrameStyle( 1 )
-                      subFrame.setLineWidth(1)
-
-                      dataLayout.addWidget(subFrame)
-
-                  #Add a add button
-                  addButton = QPushButton("+")
-                  addButton.clicked.connect( lambda: self.addButtonPressEvent())
-                  dataLayout.addWidget(addButton)
-
-                  dataFrame.setLayout(dataLayout)
-                  self.layout.addWidget(dataFrame)
-
-          # We're a basic type
-          else:
-              #default is for it to be a text box 
-              self.widget = QLineEdit()
-              self.ss = self.widget.styleSheet()
-              self.valid = True
-              self.widget.setText(str(self.value))
-              self.widget.editingFinished.connect( lambda: self.validate() )
-
-              #create layout
+       #No template is provided
+       if self.template == None:
+           if self.value == None:
+              print("No value or template provided")
+              return
+           else:
+              self.widget = QLabel()
+              self.widget.setText( str(self.value))
               self.layout.addWidget( self.widget )
-
-
-       else:
+          
+           """
            if( isinstance( self.value, list )):
               self.subLayout = QVBoxLayout()
               count = 0
@@ -324,7 +248,122 @@ class SmartWidget(SmartType):
                   print("None value detected")
                   self.widget.setText( str(self.value))
               self.layout.addWidget( self.widget )
+          
+          """
+       #We have a template. Now we operate based on type
+       else:
+          """
+          #Check if we have a specific editable flag
+          try:
+             if isinstance(self.template["editable"], bool ):
+                self.editable = self.template["editable"]
+          except:
+             pass
+          
+          """
+          #If we are a list, create a vertical layout and add subwidgets. Each subwidget
+          #must have a specified type
+          if self.template["type"] == "list" or self.template["type"] == "dict":
+              """
+              #Eliminate mismatch between types
+              if self.value is not None:
+                 if isinstance( self.value, list) and not self.template["type"] == "list":
+                    print("Value "+self.value" type doest not match template type of "+str(self.template["type"])
 
+              if self.value is not None and not isinstance(self.value,list) and not isinstance(self.value, dict):
+                  print("Value "+self.value+" Type does not match template!"+str(self.template))
+                  return False
+
+              """
+              #See if we have write permissions"
+              #If we have a sub-template, we can create objects for a layout
+              dataLayout = QHBoxLayout()
+              dataFrame  = QFrame()
+              subLayout = QVBoxLayout()
+
+              #Create an array of keys. For a list, the array is string represetnations of integers
+              array = []
+              if self.value is not None: 
+                  if self.template["type"] == "list":
+                      array = range( 0, len(self.value)) 
+                  else:
+                      array = list(self.value.keys())
+              else:
+                   if self.template["type"] == "list":
+                       array = []
+                   else:
+                       print("It's a dict, type is not a list"+str(self.template))
+                       try:
+                           print("Trying to get dict keys from the template"+str(self.template))
+                           keys = list(self.template["items"].keys());
+                           print("Keys: "+str(keys))
+
+                           array = list(keys)
+                       except:
+                           print("Trying dict key error")
+                           array = []
+
+              #The work is done here.
+              count = 0
+              print("Keys: "+str(array))
+              for item in array:
+                  #draw a dictionary item
+                  if self.template["type"]== "dict":
+                      print("Drawing dict ("+item+"): "+str(self.template["items"][item]))
+                      if item not in self.template["items"]:
+                          self.template["items"][item] = {}
+                      if self.value == "" or self.value == None:
+                          widget = SmartWidget().init(item, None, self.template["items"][item], self)
+                      else:
+                          widget = SmartWidget().init(item, self.value[item], self.template["items"][item], self)
+                  #otherwise, it's a list
+                  else:
+                      widget = SmartWidget().init(item, self.value[item], self.template, self)
+
+                  if widget == False:
+                      print("List Error!")
+                  else:
+                      #Add item to the component list
+                      subLayout.addWidget(widget.frame)
+
+                  #Create subframe
+                  subFrame = QFrame()
+                  subFrame.setLayout( subLayout)
+                  subFrame.setFrameStyle( 1 )
+                  subFrame.setLineWidth(1)
+
+                  dataLayout.addWidget(subFrame)
+
+              #Add a add button
+              addButton = QPushButton("+")
+              addButton.clicked.connect( lambda: self.addButtonPressEvent())
+              dataLayout.addWidget(addButton)
+
+              #Add remove button
+              removeButton = IndexButton("-", self.key, self.removeCallback)
+#             subLayout.addWidget( removeButton )
+              count = count + 1
+                     
+              dataFrame.setLayout(dataLayout)
+              self.layout.addWidget(dataFrame)
+
+          # We're a basic type
+          else:
+              #default is for it to be a text box 
+              self.widget = QLineEdit()
+              self.ss = self.widget.styleSheet()
+              self.valid = True
+              self.widget.setText(str(self.value))
+              self.widget.editingFinished.connect( lambda: self.validate() )
+
+              #create layout
+              self.layout.addWidget( self.widget )
+
+
+       #Add remove button
+       removeButton = IndexButton("-", self.key, self.removeCallback)
+       self.layout.addWidget( removeButton )
+                     
        self.layout.addStretch(1)
 
        return self
@@ -396,11 +435,12 @@ class SmartWidget(SmartType):
    ##
    # \brief Callback to add an item to a list
    def addCallback(self):
+      print("Add callback from key: "+str(self.key)+" and template: "+str(self.template))
       if self.template == None:
           print("Cannot add to a list without a template")
           return
 
-      if self.template["type"] is "list":
+      if self.template["type"] == "list":
          self.value.append(None)
          print("New value: "+str(self.value))
          if self.parent is not None:
@@ -408,27 +448,33 @@ class SmartWidget(SmartType):
          else:
             print("No parent!")
             self.draw()
-      elif self.template["type"] is "dict":
+      elif self.template["type"] == "dict":
          dictDialog = DictDialog(self.updateChild)
-
+      else:
+         print("addCallback template: "+str(self.template))
 
    ##
    #\brief updates the children of this complex type
    def updateChild( self, key, value, template=None ):
-       print(self.key+" is updating child "+str(key)+" with "+str(value))
+       print(self.key+" is updating child "+str(key)+" with "+str(value)+", template:"+str(template))
+
        #if we are a list, check for the specified item
        if isinstance( self.value, list ):
            self.value[key] = value
-
        elif isinstance( self.value, dict ):
            self.value[key] = value
-           self.template["template"][key] = template
+       elif template["type"] == "dict":
+           if "items" not in self.template:
+              self.template["items"] =  {}
 
+           print("Old template: "+str(self.template))
+           self.template["items"][key] = template
            print( "\nNew template: "+str(self.template)+"\n")
+       else:
+           return False
 
-           self.draw()
-           
-
+       print("Draw template: "+str(self.template))
+       self.draw()
 
    ##
    # Callback for removing an element frmo an array or a dictionary
@@ -445,7 +491,6 @@ class SmartWidget(SmartType):
    ##
    #\brief handle the addButton press event
    def addButtonPressEvent(self):
-       print("Adding list entry to key "+str(self.key))
        self.addCallback()
 
 class unitTestViewer( QWidget ):
@@ -479,7 +524,7 @@ class unitTestViewer( QWidget ):
    ###
    # \brief Test function
    def test(self):
-
+       """
        ###############
        #Test strings
        ###############
@@ -560,39 +605,41 @@ class unitTestViewer( QWidget ):
 #       self.mainLayout.addLayout( widget6.layout)
        self.mainLayout.addWidget(self.widget6.frame)
 
+       """
        ###############
        #Test Dicts
        ###############
        #Test uneditable list
-       data = {"key1":"test1", "key2":1}
+#       data = {"key1":"test1", "key2":1}
+       data = {}
        template = {}
        template["type"] = "dict"
        t = {}
-       t["type"] = "string"
-       tplate = {}
-       tplate["key1"] = t
-       t["type"] = "integer"
-       tplate["key2"] = t
-       template["template"] = tplate
+#       t["type"] = "string"
+       tplate = None
+#       tplate["key1"] = t
+#       t["type"] = "integer"
+#       tplate["key2"] = t
+#       template["template"] = tplate
 
 
-       self.widget7 = SmartWidget().init("read only dict", data)
-       self.mainLayout.addWidget(self.widget7.frame)
-
+#       self.widget7 = SmartWidget().init("read only dict", data)
+#       self.mainLayout.addWidget(self.widget7.frame)
        #Test editable
-       self.widget8 = SmartWidget().init("NewDict", data, template)
+       self.widget8 = SmartWidget().init("NewDict", None, template)
        self.mainLayout.addWidget(self.widget8.frame)
 
 
        ###############
        # Check all
        ###############
+       """
        print("Creating widget 9")
        template= { "type":"list", "template":{ "type":"dict", "template":{ "value1":"integer", "value2":"integer" } } }
        value = [{"value1":1, "value2":2},{"value3":3, "value4":4}]
        self.widget9 = SmartWidget().init("Test2",value,template)
        self.mainLayout.addLayout( self.widget9.layout )
-    
+       """
 
        ####
        #Add stretch to push all entries to the top
@@ -628,10 +675,6 @@ if __name__ == '__main__':
 
     #Check individual components
     window.test()
-
-
-
-    
 
     sys.exit(app.exec_())
 
