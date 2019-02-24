@@ -147,7 +147,7 @@ class DictDialog(QDialog):
        tplate = {}
        tplate["type"] = mytype
        tplate["required"] = req
-       tplate["items"] = {}
+#       tplate["items"] = {}
 
        self.callback(key, None, tplate )
 
@@ -306,13 +306,18 @@ class SmartWidget(SmartType):
               #The work is done here.
               count = 0
               print("Keys: "+str(array))
+              print(self.key+" template:"+str(self.template))
               for item in array:
+                  if self.value == None:
+                     self.value = {}
+                  if item not in self.value:
+                      self.value[item] = None
                   #draw a dictionary item
                   if self.template["type"]== "dict":
-                      print("Drawing dict ("+item+"): "+str(self.template["items"][item]))
                       if item not in self.template["items"]:
                           self.template["items"][item] = {}
-                      if self.value == "" or self.value == None:
+                      if self.value[item] == "" or self.value[item] == None:
+                          print("no value")
                           widget = SmartWidget().init(item, None, self.template["items"][item], self)
                       else:
                           widget = SmartWidget().init(item, self.value[item], self.template["items"][item], self)
@@ -353,7 +358,8 @@ class SmartWidget(SmartType):
               self.widget = QLineEdit()
               self.ss = self.widget.styleSheet()
               self.valid = True
-              self.widget.setText(str(self.value))
+              if self.value != None:
+                  self.widget.setText(str(self.value))
               self.widget.editingFinished.connect( lambda: self.validate() )
 
               #create layout
@@ -373,6 +379,7 @@ class SmartWidget(SmartType):
    # \brief Callback to handle changes
    def validate(self):
        text = self.widget.text()
+       print("-----Validating "+self.key+" with text "+text)
 
        #If we failed, set background as pink and state to invalid
        if not self.setStringAsValue( text ):
@@ -387,7 +394,7 @@ class SmartWidget(SmartType):
 
           #Tell our parent to update
           if self.parent != None:
-             self.parent.updateChild(self.key, self.value)
+             self.parent.updateChild(self.key, self.value, self.template)
 
    ##
    #\brief function to get the value.
@@ -435,7 +442,6 @@ class SmartWidget(SmartType):
    ##
    # \brief Callback to add an item to a list
    def addCallback(self):
-      print("Add callback from key: "+str(self.key)+" and template: "+str(self.template))
       if self.template == None:
           print("Cannot add to a list without a template")
           return
@@ -446,7 +452,6 @@ class SmartWidget(SmartType):
          if self.parent is not None:
              self.parent.updateChild(self.key, None)
          else:
-            print("No parent!")
             self.draw()
       elif self.template["type"] == "dict":
          dictDialog = DictDialog(self.updateChild)
@@ -456,22 +461,24 @@ class SmartWidget(SmartType):
    ##
    #\brief updates the children of this complex type
    def updateChild( self, key, value, template=None ):
-       print(self.key+" is updating child "+str(key)+" with "+str(value)+", template:"+str(template))
+       print(self.key+" is updating child "+str(key)+" with value "+str(value)+", template:"+str(template))
 
        #if we are a list, check for the specified item
        if isinstance( self.value, list ):
            self.value[key] = value
        elif isinstance( self.value, dict ):
            self.value[key] = value
-       elif template["type"] == "dict":
+
+       if self.template["type"] == "dict":
            if "items" not in self.template:
               self.template["items"] =  {}
 
            print("Old template: "+str(self.template))
            self.template["items"][key] = template
-           print( "\nNew template: "+str(self.template)+"\n")
+           print( "\nNewer template: "+str(self.template)+"\n")
        else:
-           return False
+           print("Not a dict or list. No cannot update child")
+#           return False
 
        print("Draw template: "+str(self.template))
        self.draw()
