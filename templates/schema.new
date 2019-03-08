@@ -1,0 +1,246 @@
+Designs
+{
+$jsonSchema: {
+   bsonType: "object",
+   required: ["PN","type", "revision"],
+   properties: {
+      PN: { 
+         bsonType: "string",
+         description: "Identifier for the given part design"
+      },
+      type: {
+         enum:["component","assembly"],
+        ` description: "This this a component or an assembly?"
+      },
+      category: {
+         enum:["motherboard","microcamera","MCP","motherboardAssembly","aceAssembly","other"],
+         description: "What is the category for this design"
+      },
+      manufacturer: {
+         bsonType: "string",
+         description: "name of company that makes the component"
+      },
+     revision: {
+         bsonType:"string",
+         description":"design revision of this component"
+     }
+   }
+}
+}
+
+Motherboards
+{
+$jsonSchema: {
+   bsonType: "object",
+   required: ["PN","SN"],
+   properties: {
+      PN: { 
+         bsonType: "objectId",
+         description: "Identifier for the given part design"
+      },
+      SN: {
+         bsonType: "string",
+         description: "unique ID for the motherboard"
+      },
+      receiveDate: {
+         bsonType: "date",
+         description: "date when the part was received at the factory (components only)"
+      }
+      MACs: {
+         bsonType: ["array"],
+         items: {
+            bsonType: "string"
+            description: "MAC Address of onboard 
+         }
+      },
+      supplier: {
+         bsonType: "objectId",
+         description: "name fo the company that provides the device"
+      },
+      batch: {
+         bsonType: "string",
+         description: "identifier used to associate multiple components of the same build"
+      }
+   }
+}
+}
+
+db.createCollection("uCams", { validator:
+{
+$jsonSchema: {
+   bsonType: "object",
+   required: ["PN","SN"],
+   properties: {
+      PN: { 
+         bsonType: "objectId",
+         description: "Identifier for the given part design"
+      },
+      SN: {
+         bsonType: "string",
+         description: "unique ID for the motherboard"
+      },
+      receiveDate: {
+         bsonType: "date",
+         description: "date when the part was received at the factory (components only)"
+      },
+      supplier: {
+         bsonType: "objectId", 
+         description: "name fo the company that provides the device"
+      },
+      batch: {
+         bsonType: "string",
+         description: "identifier used to associate multiple components of the same build"
+      }
+   }
+}
+}
+})
+
+MCPs
+{
+$jsonSchema: {
+   bsonType: "object",
+   required: ["PN","SN","MAC"],
+   properties: {
+      PN: {
+         bsonType: "objectId",
+         description: "Identifier for the given part design"
+      },
+      SN: {
+         bsonType: "string",
+         description: "unique ID for the motherboard"
+      },
+      MAC: {
+         bsonType: "string",
+         description: "MAC Address of onboard 
+      },
+      receiveDate: {
+         bsonType: "date",
+         description: "date when the part was received at the factory (components only)"
+      }
+      supplier: {
+         bsonType: "objectId",
+         description: "name fo the company that provides the device"
+      },
+      batch: {
+         bsonType: "string",
+         description: "identifier used to associate multiple components of the same build"
+      }
+      model: {
+         bsonType: "string",
+         description: "model name such as Tegra TX1, Tegra TX2, CTT Module"
+      }
+   }
+}
+}
+
+mBoardAssembly
+{
+$jsonSchema: {
+   bsonType: "object",
+   required: ["motherboard"]
+   properties: {
+      motherboard: {
+         bsonType: "objectId",
+         description: "Identifier for the given part design"
+      },
+      assemblyDate: {
+         bsonType: "date",
+         description: "date when the part was assembled at the factory"
+      },
+      assemblyStation: {
+         bsonType: "objectId",
+         description: "station where the part was assembled at the factory"
+      },
+      assemblyUser: {
+         bsonType: "objectId",
+         description: "employee who did the assembly"
+      },
+      MCPs: {
+         bsonType: "array",
+         description: "Microcamera processors associated with the board",
+         minItems: 1,
+         items: {
+            bsonType: "object",
+            additionalProperties = false,
+            properties: {
+               slot: {
+                  bsonType: "string",
+                  description: "Motherboard slot number"
+               },
+               id: {
+                  bsonType: "objectId",
+                  description: "ID of the MCP in the slot"
+               }
+            }
+         }
+      }
+   }
+}
+}
+
+aceAssembly
+{
+$jsonSchema: {
+   bsonType: "object",
+   required: ["PN","SN","MAC"],
+   properties: {
+      PN: {
+         bsonType: "objectId",
+         description: "Identifier for the given part"
+      },
+      SN: {
+         bsonType: "string",
+         description: "Unique Identifier for the given part"
+      }
+      assemblyDate: {
+         bsonType: "date",
+         description: "date when the part was assembled at the factory"
+      },
+      assemblyStation: {
+         bsonType: "objectId",
+         description: "station where the part was assembled at the factory"
+      },
+      assemblyUser: {
+         bsonType: "objectId",
+         description: "employee who did the assembly"
+      },
+      mBoardAssemblies: {
+         bsonType: "array",
+         description: "motherboard assemblies associated with the system",
+         items: {
+            bsonType: "object",
+            additionalProperties = false,
+            properties: {
+               slot: {
+                  bsonType: "string",
+                  description: "System slot number for motherboards"
+               },
+               id: {
+                  bsonType: "objectId",
+                  description: "ID of the motherboard assembly in the slot"
+               }
+            }
+         }
+      },
+      uCams: {
+         bsonType: "array",
+         description: "microcameras associated with the system",
+         items: {
+            bsonType:"object",
+            additionalProperties = false,
+            properties: {
+               slot: {
+                  bsonType: "string",
+                  description: "System slot number for motherboards"
+               },
+               id: {
+                  bsonType: "objectId",
+                  description: "ID of the motherboard assembly in the slot"
+               }
+            }
+         }
+      }
+   }
+}
+}
