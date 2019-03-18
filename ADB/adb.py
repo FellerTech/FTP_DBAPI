@@ -25,13 +25,13 @@ class ADB:
             
         return self.dbStructure;
 
-    def getProfile()q
 
     def getUri(self):
         return self.uri
 
 if __name__ == '__main__':
-    adb = ADB("10.0.0.120")
+    adb = ADB("10.0.0.177:27017")
+#    adb = ADB("10.0.0.120:27017")
 
     print("Mongo database info at uri: "+adb.getUri())
     print( json.dumps(adb.getDbStructure(), indent = 3))

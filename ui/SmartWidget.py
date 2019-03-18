@@ -18,9 +18,9 @@ Arrays and objects require new layouts?
 
 object.key
 object.value
-object.template
+object.schema
 
-template:
+schema:
 - type: type of value 
    "type": int, string, float, list, dict, undefined
 
@@ -30,9 +30,9 @@ an undefined type can be anything, but it will not be included in the interface 
 #example for list
 {
    "value":<value>,
-   "template":{
+   "schema":{
       "type":"list",
-      "template:"{
+      "schema:"{
          "key":<name>
          "type":<type>
       }
@@ -42,7 +42,7 @@ an undefined type can be anything, but it will not be included in the interface 
 
 {
    value:<value>,
-   template: {
+   schema: {
       type:"dict",
       items: {
          "a":{ 
@@ -166,12 +166,12 @@ class SmartWidget(SmartType):
    # \brief Default initializer
    # \param [in] key name of the item
    # \param [in] value value to set the item to
-   # \param [in] template Json object that defines what the object may contain
-   def init(self, key, value, template = None, parent=None):
+   # \param [in] schema Json object that defines what the object may contain
+   def init(self, key, value, schema = None, parent=None):
        self.parent = parent 
 
        #For standard types, do the following:
-       SmartType.__init__(self, key, value, template )
+       SmartType.__init__(self, key, value, schema )
 
        #Set our key to the appropriate value
        self.layout = QHBoxLayout()                         #!< Display out.
@@ -185,7 +185,7 @@ class SmartWidget(SmartType):
        #DEBUG 
        self.noDraw = False
 
-       self.setTemplate(template)
+       self.setSchema(schema)
        self.setValue(value)
        self.draw()
 
@@ -206,11 +206,11 @@ class SmartWidget(SmartType):
        label.setText(str(self.key)+" : ")
        self.layout.addWidget( label )
 
-       #Check if we have a defined template
-       #No template is provided
-       if self.template == None:
+       #Check if we have a defined schema
+       #No schema is provided
+       if self.schema == None:
            if self.value == None:
-              print("No value or template provided")
+              print("No value or schema provided")
               return
            else:
               self.widget = QLabel()
@@ -250,33 +250,33 @@ class SmartWidget(SmartType):
               self.layout.addWidget( self.widget )
           
           """
-       #We have a template. Now we operate based on type
+       #We have a schema. Now we operate based on type
        else:
           """
           #Check if we have a specific editable flag
           try:
-             if isinstance(self.template["editable"], bool ):
-                self.editable = self.template["editable"]
+             if isinstance(self.schema["editable"], bool ):
+                self.editable = self.schema["editable"]
           except:
              pass
           
           """
           #If we are a list, create a vertical layout and add subwidgets. Each subwidget
           #must have a specified type
-          if self.template["type"] == "list" or self.template["type"] == "dict":
+          if self.schema["bsonType"] == "list" or self.schema["bsonType"] == "object":
               """
               #Eliminate mismatch between types
               if self.value is not None:
-                 if isinstance( self.value, list) and not self.template["type"] == "list":
-                    print("Value "+self.value" type doest not match template type of "+str(self.template["type"])
+                 if isinstance( self.value, list) and not self.schema["type"] == "list":
+                    print("Value "+self.value" type doest not match schema type of "+str(self.schema["type"])
 
               if self.value is not None and not isinstance(self.value,list) and not isinstance(self.value, dict):
-                  print("Value "+self.value+" Type does not match template!"+str(self.template))
+                  print("Value "+self.value+" Type does not match schema!"+str(self.schema))
                   return False
 
               """
               #See if we have write permissions"
-              #If we have a sub-template, we can create objects for a layout
+              #If we have a sub-schema, we can create objects for a layout
               dataLayout = QHBoxLayout()
               dataFrame  = QFrame()
               subLayout = QVBoxLayout()
@@ -284,46 +284,46 @@ class SmartWidget(SmartType):
               #Create an array of keys. For a list, the array is string represetnations of integers
               array = []
               if self.value is not None: 
-                  if self.template["type"] == "list":
+                  if self.schema["bsonType"] == "list":
                       array = range( 0, len(self.value)) 
                   else:
                       array = list(self.value.keys())
               else:
-                   if self.template["type"] == "list":
+                   if self.schema["bsonType"] == "list":
                        array = []
                    else:
-                       print("It's a dict, type is not a list"+str(self.template))
+                       print("It's a object, type is not a list"+str(self.schema))
                        try:
-                           print("Trying to get dict keys from the template"+str(self.template))
-                           keys = list(self.template["items"].keys());
+                           print("Trying to get object keys from the schema"+str(self.schema))
+                           keys = list(self.schema["items"].keys());
                            print("Keys: "+str(keys))
 
                            array = list(keys)
                        except:
-                           print("Trying dict key error")
+                           print("Trying object key error")
                            array = []
 
               #The work is done here.
               count = 0
               print("Keys: "+str(array))
-              print(self.key+" template:"+str(self.template))
+              print(self.key+" schema:"+str(self.schema))
               for item in array:
                   if self.value == None:
                      self.value = {}
                   if item not in self.value:
                       self.value[item] = None
                   #draw a dictionary item
-                  if self.template["type"]== "dict":
-                      if item not in self.template["items"]:
-                          self.template["items"][item] = {}
+                  if self.schema["bsonType"]== "object":
+                      if item not in self.schema["items"]:
+                          self.schema["items"][item] = {}
                       if self.value[item] == "" or self.value[item] == None:
                           print("no value")
-                          widget = SmartWidget().init(item, None, self.template["items"][item], self)
+                          widget = SmartWidget().init(item, None, self.schema["items"][item], self)
                       else:
-                          widget = SmartWidget().init(item, self.value[item], self.template["items"][item], self)
+                          widget = SmartWidget().init(item, self.value[item], self.schema["items"][item], self)
                   #otherwise, it's a list
                   else:
-                      widget = SmartWidget().init(item, self.value[item], self.template, self)
+                      widget = SmartWidget().init(item, self.value[item], self.schema, self)
 
                   if widget == False:
                       print("List Error!")
@@ -383,7 +383,7 @@ class SmartWidget(SmartType):
 
        #If we failed, set background as pink and state to invalid
        if not self.setStringAsValue( text ):
-          print( "Invalid field. Type not "+self.template["type"])
+          print( "Invalid field. Type not "+self.schema["bsonType"])
           self.widget.setAutoFillBackground(True)
           self.widget.setStyleSheet("QLineEdit{background:pink;}")
           self.valid = False
@@ -394,7 +394,7 @@ class SmartWidget(SmartType):
 
           #Tell our parent to update
           if self.parent != None:
-             self.parent.updateChild(self.key, self.value, self.template)
+             self.parent.updateChild(self.key, self.value, self.schema)
 
    ##
    #\brief function to get the value.
@@ -442,26 +442,26 @@ class SmartWidget(SmartType):
    ##
    # \brief Callback to add an item to a list
    def addCallback(self):
-      if self.template == None:
-          print("Cannot add to a list without a template")
+      if self.schema == None:
+          print("Cannot add to a list without a schema")
           return
 
-      if self.template["type"] == "list":
+      if self.schema["bsonType"] == "list":
          self.value.append(None)
          print("New value: "+str(self.value))
          if self.parent is not None:
              self.parent.updateChild(self.key, None)
          else:
             self.draw()
-      elif self.template["type"] == "dict":
+      elif self.schema["bsonType"] == "object":
          dictDialog = DictDialog(self.updateChild)
       else:
-         print("addCallback template: "+str(self.template))
+         print("addCallback schema: "+str(self.schema))
 
    ##
    #\brief updates the children of this complex type
-   def updateChild( self, key, value, template=None ):
-       print(self.key+" is updating child "+str(key)+" with value "+str(value)+", template:"+str(template))
+   def updateChild( self, key, value, schema=None ):
+       print(self.key+" is updating child "+str(key)+" with value "+str(value)+", schema:"+str(schema))
 
        #if we are a list, check for the specified item
        if isinstance( self.value, list ):
@@ -469,18 +469,18 @@ class SmartWidget(SmartType):
        elif isinstance( self.value, dict ):
            self.value[key] = value
 
-       if self.template["type"] == "dict":
-           if "items" not in self.template:
-              self.template["items"] =  {}
+       if self.schema["bsonType"] == "object":
+           if "items" not in self.schema:
+              self.schema["items"] =  {}
 
-           print("Old template: "+str(self.template))
-           self.template["items"][key] = template
-           print( "\nNewer template: "+str(self.template)+"\n")
+           print("Old schema: "+str(self.schema))
+           self.schema["items"][key] = schema
+           print( "\nNewer schema: "+str(self.schema)+"\n")
        else:
-           print("Not a dict or list. No cannot update child")
+           print("Not a object or list. No cannot update child")
 #           return False
 
-       print("Draw template: "+str(self.template))
+       print("Draw schema: "+str(self.schema))
        self.draw()
 
    ##
@@ -531,140 +531,64 @@ class unitTestViewer( QWidget ):
    ###
    # \brief Test function
    def test(self):
-       """
+       self.testWidgets = []
        ###############
        #Test strings
        ###############
-       widget = SmartWidget().init("string", "test", {"type":"string"})
-       if widget is False:
+       schema = {"bsonType":"string", "description":"string test"}
+       widget1 = SmartWidget().init("string", "test", schema )
+       if widget1 is False:
            print( "Unable to create string widget. Failure")
            return False
 
-#       self.mainLayout.addLayout( widget.layout)
-       self.mainLayout.addWidget(widget.frame)
+       self.mainLayout.addWidget(widget1.frame)
+       self.testWidgets.append(widget1)
 
-       #Check to make sure we have the expected value
-       value = widget.getValue()
-       if value != "test":
-           print("String value mismatch("+str(value))
-           result = false
-
-
-       ###############
-       #Test Integers
-       ###############
-       widget2 = SmartWidget().init("integer", 2, {"type":"integer"})
+       schema = {"bsonType":"double", "description":"double test"}
+       widget2 = SmartWidget().init("double", 1.0, schema )
        if widget2 is False:
-           print( "Unable to create string widget. Failure")
+           print( "Unable to create double widget. Failure")
            return False
 
-#       self.mainLayout.addLayout( widget2.layout)
-       self.mainLayout.addWidget( widget2.frame)
+       self.mainLayout.addWidget(widget2.frame)
+       self.testWidgets.append(widget2)
 
-       #Check to make sure we have the expected value
-       value = widget2.getValue()
-       if value != 2:
-           print("Integer value mismatch: "+str(value))
-           return False
-
-       ###############
-       #Test Floats
-       ###############
-       widget3 = SmartWidget().init("float", 2.1, {"type":"float"})
+       schema = {"bsonType":"bool", "description":"bool test"}
+       widget3 = SmartWidget().init("bool", True, schema )
        if widget3 is False:
-           print( "Unable to create string widget. Failure")
+           print( "Unable to create double widget. Failure")
            return False
 
-       #self.mainLayout.addLayout( widget3.layout)
        self.mainLayout.addWidget(widget3.frame)
+       self.testWidgets.append(widget3)
 
-       #Check to make sure we have the expected value
-       value = widget3.getValue()
-       if value != 2.1:
-           print("Float value mismatch: "+str(value))
+         
+       schema = {"bsonType":"int", "description":"int test"}
+       widget4 = SmartWidget().init("int32", 12, schema )
+       if widget4 is False:
+           print( "Unable to create double widget. Failure")
            return False
 
-       ###############
-       #Test Bools
-       ###############
-       widget4 = SmartWidget().init("bool", True, {"type":"bool"})
-#       self.mainLayout.addLayout( widget4.layout)
        self.mainLayout.addWidget(widget4.frame)
+       self.testWidgets.append(widget4)
 
-       #Check to make sure we have the expected value
-       value = widget4.getValue()
-       if value != True:
-           print("Bool value mismatch: "+str(value))
+
+       schema = {"bsonType":"object", "properties":{ "string1": { "bsonType":"string", "description":"string 1"}}, "description":"object test" }
+       widget5 = SmartWidget().init("object", None, schema )
+       if widget5 is False:
+           print( "Unable to create double widget. Failure")
            return False
-  
-       ###############
-       #Test Lists
-       ###############
-       #Test uneditable list
-       data = ["abc", 2, 3.2, 4]
-       widget5 = SmartWidget().init("list", data)
-#       self.mainLayout.addLayout( widget5.layout)
+
        self.mainLayout.addWidget(widget5.frame)
+       self.testWidgets.append(widget5)
 
-       #Test editable
-       data2 = [1,2,3,4]
-       self.widget6 = SmartWidget().init("list", data2, {"type":"list","template":{"type":"integer"}})
-#       self.mainLayout.addLayout( widget6.layout)
-       self.mainLayout.addWidget(self.widget6.frame)
-
-       """
-       ###############
-       #Test Dicts
-       ###############
-       #Test uneditable list
-#       data = {"key1":"test1", "key2":1}
-       data = {}
-       template = {}
-       template["type"] = "dict"
-       t = {}
-#       t["type"] = "string"
-       tplate = None
-#       tplate["key1"] = t
-#       t["type"] = "integer"
-#       tplate["key2"] = t
-#       template["template"] = tplate
-
-
-#       self.widget7 = SmartWidget().init("read only dict", data)
-#       self.mainLayout.addWidget(self.widget7.frame)
-       #Test editable
-       self.widget8 = SmartWidget().init("NewDict", None, template)
-       self.mainLayout.addWidget(self.widget8.frame)
-
-
-       ###############
-       # Check all
-       ###############
-       """
-       print("Creating widget 9")
-       template= { "type":"list", "template":{ "type":"dict", "template":{ "value1":"integer", "value2":"integer" } } }
-       value = [{"value1":1, "value2":2},{"value3":3, "value4":4}]
-       self.widget9 = SmartWidget().init("Test2",value,template)
-       self.mainLayout.addLayout( self.widget9.layout )
-       """
-
-       ####
-       #Add stretch to push all entries to the top
-       ####
-       self.mainLayout.addStretch(1)
-
-       ###
-       # Add a check button
-       ###
-       self.testButton = QPushButton('Submit',self)
-       self.testButton.clicked.connect( lambda: self.submitButtonPressEvent())
-       self.mainLayout.addWidget( self.testButton )
 
    def submitButtonPressEvent(self):
        print("SUBMIT")
-       print( self.widget8.getValue())
-
-
+       i = 0
+       for item in self.testWidgets:
+          print(str(i) + " -  " + str( item.getValue()))
+          i = i +1
 
 if __name__ == '__main__':
     # parse command line arguments

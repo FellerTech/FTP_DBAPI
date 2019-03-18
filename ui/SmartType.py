@@ -8,9 +8,9 @@ Arrays and objects require new layouts?
 
 object.key
 object.value
-object.template
+object.schema
 
-template:
+schema:
 - type: type of value 
    "type": int, string, float, list, dict, undefined
 
@@ -20,9 +20,9 @@ an undefined type can be anything, but it will not be included in the interface 
 #example for list
 {
    "value":<value>,
-   "template":{
+   "schema":{
       "type":"list",
-      "template:"{
+      "schema:"{
          "key":<name>
          "type":<type>
       }
@@ -33,56 +33,56 @@ an undefined type can be anything, but it will not be included in the interface 
 """
 
 class SmartType:
-   types = ["string", "integer", "float", "bool", "list", "dict"]
+   types = ["string", "int", "float", "bool", "list", "object"]
 
    ##
    # \brief Default initializer
    # \param [in] key name of the item
    # \param [in] value value to set the item to
-   # \param [in] template Json object that defines what the object may contain
-   def __init__(self, key, value, template=None):
+   # \param [in] schema Json object that defines what the object may contain
+   def __init__(self, key, value, schema=None):
        self.key = key
        self.type = "Unknown"
 
-       print(str(key)+" template: "+str(template))
+       print(str(key)+" schema: "+str(schema))
 
-       self.template = None
-       if template != None:
-          self.setTemplate( template)
+       self.schema= None
+       if schema != None:
+          self.setSchema( schema)
 
           try:
-             self.type = template["type"]
+             self.type = schema["bsonType"]
           except: 
               pass
 
-       print(str(key)+" Setting value to "+str(value)+" with template: "+str(self.template))
+       print(str(key)+" Setting value to "+str(value)+" with schema: "+str(self.schema))
        self.value = value
 
-       #If a template is undefined, the value is converted to a reado-only string
-       if self.template == None:
-           print("No template for key "+str(self.key))
+       #If a schema is undefined, the value is converted to a reado-only string
+       if self.schema == None:
+           print("No schema for key "+str(self.key))
            self.value = str( value )
            self.readOnly = True
 
 
    ##
-   # \brief sets the template for the Type
-   # \param [in] template Json object that specifies information about the object
+   # \brief sets the schema for the Type
+   # \param [in] schema Json object that specifies information about the object
    # \return true on success, false on failure
    #
-   def setTemplate( self, template ):
-       print("New template: "+str(template))
+   def setSchema( self, schema ):
+       print("New schema: "+str(schema))
        #If not specified, read only. 
-       if template == None:
-           self.template = template
+       if schema == None:
+           self.schema =schema 
            return True
 
        #Make sure we are a dictionary
-       elif not isinstance( template, dict ):
-           print("Error: Template is not a dictionary"+str(template))
+       elif not isinstance( schema, dict ):
+           print("Error: schema is not a object "+str(schema))
            return False
 
-       self.template = template
+       self.schema = schema 
 
        return True
 
@@ -92,62 +92,62 @@ class SmartType:
    # \return true on success, false on failure
    #
    def setValue(self, value ):
-       #If a template is undefined, the value is converted to a reado-only string
-       if self.template == None:
-           print("No template for key "+str(self.key))
+       #If a schema is undefined, the value is converted to a reado-only string
+       if self.schema == None:
+           print("No schema for key "+str(self.key))
 #           self.value = str( value )
            self.value = value
            self.readOnly = True
            return True
 
-       print(str(self.key)+" value:"+str(self.value)+", template:"+str(self.template))
+       print(str(self.key)+" value:"+str(self.value)+", schema:"+str(self.schema))
 
-       #check template type
-       if self.template["type"] == "string":
+       #check schema type
+       if self.schema["bsonType"] == "string":
            if isinstance( value, str):
                self.value = value
            elif self.value != None:
-               print("SmartType::Error - Value type "+str(self.value)+" does not match template type of \"string\"")
+               print("SmartType::Error - Value type "+str(self.value)+" does not match schema type of \"string\"")
                return False
 
-       elif self.template["type"] == "integer":
+       elif self.schema["bsonType"] == "int":
            if isinstance( value, int ):
                self.value = value
            elif self.value != None:
-               print("SmartType::Error - Value type does not match template type of \"integer\"")
+               print("SmartType::Error - Value type does not match schema type of \"int\"")
                return False
 
-       elif self.template["type"] == "float":
+       elif self.schema["bsonType"] == "float":
            if isinstance( value, float ):
                self.value = value
            elif self.value != None:
-               print("SmartType::Error - Value type does not match template type of \"float\"")
+               print("SmartType::Error - Value type does not match schema type of \"float\"")
                return False
 
-       elif self.template["type"] == "bool":
+       elif self.schema["bsonType"] == "bool":
            if isinstance( value, bool ):
                self.value = value
            elif self.value != None:
-               print("SmartType::Error - Value type does not match template type of \"bool\"")
+               print("SmartType::Error - Value type does not match schema type of \"bool\"")
                return False
 
-       elif self.template["type"] == "dict":
-           print(str(self.key)+" dict value:"+str(value)+", template:"+str(self.template))
+       elif self.schema["bsonType"] == "object":
+           print(str(self.key)+" object value:"+str(value)+", schema:"+str(self.schema ))
          
            if isinstance( value, dict ):
                self.value = value
            elif self.value != None:
-               print( "Value:"+self.value)
-               print("SmartType::Error - Value type does not match template type of \"dict\"")
+               print( "Value:"+str(self.value))
+               print("SmartType::Error - Value type does not match schema type of \"object\"")
                return False
-           print(str(self.key)+" set dict value:"+str(self.value)+", template:"+str(self.template))
+           print(str(self.key)+" set object value:"+str(self.value)+", schema:"+str(self.schema))
 
 
-       elif self.template["type"] == "list":
+       elif self.schema["bsonType"] == "list":
            if isinstance( value, list ):
                self.value = value
            elif self.value != None:
-               print("SmartType::Error - Value type does not match template type of \"list\"")
+               print("SmartType::Error - Value type does not match schema type of \"list\"")
                return False
 
        return True
@@ -161,28 +161,28 @@ class SmartType:
            return False
 
        #Set to string
-       if self.template["type"] == "string":
+       if self.schema["bsonType"] == "string":
           try: 
               self.setValue( str(text))
           except:
               return False
 
        #Set to string
-       if self.template["type"] == "integer":
+       if self.schema["bsonType"] == "int":
           try: 
               self.setValue( int(text))
           except:
               return False
 
        #Set to string
-       if self.template["type"] == "float":
+       if self.schema["bsonType"] == "float":
           try: 
               self.setValue( float(text))
           except:
               return False
 
        #Set to string
-       if self.template["type"] == "bool":
+       if self.schema["bsonType"] == "bool":
           #Convert string to boolean type
           if text == "True":
               bval = True
@@ -197,12 +197,12 @@ class SmartType:
               return False
 
        #Set to string
-       if self.template["type"] == "dict":
-           print("SmartType::setStringAsValue Unable to convert string to dict.")
+       if self.schema["bsonType"] == "object":
+           print("SmartType::setStringAsValue Unable to convert string to object.")
            return False
 
        #Set to string
-       if self.template["type"] == "list":
+       if self.schema["bsonType"] == "list":
            print("SmartType::setStringAsValue Unable to convert string to list.")
            return False
 
@@ -218,7 +218,7 @@ def unitTest():
       #Test strings
       ###############
 
-      type1 = SmartType( "string", "value1", {"type":"string"})
+      type1 = SmartType( "string", "value1", {"bsonType":"string"})
       if type1.value != "value1":
           print("key 1 Unable to set string value")
           return False
@@ -229,13 +229,13 @@ def unitTest():
 
       #try non-string values
       if type1.setValue(15):
-          print("FAILURE set string to an integer")
+          print("FAILURE set string to an int")
           return False
 
       ###############
       #Test Integers
       ###############
-      type1 = SmartType( "integer", 1, {"type":"integer"})
+      type1 = SmartType( "int", 1, {"bsonType":"int"})
       if type1.value != 1:
           print("Failure: Value not set to 1")
           return False
@@ -250,13 +250,13 @@ def unitTest():
 
       #try non-string values
       if type1.setValue("test"):
-          print("FAILURE set integer to a string")
+          print("FAILURE set int to a string")
           return False
 
       ###############
       # Test Floats
       ###############
-      type1 = SmartType( "float", 1.1, {"type":"float"})
+      type1 = SmartType( "float", 1.1, {"bsonType":"float"})
       if type1.value != 1.1:
           print("Failure: Float value not set to 1.1")
           return False
@@ -277,7 +277,7 @@ def unitTest():
       ###############
       # Test Bools
       ###############
-      type1 = SmartType( "bool", True, {"type":"bool"})
+      type1 = SmartType( "bool", True, {"bsonType":"bool"})
       if type1.value != True:
           print("Failure: Bool value not set to True")
           return False
@@ -292,14 +292,14 @@ def unitTest():
 
       #try non-string values
       if type1.setValue(99):
-          print("FAILURE set bool to an integer")
+          print("FAILURE set bool to an int")
           return False
 
       ###############
       # Test Lists
       ###############
       data = [1,2,3,4]
-      type1 = SmartType( "list", data, {"type":"list"})
+      type1 = SmartType( "list", data, {"bsonType":"list"})
 
       if type1.value != data:
           print("Failure: list value not set to "+str(data))
@@ -314,14 +314,14 @@ def unitTest():
       # Test Dicts
       ###############
       data = {"key":"value"}
-      type1 = SmartType( "dict", data, {"type":"dict"})
+      type1 = SmartType( "object", data, {"bsonType":"object"})
       if type1.value != data:
-          print("Failure: dict value not set to "+str(data))
+          print("Failure: object value not set to "+str(data))
           return False
 
       #try non-string values
       if type1.setValue(99):
-          print("FAILURE set dict to a string")
+          print("FAILURE set object to a string")
           return False
      
       ###############
