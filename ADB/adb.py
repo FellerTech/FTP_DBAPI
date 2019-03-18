@@ -63,6 +63,7 @@ class ADB:
 
 if __name__ == '__main__':
     adb = ADB("localhost")
+#    adb = ADB("10.0.0.120:27017")
 
     """
     print("Mongo database info at uri: "+adb.getUri())
