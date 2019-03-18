@@ -25,6 +25,9 @@ class ADB:
             
         return self.dbStructure;
 
+    def query( self, collection, query ):
+    
+
 
     def getUri(self):
         return self.uri
