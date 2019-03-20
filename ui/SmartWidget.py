@@ -71,7 +71,7 @@ class IndexButton(QPushButton):
 
 ##
 # \brief dialog for modifying dictionaries
-class DictDialog(QDialog):
+class ObjectDialog(QDialog):
     def __init__(self, callback):
        super().__init__()
 
@@ -145,7 +145,7 @@ class DictDialog(QDialog):
            print("Must enter a key")
            return
        tplate = {}
-       tplate["type"] = mytype
+       tplate["bsonType"] = mytype
        tplate["required"] = req
 #       tplate["items"] = {}
 
@@ -295,7 +295,7 @@ class SmartWidget(SmartType):
                        print("It's a object, type is not a list"+str(self.schema))
                        try:
                            print("Trying to get object keys from the schema"+str(self.schema))
-                           keys = list(self.schema["items"].keys());
+                           keys = list(self.schema["properties"].keys());
                            print("Keys: "+str(keys))
 
                            array = list(keys)
@@ -314,13 +314,13 @@ class SmartWidget(SmartType):
                       self.value[item] = None
                   #draw a dictionary item
                   if self.schema["bsonType"]== "object":
-                      if item not in self.schema["items"]:
-                          self.schema["items"][item] = {}
+                      if item not in self.schema["properties"]:
+                          self.schema["properties"][item] = {}
                       if self.value[item] == "" or self.value[item] == None:
                           print("no value")
-                          widget = SmartWidget().init(item, None, self.schema["items"][item], self)
+                          widget = SmartWidget().init(item, None, self.schema["properties"][item], self)
                       else:
-                          widget = SmartWidget().init(item, self.value[item], self.schema["items"][item], self)
+                          widget = SmartWidget().init(item, self.value[item], self.schema["properties"][item], self)
                   #otherwise, it's a list
                   else:
                       widget = SmartWidget().init(item, self.value[item], self.schema, self)
@@ -454,7 +454,7 @@ class SmartWidget(SmartType):
          else:
             self.draw()
       elif self.schema["bsonType"] == "object":
-         dictDialog = DictDialog(self.updateChild)
+         objectDialog = ObjectDialog(self.updateChild)
       else:
          print("addCallback schema: "+str(self.schema))
 
@@ -470,11 +470,11 @@ class SmartWidget(SmartType):
            self.value[key] = value
 
        if self.schema["bsonType"] == "object":
-           if "items" not in self.schema:
-              self.schema["items"] =  {}
+           if "properties" not in self.schema:
+              self.schema["properties"] =  {}
 
            print("Old schema: "+str(self.schema))
-           self.schema["items"][key] = schema
+           self.schema["properties"][key] = schema
            print( "\nNewer schema: "+str(self.schema)+"\n")
        else:
            print("Not a object or list. No cannot update child")

@@ -44,8 +44,6 @@ class SmartType:
        self.key = key
        self.type = "Unknown"
 
-       print(str(key)+" schema: "+str(schema))
-
        self.schema= None
        if schema != None:
           self.setSchema( schema)
