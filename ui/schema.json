@@ -1,0 +1,50 @@
+{
+		"name" : "uCams",
+		"type" : "collection",
+		"options" : {
+			"validator" : {
+				"$jsonSchema" : {
+					"bsonType" : "object",
+					"required" : [
+						"PN",
+						"SN"
+					],
+					"properties" : {
+						"PN" : {
+							"bsonType" : "objectId",
+							"description" : "Identifier for the given part design"
+						},
+						"SN" : {
+							"bsonType" : "string",
+							"description" : "unique ID for the motherboard"
+						},
+						"receiveDate" : {
+							"bsonType" : "date",
+							"description" : "date when the part was received at the factory (components only)"
+						},
+						"supplier" : {
+							"bsonType" : "objectId",
+							"description" : "name fo the company that provides the device"
+						},
+						"batch" : {
+							"bsonType" : "string",
+							"description" : "identifier used to associate multiple components of the same build"
+						}
+					}
+				}
+			}
+		},
+		"info" : {
+			"readOnly" : false,
+			"uuid" : UUID("dcbbf241-71c1-4efa-934c-9bc74fe402b0")
+		},
+		"idIndex" : {
+			"v" : 2,
+			"key" : {
+				"_id" : 1
+			},
+			"name" : "_id_",
+			"ns" : "test.uCams"
+		}
+	}
+
