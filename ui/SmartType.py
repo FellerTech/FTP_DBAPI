@@ -69,7 +69,6 @@ class SmartType:
    # \return true on success, false on failure
    #
    def setSchema( self, schema ):
-       print("New schema: "+str(schema))
        #If not specified, read only. 
        if schema == None:
            self.schema =schema 

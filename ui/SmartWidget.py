@@ -292,11 +292,8 @@ class SmartWidget(SmartType):
                    if self.schema["bsonType"] == "list":
                        array = []
                    else:
-                       print("It's a object, type is not a list"+str(self.schema))
                        try:
-                           print("Trying to get object keys from the schema"+str(self.schema))
                            keys = list(self.schema["properties"].keys());
-                           print("Keys: "+str(keys))
 
                            array = list(keys)
                        except:
@@ -473,14 +470,11 @@ class SmartWidget(SmartType):
            if "properties" not in self.schema:
               self.schema["properties"] =  {}
 
-           print("Old schema: "+str(self.schema))
            self.schema["properties"][key] = schema
-           print( "\nNewer schema: "+str(self.schema)+"\n")
        else:
            print("Not a object or list. No cannot update child")
 #           return False
 
-       print("Draw schema: "+str(self.schema))
        self.draw()
 
    ##
@@ -556,7 +550,7 @@ class unitTestViewer( QWidget ):
        schema = {"bsonType":"bool", "description":"bool test"}
        widget3 = SmartWidget().init("bool", True, schema )
        if widget3 is False:
-           print( "Unable to create double widget. Failure")
+           print( "Unable to create bool widget. Failure")
            return False
 
        self.mainLayout.addWidget(widget3.frame)
@@ -566,7 +560,7 @@ class unitTestViewer( QWidget ):
        schema = {"bsonType":"int", "description":"int test"}
        widget4 = SmartWidget().init("int32", 12, schema )
        if widget4 is False:
-           print( "Unable to create double widget. Failure")
+           print( "Unable to create int widget. Failure")
            return False
 
        self.mainLayout.addWidget(widget4.frame)
@@ -576,11 +570,18 @@ class unitTestViewer( QWidget ):
        schema = {"bsonType":"object", "properties":{ "string1": { "bsonType":"string", "description":"string 1"}}, "description":"object test" }
        widget5 = SmartWidget().init("object", None, schema )
        if widget5 is False:
-           print( "Unable to create double widget. Failure")
+           print( "Unable to create object widget. Failure")
            return False
-
        self.mainLayout.addWidget(widget5.frame)
        self.testWidgets.append(widget5)
+
+       schema = {"bsonType":"array", "items":{ "bsonType":"double"}}
+       widget6 = SmartWidget().init("array", None, schema )
+       if widget6 is False:
+           print( "Unable to create array widget. Failure")
+           return False
+       self.mainLayout.addWidget(widget6.frame)
+       self.testWidgets.append(widget6)
 
 
    def submitButtonPressEvent(self):
