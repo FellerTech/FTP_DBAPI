@@ -197,7 +197,6 @@ class SmartType:
            else:
                self.value = value
                return True
-               
    ##
    # \brief Append a vlue to an array
    # \param in value the new value to append to the array
@@ -231,7 +230,7 @@ class SmartType:
                    if not isinstance( value, bool):
                        valid = False
                elif self.schema["items"]["type"] == "object":
-                   if not isinstance( value, object):
+                   if not isinstance( value, dict):
                        valid = False
                elif self.schema["items"]["type"] == "array":
                    if not isinstance( value, list):
@@ -447,65 +446,32 @@ def unitTest():
                #Not good. Print Failure and set valid to falks             
                else:
                    print("Failure: "+str(k)+","+str(key)+" values match: "+str(smartType.value))
-                   valid = False
+                   return False
 
-      print("Return valid = "+str(valid))
-      return valid
+            #Test appendValue for this SmartType
+            print("Testing array appends for key "+key)
+            for key2 in keys:
+               smartType.appendValue(testArray[key2]["value"])
+
+               reference = []
+               reference.append( testArray[key]["value"])
+               reference.append(testArray[key2]["value"])
+               if smartType.value == reference:
+                   #Good cases
+                   if( k == key or 
+                       k == "mixed" or
+                       (k == "integer" and key == "boolean") or 
+                       (k == "number" and key == "boolean")  or 
+                       (k == "number" and key == "integer")  
+                     ):
+                         continue
+                   #Not good. Print Failure and set valid to falks             
+                   else:
+                       print("Failure: "+str(k)+","+str(key)+" values match: "+str(smartType.value))
+                       return False
+
                
-
-      """
-
-
-      intData = [1,2,3,4]
-      intRefData  = [1,2,3,4]
-
-      #test array with no type
-#      type1 = SmartType( "array", data, {"bsonType":"array"})
-
-      if type1.value != data:
-          print("Failure: array value not set to "+str(data))
-          return False
-
-      #try non-string values
-      if type1.setValue(99):
-          print("FAILURE set array to a string")
-          return False
-
-      #test array with string type
-      type2 = SmartType( "array", data, {"bsonType":"array", "items":{"type":"string"}})
-      if type2.value == data:
-         print("Failure: array of numbers set to a string type for array testing")
-         return False
-
-      #test float type for an array of ints
-      type3 = SmartType( "array", data, {"bsonType":"array", "items":{"type":"number"}})
-      if type3.value != data:
-         print("Failure: array of integers are not mapped to floats")
-         return False
-
-      objectData=[{"test":1},"test",2}]
-      
-
-      #check appends
-      print("Checking appends")
-      #TODO Check all types
-      type4 = SmartType( "array", data, {"bsonType":"array", "items":{"type":"number"}})
-      if type4.appendValue("testString"):
-         print("Failure: appended a string to a number array passed")
-         return False
-
-
-      #TODO Check all types
-      type4 = SmartType( "array", data, {"bsonType":"array", "items":{"type":"number"}})
-      if not type4.appendValue(1):
-         print("Failure: unable append an integer to a number array passed")
-         return False
-
-      ref.append(1)
-      if type4.value != ref:
-         print("Failure: data mismatch after appending value")
-         return False
-      """
+                  
 
 
       ###############

@@ -255,13 +255,16 @@ class SmartWidget(SmartType):
    # \param [in] key name of the item
    # \param [in] value value to set the item to
    # \param [in] schema Json object that defines what the object may contain
+   # \return self reference
    #
    # This function is used to initalize a new smart widget with a new key-value
    # pair. If a schema is provided, it is used to ensure that the value is 
-   # considered correct.
+   # considered correct. The valid variable is set to True when the object has
+   # a valid value
    #
    def init(self, key, value, schema = None, parent=None):
-       self.parent = parent 
+       self.parent = parent
+       self.valid = False 
 
        #Initialize the underlying SmartType with input values
        SmartType.__init__(self, key, value, schema )
@@ -279,7 +282,7 @@ class SmartWidget(SmartType):
        self.noDraw = False
 
        self.setSchema(schema)
-       self.setValue(value)
+       self.valid = self.setValue(value)
        self.draw()
 
        return self
@@ -287,7 +290,7 @@ class SmartWidget(SmartType):
    ##
    # \brief Function to draw the frame
    def draw(self):
-       #Remove all widgets
+       #Remove all widgets from the current layout
        while self.layout.count():
            item = self.layout.takeAt(0)
            widget = item.widget()
@@ -300,7 +303,7 @@ class SmartWidget(SmartType):
        self.layout.addWidget( label )
 
        #Check if we have a defined schema
-       #No schema is provided
+       #If not schema is provided, the value is represnted in uneditable text form
        if self.schema == None:
            if self.value == None:
               print("No value or schema provided")
@@ -324,7 +327,7 @@ class SmartWidget(SmartType):
               dataFrame  = QFrame()
               subLayout = QVBoxLayout()
 
-              #Create an array of keys. For a list, the array is string represetnations of integers
+              #Create an array of keys. For a list, the array is string representations of integers
               array = []
               if self.value is not None: 
                   if self.schema["bsonType"] == "array":
