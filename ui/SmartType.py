@@ -182,8 +182,6 @@ class SmartType:
                        if not isinstance( item, dict):
                            print("SmartType::Error object schema mismatch -"+ str(item)+" is not an object")
                            valid = False
-                       else:
-                           print("Item: "+str(item)+" is an object")
                    else:
                        print("SmartType::Error unknown type: "+str(self.schema["items"]["type"]))
                        valid = False
