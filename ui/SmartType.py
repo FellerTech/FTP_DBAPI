@@ -119,11 +119,11 @@ class SmartType:
                print("SmartType::Error - Value type does not match schema type of \"int\"")
                return False
 
-       elif self.schema["bsonType"] == "number":
+       elif self.schema["bsonType"] == "double":
            if isinstance( value, float ):
                self.value = value
            elif self.value != None:
-               print("SmartType::Error - Value type does not match schema type of \"number\"")
+               print("SmartType::Error - Value type does not match schema type of \"double\"")
                return False
 
        elif self.schema["bsonType"] == "bool":
@@ -166,9 +166,9 @@ class SmartType:
                        if not isinstance( item, int):
                            print("SmartType::Error array schema mismatch -"+ str(item)+" is not an integer")
                            valid = False
-                   elif self.schema["items"]["type"] == "number":
+                   elif self.schema["items"]["type"] == "double":
                        if not isinstance( item, float) and not isinstance( item, int):
-                           print("SmartType::Error array schema mismatch -"+ str(item)+" is not a number")
+                           print("SmartType::Error array schema mismatch -"+ str(item)+" is not a double")
                            valid = False
                    elif self.schema["items"]["type"] == "boolean":
                        if not isinstance( item, bool):
@@ -222,9 +222,9 @@ class SmartType:
                elif self.schema["items"]["type"] == "integer":
                    if not isinstance( value, int):
                        valid = False
-               elif self.schema["items"]["type"] == "number":
+               elif self.schema["items"]["type"] == "double":
                    if not isinstance( value, float) and not isinstance( value, int):
-                       print(str(value)+" is not a number")
+                       print(str(value)+" is not a double")
                        valid = False
                elif self.schema["items"]["type"] == "boolean":
                    if not isinstance( value, bool):
@@ -268,21 +268,21 @@ class SmartType:
               return False
 
        #Set to string
-       if self.schema["bsonType"] == "int":
+       elif self.schema["bsonType"] == "int":
           try: 
               self.setValue( int(text))
           except:
               return False
 
        #Set to string
-       if self.schema["bsonType"] == "number":
+       elif self.schema["bsonType"] == "double":
           try: 
               self.setValue( float(text))
           except:
               return False
 
        #Set to string
-       if self.schema["bsonType"] == "bool":
+       elif self.schema["bsonType"] == "bool":
           #Convert string to boolean type
           if text == "True":
               bval = True
@@ -297,14 +297,16 @@ class SmartType:
               return False
 
        #Set to string
-       if self.schema["bsonType"] == "object":
+       elif self.schema["bsonType"] == "object":
            print("SmartType::setStringAsValue Unable to convert string to object.")
            return False
 
        #Set to string
-       if self.schema["bsonType"] == "array":
+       elif self.schema["bsonType"] == "array":
            print("SmartType::setStringAsValue Unable to convert string to array.")
            return False
+       else:
+           print("SmartType::Error Invalid bnsonType of "+self.schema["bsonType"])
 
        return True
 
@@ -353,7 +355,7 @@ def unitTest():
       ###############
       # Test Floats
       ###############
-      type1 = SmartType( "float", 1.1, {"bsonType":"number"})
+      type1 = SmartType( "float", 1.1, {"bsonType":"double"})
       if type1.value != 1.1:
           print("Failure: Float value not set to 1.1")
           return False
@@ -402,8 +404,8 @@ def unitTest():
          "integer":{ "value":[1,2,3],
                     "schema": {"bsonType":"array", "items":{"type":"integer"}}
                     },
-         "number":{"value":[1.1,2.1,3.1],
-                    "schema": {"bsonType":"array", "items":{"type":"number"}}
+         "double":{"value":[1.1,2.1,3.1],
+                    "schema": {"bsonType":"array", "items":{"type":"double"}}
                    },
          "boolean":{ "value":[True, False, True],
                     "schema": {"bsonType":"array", "items":{"type":"boolean"}}
@@ -439,8 +441,8 @@ def unitTest():
                if( k == key or 
                    k == "mixed" or
                    (k == "integer" and key == "boolean") or 
-                   (k == "number" and key == "boolean")  or 
-                   (k == "number" and key == "integer")  
+                   (k == "double" and key == "boolean")  or 
+                   (k == "double" and key == "integer")  
                  ):
                      continue
                #Not good. Print Failure and set valid to falks             
@@ -461,8 +463,8 @@ def unitTest():
                    if( k == key or 
                        k == "mixed" or
                        (k == "integer" and key == "boolean") or 
-                       (k == "number" and key == "boolean")  or 
-                       (k == "number" and key == "integer")  
+                       (k == "double" and key == "boolean")  or 
+                       (k == "double" and key == "integer")  
                      ):
                          continue
                    #Not good. Print Failure and set valid to falks             

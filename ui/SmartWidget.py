@@ -242,7 +242,8 @@ class ArrayDialog(QDialog):
        self.callback(key, None, tplate )
 
        self.done(True)
-
+##
+#\brief This class is used to draw a widget for a smart type
 class SmartWidget(SmartType):
    def __init__(self):
        self.value=""
@@ -282,6 +283,7 @@ class SmartWidget(SmartType):
        self.noDraw = False
 
        self.setSchema(schema)
+       print("Set value for key "+key+" to "+str(value)+" is "+str(self.valid))
        self.valid = self.setValue(value)
        self.draw()
 
