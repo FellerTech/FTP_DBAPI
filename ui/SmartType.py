@@ -158,32 +158,32 @@ class SmartType:
            #Mixed type not validated since anything goes
            try:
                for item in value:
-                   if self.schema["items"]["type"] == "string":
+                   if self.schema["items"]["bsonType"] == "string":
                        if not isinstance( item, str):
                            print("SmartType::Error array schema mismatch -"+ str(item)+" is not a string")
                            valid = False
-                   elif self.schema["items"]["type"] == "integer":
+                   elif self.schema["items"]["bsonType"] == "integer":
                        if not isinstance( item, int):
                            print("SmartType::Error array schema mismatch -"+ str(item)+" is not an integer")
                            valid = False
-                   elif self.schema["items"]["type"] == "double":
+                   elif self.schema["items"]["bsonType"] == "double":
                        if not isinstance( item, float) and not isinstance( item, int):
                            print("SmartType::Error array schema mismatch -"+ str(item)+" is not a double")
                            valid = False
-                   elif self.schema["items"]["type"] == "boolean":
+                   elif self.schema["items"]["bsonType"] == "boolean":
                        if not isinstance( item, bool):
                            print("SmartType::Error array schema mismatch -"+ str(item)+" is not a boolean")
                            valid = False
-                   elif self.schema["items"]["type"] == "array":
+                   elif self.schema["items"]["bsonType"] == "array":
                        if not isinstance( item, list):
                            print("SmartType::Error array schema mismatch -"+ str(item)+" is not an array")
                            valid = False
-                   elif self.schema["items"]["type"] == "object":
+                   elif self.schema["items"]["bsonType"] == "object":
                        if not isinstance( item, dict):
                            print("SmartType::Error object schema mismatch -"+ str(item)+" is not an object")
                            valid = False
                    else:
-                       print("SmartType::Error unknown type: "+str(self.schema["items"]["type"]))
+                       print("SmartType::Error unknown type: "+str(self.schema["items"]["bsonType"]))
                        valid = False
            except:
                #SDF: Need a NOP....`
@@ -215,32 +215,32 @@ class SmartType:
        valid = True
        try:
            #If the schema doesn't specify a type
-           if isinstance(self.schema["items"]["type"], str):
-               if self.schema["items"]["type"] == "string":
+           if isinstance(self.schema["items"]["bsonType"], str):
+               if self.schema["items"]["bsonType"] == "string":
                    if not isinstance( value, str):
                        valid = False
-               elif self.schema["items"]["type"] == "integer":
+               elif self.schema["items"]["bsonType"] == "integer":
                    if not isinstance( value, int):
                        valid = False
-               elif self.schema["items"]["type"] == "double":
+               elif self.schema["items"]["bsonType"] == "double":
                    if not isinstance( value, float) and not isinstance( value, int):
                        print(str(value)+" is not a double")
                        valid = False
-               elif self.schema["items"]["type"] == "boolean":
+               elif self.schema["items"]["bsonType"] == "boolean":
                    if not isinstance( value, bool):
                        valid = False
-               elif self.schema["items"]["type"] == "object":
+               elif self.schema["items"]["bsonType"] == "object":
                    if not isinstance( value, dict):
                        valid = False
-               elif self.schema["items"]["type"] == "array":
+               elif self.schema["items"]["bsonType"] == "array":
                    if not isinstance( value, list):
                        valid = False
-               elif self.schema["items"]["type"] != "mixed":
+               elif self.schema["items"]["bsonType"] != "mixed":
                    valid = False
 
 
                if not valid:
-                   print( str(item)+" is not of type "+str(self.schema["items"]["type"])) 
+                   print( str(item)+" is not of type "+str(self.schema["items"]["bsonType"])) 
                else:
                    self.value.append( value  )
                    return True
@@ -397,46 +397,60 @@ def unitTest():
       ###############
       # Test Lists
       ###############
-      testArray = ({
-         "string":{ "value":["A","B","C"],
-                    "schema": {"bsonType":"array", "items":{"type":"string"}}
-                   },
-         "integer":{ "value":[1,2,3],
-                    "schema": {"bsonType":"array", "items":{"type":"integer"}}
-                    },
-         "double":{"value":[1.1,2.1,3.1],
-                    "schema": {"bsonType":"array", "items":{"type":"double"}}
-                   },
-         "boolean":{ "value":[True, False, True],
-                    "schema": {"bsonType":"array", "items":{"type":"boolean"}}
-                    },
-         "mixed":{ "value":["A",2,True],
-                    "schema": {"bsonType":"array", "items":{"type":"mixed"}}
-                 },
-         "array":{ "value":[[1,2,3],[4,5,6],[7,8,9]],
-                    "schema": {"bsonType":"array", "items":{"type":"array"}}
-                 },
-         "object":{ "value":[{"key1":1},{"key2":2},{"key3":3}],
-                    "schema": {"bsonType":"array", "items":{"type":"object"}}
-                   }
+      testData = ({
+         "strings":[{"value":"test","schema":{"bsonType":"string"}},
+                    {"value":"test","schema":{"bsonType":"string"}}
+                   ],
+         "integers":[{"value":1,"schema":{"bsonType":"integer"}},
+                     {"value":-1, "schema":{"bsonType":"integer"}}
+                    ],
+         "doubles":[{"value":1.5,"schema":{"bsonType":"double"}},
+                    {"value":2,"schema":{"bsonType":"double"}}
+                   ],
+         "booleans":[{"value":True, "schema": {"bsonType":"boolean"}},
+                     {"value":True, "schema": {"bsonType":"boolean"}}
+                    ],
+         "arrays":{
+             "string":{ "value":["A","B","C"],
+                        "schema": {"bsonType":"array", "items":{"bsonType":"string"}}
+                       },
+             "integer":{ "value":[1,2,3],
+                        "schema": {"bsonType":"array", "items":{"bsonType":"integer"}}
+                        },
+             "double":{"value":[1.1,2.1,3.1],
+                        "schema": {"bsonType":"array", "items":{"bsonType":"double"}}
+                       },
+             "boolean":{ "value":[True, False, True],
+                        "schema": {"bsonType":"array", "items":{"bsonType":"boolean"}}
+                        },
+             "mixed":{ "value":["A",2,True],
+                        "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}
+                     },
+             "array":{ "value":[[1,2,3],[4,5,6],[7,8,9]],
+                        "schema": {"bsonType":"array", "items":{"bsonType":"array"}}
+                     },
+             "object":{ "value":[{"key1":1},{"key2":2},{"key3":3}],
+                        "schema": {"bsonType":"array", "items":{"bsonType":"object"}}
+                       }
+          }
       })
 
       valid = True
 
       #Get a list of all keys in the test array. This will be used for comparison
-      keys = testArray.keys()
+      keys = testData["arrays"].keys()
 
-      #Try to create a SmartType for every key in the testArray and try to assign
+      #Try to create a SmartType for every key in the testData and try to assign
       #all other keys to that key type.
-      for k in testArray:
+      for k in testData["arrays"]:
          #Try to create a type for each key
          for key in keys:
-            smartType = SmartType( k, testArray[key]["value"], testArray[k]["schema"])
+            smartType = SmartType( k, testData["arrays"][key]["value"], testData["arrays"][k]["schema"])
 
             #We should only succeed when k = key unless k is mixed or if an integer 
             #array is mapped to a number. The following statement should only be true
             #for compatible keys.
-            if smartType.value == testArray[key]["value"]:
+            if smartType.value == testData["arrays"][key]["value"]:
                #Good cases
                if( k == key or 
                    k == "mixed" or
@@ -453,11 +467,11 @@ def unitTest():
             #Test appendValue for this SmartType
             print("Testing array appends for key "+key)
             for key2 in keys:
-               smartType.appendValue(testArray[key2]["value"])
+               smartType.appendValue(testData["arrays"][key2]["value"])
 
                reference = []
-               reference.append( testArray[key]["value"])
-               reference.append(testArray[key2]["value"])
+               reference.append( testData["arrays"][key]["value"])
+               reference.append(testData["arrays"][key2]["value"])
                if smartType.value == reference:
                    #Good cases
                    if( k == key or 

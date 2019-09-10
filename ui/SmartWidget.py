@@ -72,22 +72,25 @@ class IndexButton(QPushButton):
 ##
 # \brief dialog for modifying dictionaries
 class ObjectDialog(QDialog):
+    ##
+    #\brief Initialization function for the object dialog
+    #\param [in] callback callback for the submit function
     def __init__(self, callback):
        super().__init__()
 
        self.callback = callback
-
        self.layout = QVBoxLayout()
-       self.valueLayout = QHBoxLayout()
-       valueLabel = QLabel()
-       valueLabel.setText("value")
-       self.valueLayout.addWidget( valueLabel )
 
+       #The value layout is used to 
+       self.keyLayout = QHBoxLayout()
+       keyLabel = QLabel()
+       keyLabel.setText("key")
+       self.keyLayout.addWidget( keyLabel )
 
        #default is for it to be a text box 
        self.key = QLineEdit()
        self.ss = self.key.styleSheet()
-       self.valueLayout.addWidget(self.key)
+       self.keyLayout.addWidget(self.key)
 
        typeLayout = QHBoxLayout()
        typeLabel = QLabel()
@@ -98,12 +101,14 @@ class ObjectDialog(QDialog):
        self.types.addItems(SmartType.types)
        typeLayout.addWidget(self.types)
 
+       """
        reqLayout = QHBoxLayout()
        reqLabel = QLabel()
        reqLabel.setText("required")
        self.reqCheck = QCheckBox()
        reqLayout.addWidget(reqLabel)
        reqLayout.addWidget(self.reqCheck)
+       """
 
        #Create submit button
        controlLayout = QHBoxLayout()
@@ -119,15 +124,15 @@ class ObjectDialog(QDialog):
        keyFrame.setLayout(self.keyLayout)
        typeFrame = QFrame()
        typeFrame.setLayout(typeLayout)
-       reqFrame = QFrame()
-       reqFrame.setLayout( reqLayout )
+       #reqFrame = QFrame()
+       #reqFrame.setLayout( reqLayout )
        controlFrame = QFrame()
        controlFrame.setLayout(controlLayout)
 
        self.layout = QVBoxLayout()
        self.layout.addWidget(keyFrame)
        self.layout.addWidget(typeFrame)
-       self.layout.addWidget( reqFrame )
+       #self.layout.addWidget( reqFrame )
        self.layout.addWidget( controlFrame)
        self.setLayout(self.layout)
 
@@ -138,14 +143,14 @@ class ObjectDialog(QDialog):
     def submitButtonPressEvent(self):
        key = self.key.text()
        mytype = self.types.currentText()
-       req = self.reqCheck.isChecked()
+       #req = self.reqCheck.isChecked()
 
        if key == "":
            print("Must enter a key")
            return
        tplate = {}
        tplate["bsonType"] = mytype
-       tplate["required"] = req
+       #tplate["required"] = req
 #       tplate["items"] = {}
 
        self.callback(key, None, tplate )
@@ -167,31 +172,38 @@ class ArrayDialog(QDialog):
 
        self.layout = QVBoxLayout()
 
-       self.valueLayout = QHBoxLayout()
-       valueLabel = QLabel()
-       valueLabel.setText("value")
-       self.valueLayout.addWidget( valueLabel )
+       #Create an element with a value label followed by a text box        
+       self.keyLayout = QHBoxLayout()
+       keyLabel = QLabel()
+       keyLabel.setText("key")
+       self.keyLayout.addWidget( keyLabel )
 
-       #default is for it to be a text box 
+       #Create the text box. The default is for it to be a text box 
        self.key = QLineEdit()
        self.ss = self.key.styleSheet()
-       self.valueLayout.addWidget(self.key)
+       self.keyLayout.addWidget(self.key)
 
+       #The type layout is a horizontal box 
        typeLayout = QHBoxLayout()
        typeLabel = QLabel()
        typeLabel.setText("type")
        typeLayout.addWidget(typeLabel)
 
+       #Crate a combobox to add a list of types to select from. This may need
+       #to be based on the schema in the future 
        self.types = QComboBox()
        self.types.addItems(SmartType.types)
        typeLayout.addWidget(self.types)
 
+       """
+       #Add a button to indicate if it is a required key
        reqLayout = QHBoxLayout()
        reqLabel = QLabel()
        reqLabel.setText("required")
        self.reqCheck = QCheckBox()
        reqLayout.addWidget(reqLabel)
        reqLayout.addWidget(self.reqCheck)
+       """
 
        #Create submit button
        controlLayout = QHBoxLayout()
@@ -208,7 +220,7 @@ class ArrayDialog(QDialog):
        typeFrame  = QFrame()
        typeFrame.setLayout(typeLayout)
        reqFrame   = QFrame()
-       reqFrame.setLayout( reqLayout )
+       #reqFrame.setLayout( reqLayout )
        controlFrame = QFrame()
        controlFrame.setLayout(controlLayout)
 
@@ -305,7 +317,7 @@ class SmartWidget(SmartType):
        self.layout.addWidget( label )
 
        #Check if we have a defined schema
-       #If not schema is provided, the value is represnted in uneditable text form
+       #If no schema is provided, the value is represnted in uneditable text form
        if self.schema == None:
            if self.value == None:
               print("No value or schema provided")
@@ -317,103 +329,54 @@ class SmartWidget(SmartType):
           
        #We have a schema. Now we operate based on type
        else:
-          #If we are a list, create a vertical layout and add subwidgets. Each subwidget
-          #must have a specified type.
-          if self.schema["bsonType"] == "array" or self.schema["bsonType"] == "object":
-              print("key "+str(self.key))
-              print(self.key + " is an array or an object")
-              
-              #See if we have write permissions"
-              #If we have a sub-schema, we can create objects for a layout
-              dataLayout = QHBoxLayout()
-              dataFrame  = QFrame()
+          #If we are an array, 
+          if self.schema["bsonType"] == "array":
+
+              #sdf These two lines will go away
+              print("array")
+              self.widget = QLabel()
+
+              #Create a sublayout for all items in array
               subLayout = QVBoxLayout()
 
-              #Create an array of keys. For a list, the array is string representations of integers
-              array = []
-              if self.value is not None: 
-                  if self.schema["bsonType"] == "array":
-                      array = range( 0, len(self.value)) 
+              #If we have a value, we need to add data for each element.
+              if self.value != None:
+                  #If we are an array, add a smart widget for each item
+                  if self.schema["items"]["bsonType"] == "array":
+                      print("Array array")
+                  elif self.schema["items"]["bsonType"] == "object":
+                      print("Array object")
+
+                  #For typical items
                   else:
-                      array = list(self.value.keys())
-              else:
-                   if self.schema["bsonType"] == "array":
-                       array = []
-                   else:
-                       try:
-                           keys  = list(self.schema["properties"].keys());
-                           array = list(keys)
-                       except:
-                           print("Trying object key error")
-                           array = []
+                      for item in self.value:
+                         widget = SmartWidget().init("", item, self.schema["items"])
 
-              #The work is done here.
-              count = 0
-              for item in array:
-                  #set defaults
-                  if self.value == None:
-                     self.value = {}
-                  if item not in self.value:
-                      self.value[item] = None
+                         if widget is not  False:
+                             subLayout.addWidget( widget.frame)
 
-                  #draw a dictionary item
-                  if self.schema["bsonType"]== "object":
-                      if item not in self.schema["properties"]:
-                          self.schema["properties"][item] = {}
-                      if self.value[item] == "" or self.value[item] == None:
-                          print("no value")
-                          widget = SmartWidget().init(item, None, self.schema["properties"][item], self)
-                      else:
-                          widget = SmartWidget().init(item, self.value[item], self.schema["properties"][item], self)
-                  #otherwise, it's a list
-                  else:
-                      widget = SmartWidget().init(item, self.value[item], self.schema, self)
+              
+          if self.schema["bsonType"] == "object":
+              print("------ object")
+              self.widget = QLabel()
 
-                  if widget == False:
-                      print("List Error!")
-                  else:
-                      #Add item to the component list
-                      subLayout.addWidget(widget.frame)
-
-                  #Create subframe
-                  subFrame = QFrame()
-                  subFrame.setLayout( subLayout)
-                  subFrame.setFrameStyle( 1 )
-                  subFrame.setLineWidth(1)
-
-                  dataLayout.addWidget(subFrame)
-
-              #Add a add button
-              print("000000000000000 be adding a button for "+self.key)
-              addButton = QPushButton("+")
-              addButton.clicked.connect( lambda: self.addButtonPressEvent())
-              dataLayout.addWidget(addButton)
-
-              #Add remove button
-              removeButton = IndexButton("-", self.key, self.removeCallback)
-              count = count + 1
-                     
-              dataFrame.setLayout(dataLayout)
-              self.layout.addWidget(dataFrame)
-
-          # We're a basic type
           else:
               #default is for it to be a text box 
               self.widget = QLineEdit()
               self.ss = self.widget.styleSheet()
               self.valid = True
+
               if self.value != None:
                   self.widget.setText(str(self.value))
-              self.widget.editingFinished.connect( lambda: self.validate() )
+                  self.widget.editingFinished.connect( lambda: self.validate() )
 
-              #create layout
-              self.layout.addWidget( self.widget )
+          #create layout
+          self.layout.addWidget( self.widget )
 
 
-       #Add remove button
+       #Add remove button to allow people to remove values
        removeButton = IndexButton("-", self.key, self.removeCallback)
        self.layout.addWidget( removeButton )
-                     
        self.layout.addStretch(1)
 
        return self
@@ -554,10 +517,38 @@ class SmartWidget(SmartType):
 
 class unitTestViewer( QWidget ):
    def __init__(self):
+       self.testArray = ({
+          "arrays": {
+              "string":{ "value":["A","B","C"],
+                         "schema": {"bsonType":"array", "items":{"bsonType":"string"}}
+                        },
+              "integer":{ "value":[1,2,3],
+                         "schema": {"bsonType":"array", "items":{"bsonType":"integer"}}
+                         },
+              "double":{"value":[1.1,2.1,3.1],
+                         "schema": {"bsonType":"array", "items":{"bsonType":"double"}}
+                        },
+              "boolean":{ "value":[True, False, True],
+                         "schema": {"bsonType":"array", "items":{"bsonType":"boolean"}}
+                         },
+              "mixed":{ "value":["A",2,True],
+                         "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}
+                      },
+              "array":{ "value":[[1,2,3],[4,5,6],[7,8,9]],
+                         "schema": {"bsonType":"array", "items":{"bsonType":"array"}}
+                      },
+              "object":{ "value":[{"key1":1},{"key2":2},{"key3":3}],
+                         "schema": {"bsonType":"array", "items":{"bsonType":"object"}}
+                        }
+          }
+       })
+
        ###############
        # Create viewing application
        ###############
        super().__init__()
+
+
        #Determine screen settings
        geo         = self.frameGeometry()
        self.width  = QDesktopWidget().availableGeometry().width();
@@ -584,6 +575,13 @@ class unitTestViewer( QWidget ):
    # \brief Test function
    def test(self):
        self.testWidgets = []
+
+       #New Test
+       widgetArray = []
+
+       
+
+       
        ###############
        #Test strings
        ###############
