@@ -418,25 +418,25 @@ def unitTest():
          "arrays":{
              "string":{ "value":["A","B","C"],
                         "schema": {"bsonType":"array", "items":{"bsonType":"string"}}
-                       },
+             },
              "integer":{ "value":[1,2,3],
                         "schema": {"bsonType":"array", "items":{"bsonType":"integer"}}
-                        },
+             },
              "double":{"value":[1.1,2.1,3.1],
                         "schema": {"bsonType":"array", "items":{"bsonType":"double"}}
-                       },
+             },
              "boolean":{ "value":[True, False, True],
                         "schema": {"bsonType":"array", "items":{"bsonType":"boolean"}}
-                        },
+             },
              "mixed":{ "value":["A",2,True],
                         "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}
-                     },
+             },
              "array":{ "value":[[1,2,3],[4,5,6],[7,8,9]],
                         "schema": {"bsonType":"array", "items":{"bsonType":"array"}}
-                     },
+             },
              "object":{ "value":[{"key1":1},{"key2":2},{"key3":3}],
                         "schema": {"bsonType":"array", "items":{"bsonType":"object"}}
-                       }
+             }
           }
       })
 

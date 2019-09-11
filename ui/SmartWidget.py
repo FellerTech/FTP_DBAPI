@@ -61,10 +61,9 @@ from SmartType import SmartType
 class IndexButton(QPushButton):
     def __init__(self, value, index, callback):
         QPushButton.__init__(self, value)
-        self.index =index
+        self.index = index
         self.callback = callback
         self.clicked.connect( lambda: self.pressEvent())
-
 
     def pressEvent(self):
         self.callback( self.index)
@@ -291,17 +290,13 @@ class SmartWidget(SmartType):
        self.frame.setFrameStyle( 1 )
        self.frame.setLineWidth(1)
        
-       #DEBUG 
-       self.noDraw = False
-
-       print("Set value for key "+key+" to "+str(value)+" is "+str(self.value))
-
        self.draw()
 
        return self
 
    ##
    # \brief Function to draw the frame
+   # SDF - handle arrays and objects
    def draw(self):
        #Remove all widgets from the current layout
        while self.layout.count():
@@ -517,41 +512,26 @@ class SmartWidget(SmartType):
 class unitTestViewer( QWidget ):
    def __init__(self):
        self.testData = ({
-#         "strings":[{"value":"test","schema":{"bsonType":"string"}},
-#                    {"value":"test","schema":{"bsonType":"string"}}
-#                   ],
+         "strings":[{"value":"test","schema":{"bsonType":"string"}},
+                    {"value":"test2","schema":{"bsonType":"string"}}
+          ],
           "integers":[{"value":1,"schema":{"bsonType":"integer"}},
                      {"value":-1, "schema":{"bsonType":"integer"}}
-                    ],
+          ],
           "doubles":[{"value":1.5,"schema":{"bsonType":"double"}},
                      {"value":2,"schema":{"bsonType":"double"}}
-                    ],
+          ],
           "booleans":[{"value":True, "schema": {"bsonType":"boolean"}},
                      {"value":True, "schema": {"bsonType":"boolean"}}
-                    ]
-#          "arrays":{
-#             "string":{ "value":["A","B","C"],
-#                        "schema": {"bsonType":"array", "items":{"bsonType":"string"}}
-#                       },
-#             "integer":{ "value":[1,2,3],
-#                        "schema": {"bsonType":"array", "items":{"bsonType":"integer"}}
-#                        },
-#             "double":{"value":[1.1,2.1,3.1],
-#                        "schema": {"bsonType":"array", "items":{"bsonType":"double"}}
-#                       },
-#             "boolean":{ "value":[True, False, True],
-#                        "schema": {"bsonType":"array", "items":{"bsonType":"boolean"}}
-#                        },
-#             "mixed":{ "value":["A",2,True],
-#                        "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}
-#                     },
-#             "array":{ "value":[[1,2,3],[4,5,6],[7,8,9]],
-#                        "schema": {"bsonType":"array", "items":{"bsonType":"array"}}
-#                     },
-#             "object":{ "value":[{"key1":1},{"key2":2},{"key3":3}],
-#                        "schema": {"bsonType":"array", "items":{"bsonType":"object"}}
-#                       }
-#          }
+          ],
+          "arrays":[{"value":["A","B","C"], "schema": {"bsonType":"array", "items":{"bsonType":"string"}}},
+                    {"value":[1,2,3],"schema": {"bsonType":"array", "items":{"bsonType":"integer"}}},
+                    {"value":[1.1,2.1,3.1], "schema": {"bsonType":"array", "items":{"bsonType":"double"}}},
+                    {"value":[True, False, True], "schema": {"bsonType":"array", "items":{"bsonType":"boolean"}}},
+                    {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
+                    {"value":[[1,2,3],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array"}}},
+                    {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object"}}}
+          ]
        })
 
 
@@ -598,6 +578,7 @@ class unitTestViewer( QWidget ):
           keyLabel.setText(str(key))
           subLayout.addWidget(keyLabel)
           for item in self.testData[key]:
+              print(key+":"+str(itemCount)+" - "+str(item))
               widget = SmartWidget().init(str(itemCount),item["value"], item["schema"])
               itemCount = itemCount + 1
               if widget.valid is False:
