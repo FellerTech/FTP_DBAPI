@@ -294,9 +294,8 @@ class SmartWidget(SmartType):
        #DEBUG 
        self.noDraw = False
 
-       self.setSchema(schema)
-       print("Set value for key "+key+" to "+str(value)+" is "+str(self.valid))
-       self.valid = self.setValue(value)
+       print("Set value for key "+key+" to "+str(value)+" is "+str(self.value))
+
        self.draw()
 
        return self
@@ -517,31 +516,44 @@ class SmartWidget(SmartType):
 
 class unitTestViewer( QWidget ):
    def __init__(self):
-       self.testArray = ({
-          "arrays": {
-              "string":{ "value":["A","B","C"],
-                         "schema": {"bsonType":"array", "items":{"bsonType":"string"}}
-                        },
-              "integer":{ "value":[1,2,3],
-                         "schema": {"bsonType":"array", "items":{"bsonType":"integer"}}
-                         },
-              "double":{"value":[1.1,2.1,3.1],
-                         "schema": {"bsonType":"array", "items":{"bsonType":"double"}}
-                        },
-              "boolean":{ "value":[True, False, True],
-                         "schema": {"bsonType":"array", "items":{"bsonType":"boolean"}}
-                         },
-              "mixed":{ "value":["A",2,True],
-                         "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}
-                      },
-              "array":{ "value":[[1,2,3],[4,5,6],[7,8,9]],
-                         "schema": {"bsonType":"array", "items":{"bsonType":"array"}}
-                      },
-              "object":{ "value":[{"key1":1},{"key2":2},{"key3":3}],
-                         "schema": {"bsonType":"array", "items":{"bsonType":"object"}}
-                        }
-          }
+       self.testData = ({
+#         "strings":[{"value":"test","schema":{"bsonType":"string"}},
+#                    {"value":"test","schema":{"bsonType":"string"}}
+#                   ],
+          "integers":[{"value":1,"schema":{"bsonType":"integer"}},
+                     {"value":-1, "schema":{"bsonType":"integer"}}
+                    ],
+          "doubles":[{"value":1.5,"schema":{"bsonType":"double"}},
+                     {"value":2,"schema":{"bsonType":"double"}}
+                    ],
+          "booleans":[{"value":True, "schema": {"bsonType":"boolean"}},
+                     {"value":True, "schema": {"bsonType":"boolean"}}
+                    ]
+#          "arrays":{
+#             "string":{ "value":["A","B","C"],
+#                        "schema": {"bsonType":"array", "items":{"bsonType":"string"}}
+#                       },
+#             "integer":{ "value":[1,2,3],
+#                        "schema": {"bsonType":"array", "items":{"bsonType":"integer"}}
+#                        },
+#             "double":{"value":[1.1,2.1,3.1],
+#                        "schema": {"bsonType":"array", "items":{"bsonType":"double"}}
+#                       },
+#             "boolean":{ "value":[True, False, True],
+#                        "schema": {"bsonType":"array", "items":{"bsonType":"boolean"}}
+#                        },
+#             "mixed":{ "value":["A",2,True],
+#                        "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}
+#                     },
+#             "array":{ "value":[[1,2,3],[4,5,6],[7,8,9]],
+#                        "schema": {"bsonType":"array", "items":{"bsonType":"array"}}
+#                     },
+#             "object":{ "value":[{"key1":1},{"key2":2},{"key3":3}],
+#                        "schema": {"bsonType":"array", "items":{"bsonType":"object"}}
+#                       }
+#          }
        })
+
 
        ###############
        # Create viewing application
@@ -574,14 +586,33 @@ class unitTestViewer( QWidget ):
    ###
    # \brief Test function
    def test(self):
-       self.testWidgets = []
-
        #New Test
-       widgetArray = []
+       valid = True
 
-       
+       keys = self.testData.keys()
 
-       
+       for key in keys:
+          itemCount = 0
+          subLayout = QHBoxLayout()
+          keyLabel = QLabel();
+          keyLabel.setText(str(key))
+          subLayout.addWidget(keyLabel)
+          for item in self.testData[key]:
+              widget = SmartWidget().init(str(itemCount),item["value"], item["schema"])
+              itemCount = itemCount + 1
+              if widget.valid is False:
+                  print( "Unable to create string widget. Failure")
+              else:
+                  subLayout.addWidget(widget.frame)
+
+
+              self.mainLayout.addLayout(subLayout)
+ 
+       self.mainLayout.addStretch(1)
+
+         
+
+       """
        ###############
        #Test strings
        ###############
@@ -638,7 +669,7 @@ class unitTestViewer( QWidget ):
            return False
        self.mainLayout.addWidget(widget6.frame)
        self.testWidgets.append(widget6)
-
+       """
 
    def submitButtonPressEvent(self):
        print("SUBMIT")

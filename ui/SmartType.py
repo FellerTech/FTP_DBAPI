@@ -34,7 +34,7 @@ an undefined type can be anything, but it will not be included in the interface 
 """
 
 class SmartType:
-   types = ["string", "int", "float", "bool", "array", "object"]
+   types = ["string", "integer", "float", "bool", "array", "object"]
 
    ##
    # \brief Default initializer
@@ -44,6 +44,7 @@ class SmartType:
    def __init__(self, key, value, schema=None):
        self.key = key
        self.type = "Unknown"
+       self.value = None
 
        self.schema= None
        if schema != None:
@@ -66,7 +67,7 @@ class SmartType:
            self.value = str( value )
            self.readOnly = True
        else:
-          self.setValue( value)
+           self.setValue(value)
 
 
    ##
@@ -97,6 +98,7 @@ class SmartType:
    # This function is used to set a new value to  item
    def setValue(self, value ):
        self.value = None
+
        #If a schema is undefined, the value is converted to a reado-only string
        if self.schema == None:
            print("No schema for key "+str(self.key))
@@ -112,7 +114,7 @@ class SmartType:
                print("SmartType::Error - Value type "+str(self.value)+" does not match schema type of \"string\"")
                return False
 
-       elif self.schema["bsonType"] == "int":
+       elif self.schema["bsonType"] == "integer":
            if isinstance( value, int ):
                self.value = value
            elif self.value != None:
@@ -120,13 +122,13 @@ class SmartType:
                return False
 
        elif self.schema["bsonType"] == "double":
-           if isinstance( value, float ):
+           if isinstance( value, float ) or isinstance( value, int ):
                self.value = value
            elif self.value != None:
                print("SmartType::Error - Value type does not match schema type of \"double\"")
                return False
 
-       elif self.schema["bsonType"] == "bool":
+       elif self.schema["bsonType"] == "boolean":
            if isinstance( value, bool ):
                self.value = value
            elif self.value != None:
@@ -196,7 +198,8 @@ class SmartType:
 
            else:
                self.value = value
-               return True
+
+           return True
    ##
    # \brief Append a vlue to an array
    # \param in value the new value to append to the array
@@ -268,7 +271,7 @@ class SmartType:
               return False
 
        #Set to string
-       elif self.schema["bsonType"] == "int":
+       elif self.schema["bsonType"] == "integer":
           try: 
               self.setValue( int(text))
           except:
@@ -310,6 +313,8 @@ class SmartType:
 
        return True
 
+   def getVersion(self):
+       return "2.0.1"
 ##
 # \brief Test function
 def unitTest():
@@ -334,7 +339,7 @@ def unitTest():
       ###############
       #Test Integers
       ###############
-      type1 = SmartType( "int", 1, {"bsonType":"int"})
+      type1 = SmartType( "integer", 1, {"bsonType":"integer"})
       if type1.value != 1:
           print("Failure: Value not set to 1")
           return False
@@ -435,8 +440,6 @@ def unitTest():
           }
       })
 
-      valid = True
-
       #Get a list of all keys in the test array. This will be used for comparison
       keys = testData["arrays"].keys()
 
@@ -459,10 +462,16 @@ def unitTest():
                    (k == "double" and key == "integer")  
                  ):
                      continue
-               #Not good. Print Failure and set valid to falks             
                else:
                    print("Failure: "+str(k)+","+str(key)+" values match: "+str(smartType.value))
                    return False
+
+            else:
+               if smartType.value != None:
+                  print("Failure. Expected value to be None")
+                  return False
+
+
 
             #Test appendValue for this SmartType
             print("Testing array appends for key "+key)
