@@ -325,35 +325,45 @@ class SmartWidget(SmartType):
        else:
           #If we are an array, 
           if self.schema["bsonType"] == "array":
+              self.widget = QFrame()
+              self.valid = True
+              self.subLayout = QVBoxLayout()
 
-              #sdf These two lines will go away
-              print("array")
-              self.widget = QLabel()
-
-              #Create a sublayout for all items in array
-              subLayout = QVBoxLayout()
-
-              #If we have a value, we need to add data for each element.
               if self.value != None:
-                  #If we are an array, add a smart widget for each item
-                  if self.schema["items"]["bsonType"] == "array":
-                      print("Array array")
-                  elif self.schema["items"]["bsonType"] == "object":
-                      print("Array object")
+                  count = 0
+                  for item in self.value:
+                     print(str(str(self.valid)+"schema for "+str(item)+" is "+str(self.schema["items"])))
+                     subWidget = SmartWidget().init(str(count), item, self.schema["items"])
+                     if subWidget != False:
+                         self.subLayout.addWidget(subWidget.frame)
+                         count = count + 1
+                     else:
+                         print("Failed to create a widget for "+str(item))
+                         self.valid = False
 
-                  #For typical items
-                  else:
-                      for item in self.value:
-                         widget = SmartWidget().init("", item, self.schema["items"])
-
-                         if widget is not  False:
-                             subLayout.addWidget( widget.frame)
-
+                  print("added " + str(count) + " items")
+              self.subLayout.addStretch(1)
+              self.widget.setLayout(self.subLayout)
+          
+          elif self.schema["bsonType"] == "object":
+              self.widget = QFrame()
+              self.valid = True
               
-          if self.schema["bsonType"] == "object":
-              print("------ object")
-              self.widget = QLabel()
+              self.subLayout = QVBoxLayout()
 
+              if self.value != None:
+                  for item in self.value:
+                     print("Item: "+str(item))
+                     subWidget = SmartWidget().init(str(item), self.value[item], self.schema["items"])
+                     if subWidget != False:
+                         self.subLayout.addWidget(subWidget.frame)
+                     else:
+                         print("Failed to create a widget for "+str(v))
+                         self.valid = False
+                     
+              self.subLayout.addStretch(1)
+              self.widget.setLayout(self.subLayout)
+             
           else:
               #default is for it to be a text box 
               self.widget = QLineEdit()
@@ -529,8 +539,18 @@ class unitTestViewer( QWidget ):
                     {"value":[1.1,2.1,3.1], "schema": {"bsonType":"array", "items":{"bsonType":"double"}}},
                     {"value":[True, False, True], "schema": {"bsonType":"array", "items":{"bsonType":"boolean"}}},
                     {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
-                    {"value":[[1,2,3],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array"}}},
-                    {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object"}}}
+                    {"value":[[1,2,3],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"integer"}}}},
+                    {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"integer"}}}}
+          ],
+          "objects":[{"value":{"k1":1,"k2":2,"k3":3}, "schema":{"bsonType":"object", "items":{"bsonType":"integer"}}},
+                     {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "items":{"bsonType":"string"}}},
+                     {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "items":{"bsonType":"double"}}},
+                     {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "items":{"bsonType":"boolean"}}},
+                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+                     {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "items":{"bsonType":"array","items":{"bsonType":"integer"}}}},
+                     {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "items":{"bsonType":"object","items":{"bsonType":"integer"}}}}
           ]
        })
 

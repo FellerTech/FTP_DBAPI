@@ -285,7 +285,7 @@ class SmartType:
               return False
 
        #Set to string
-       elif self.schema["bsonType"] == "bool":
+       elif self.schema["bsonType"] == "boolean":
           #Convert string to boolean type
           if text == "True":
               bval = True
@@ -309,7 +309,7 @@ class SmartType:
            print("SmartType::setStringAsValue Unable to convert string to array.")
            return False
        else:
-           print("SmartType::Error Invalid bnsonType of "+self.schema["bsonType"])
+           print("SmartType::Error Invalid bsonType of "+self.schema["bsonType"])
 
        return True
 
@@ -381,7 +381,7 @@ def unitTest():
       ###############
       # Test Bools
       ###############
-      type1 = SmartType( "bool", True, {"bsonType":"bool"})
+      type1 = SmartType( "bool", True, {"bsonType":"boolean"})
       if type1.value != True:
           print("Failure: Bool value not set to True")
           return False
