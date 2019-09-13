@@ -54,7 +54,7 @@ an undefined type can be anything, but it will not be included in the interface 
 """
 import argparse
 import sys
-from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget, QLabel, QLineEdit, QFrame, QDialog, QComboBox, QRadioButton, QCheckBox
+from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget, QLabel, QLineEdit, QFrame, QDialog, QComboBox, QRadioButton, QCheckBox, QScrollArea
 from PyQt5.QtCore import pyqtSlot
 from SmartType import SmartType
 
@@ -178,9 +178,9 @@ class ArrayDialog(QDialog):
        self.keyLayout.addWidget( keyLabel )
 
        #Create the text box. The default is for it to be a text box 
-       self.key = QLineEdit()
-       self.ss = self.key.styleSheet()
-       self.keyLayout.addWidget(self.key)
+       self.keyValue = QLineEdit()
+       self.ss = self.keyValue.styleSheet()
+       self.keyLayout.addWidget(self.keyValue)
 
        #The type layout is a horizontal box 
        typeLayout = QHBoxLayout()
@@ -353,7 +353,7 @@ class SmartWidget(SmartType):
 
               if self.value != None:
                   for item in self.value:
-                     print("Item: "+str(item))
+#                     print("Item: "+str(item))
                      subWidget = SmartWidget().init(str(item), self.value[item], self.schema["items"])
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
@@ -416,7 +416,7 @@ class SmartWidget(SmartType):
 
    ##
    # \brief returns the key of the object
-   def getKey():
+   def getKey(self):
        return self.key
 
    ##
@@ -554,12 +554,10 @@ class unitTestViewer( QWidget ):
           ]
        })
 
-
        ###############
        # Create viewing application
        ###############
        super().__init__()
-
 
        #Determine screen settings
        geo         = self.frameGeometry()
@@ -572,7 +570,7 @@ class unitTestViewer( QWidget ):
        self.show()
 
        self.mainLayout = QVBoxLayout()
-       self.setLayout( self.mainLayout )
+#       self.setLayout( self.mainLayout )
 
        #Create title
        self.titleLayout = QHBoxLayout()
@@ -591,92 +589,52 @@ class unitTestViewer( QWidget ):
 
        keys = self.testData.keys()
 
+       self.testWidgets = []
        for key in keys:
           itemCount = 0
-          subLayout = QHBoxLayout()
+          subLayout = QVBoxLayout()
           keyLabel = QLabel();
           keyLabel.setText(str(key))
           subLayout.addWidget(keyLabel)
           for item in self.testData[key]:
               print(key+":"+str(itemCount)+" - "+str(item))
-              widget = SmartWidget().init(str(itemCount),item["value"], item["schema"])
+              widget = SmartWidget().init(key+":"+str(itemCount),item["value"], item["schema"])
               itemCount = itemCount + 1
               if widget.valid is False:
                   print( "Unable to create string widget. Failure")
               else:
                   subLayout.addWidget(widget.frame)
+                  self.testWidgets.append(widget)
 
+          self.mainLayout.addLayout(subLayout)
 
-              self.mainLayout.addLayout(subLayout)
- 
        self.mainLayout.addStretch(1)
-
-         
-
-       """
-       ###############
-       #Test strings
-       ###############
-       schema = {"bsonType":"string", "description":"string test"}
-       widget1 = SmartWidget().init("string", "test", schema )
-       if widget1 is False:
-           print( "Unable to create string widget. Failure")
-           return False
-
-       self.mainLayout.addWidget(widget1.frame)
-       self.testWidgets.append(widget1)
-
-       schema = {"bsonType":"double", "description":"double test"}
-       widget2 = SmartWidget().init("double", 1.0, schema )
-       if widget2 is False:
-           print( "Unable to create double widget. Failure")
-           return False
-
-       self.mainLayout.addWidget(widget2.frame)
-       self.testWidgets.append(widget2)
-
-       schema = {"bsonType":"bool", "description":"bool test"}
-       widget3 = SmartWidget().init("bool", True, schema )
-       if widget3 is False:
-           print( "Unable to create bool widget. Failure")
-           return False
-
-       self.mainLayout.addWidget(widget3.frame)
-       self.testWidgets.append(widget3)
-
-         
-       schema = {"bsonType":"int", "description":"int test"}
-       widget4 = SmartWidget().init("int32", 12, schema )
-       if widget4 is False:
-           print( "Unable to create int widget. Failure")
-           return False
-
-       self.mainLayout.addWidget(widget4.frame)
-       self.testWidgets.append(widget4)
+ 
+       #submitButton
+       submitButton = QPushButton("submit")
+       submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
+       self.mainLayout.addWidget(submitButton)
 
 
-       schema = {"bsonType":"object", "properties":{ "string1": { "bsonType":"string", "description":"string 1"}}, "description":"object test" }
-       widget5 = SmartWidget().init("object", None, schema )
-       if widget5 is False:
-           print( "Unable to create object widget. Failure")
-           return False
-       self.mainLayout.addWidget(widget5.frame)
-       self.testWidgets.append(widget5)
+       self.scrollArea = QScrollArea()
+       self.scrollWidget = QWidget()
+#       self.scrollWidget_layout = QVBoxLayout()
 
-       schema = {"bsonType":"array", "schema":{ "bsonType":"double"}}
-       widget6 = SmartWidget().init("array1", None, schema )
-       if widget6 is False:
-           print( "Unable to create array widget. Failure")
-           return False
-       self.mainLayout.addWidget(widget6.frame)
-       self.testWidgets.append(widget6)
-       """
+       self.scrollWidget.setLayout(self.mainLayout)
+       self.scrollArea.setWidget(self.scrollWidget)
+       self.scrollArea.setWidgetResizable(True)
+
+       self.lastLayout = QVBoxLayout()
+       self.lastLayout.addWidget(self.scrollArea)         
+
+       self.setLayout( self.lastLayout )
+       
 
    def submitButtonPressEvent(self):
        print("SUBMIT")
        i = 0
        for item in self.testWidgets:
-          print(str(i) + " -  " + str( item.getValue()))
+          print(str(item.key) + " -  " + str( item.getValue()))
           i = i +1
 
 if __name__ == '__main__':
