@@ -144,7 +144,6 @@ class SmartType:
                print( "---- Value:"+str(self.value))
                print( "SmartType::Error - Value type does not match schema type of \"object\"")
                return False
-#           print(str(self.key)+" set object value:"+str(self.value)+", schema:"+str(self.schema))
 
        #We are an array type
        elif self.schema["bsonType"] == "array":
@@ -184,8 +183,9 @@ class SmartType:
                        if not isinstance( item, dict):
                            print("SmartType::Error object schema mismatch -"+ str(item)+" is not an object")
                            valid = False
-                   else:
-                       print("SmartType::Error unknown type: "+str(self.schema["items"]["bsonType"]))
+                   elif self.schema["items"]["bsonType"] != "mixed":
+#                   else:
+#                       print("SmartType::Error unknown type: "+str(self.schema["items"]["bsonType"]))
                        valid = False
            except:
                #SDF: Need a NOP....`

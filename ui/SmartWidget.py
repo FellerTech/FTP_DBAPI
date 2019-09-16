@@ -146,7 +146,7 @@ class ObjectDialog(QDialog):
 
        if key == "":
            print("Must enter a key")
-           return
+           eturn
        tplate = {}
        tplate["bsonType"] = mytype
        #tplate["required"] = req
@@ -328,6 +328,7 @@ class SmartWidget(SmartType):
               self.widget = QFrame()
               self.valid = True
               self.subLayout = QVBoxLayout()
+              self.subWidgets = []
 
               if self.value != None:
                   count = 0
@@ -336,6 +337,7 @@ class SmartWidget(SmartType):
                      subWidget = SmartWidget().init(str(count), item, self.schema["items"])
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
+                         self.subWidgets.append(subWidget)
                          count = count + 1
                      else:
                          print("Failed to create a widget for "+str(item))
@@ -348,6 +350,7 @@ class SmartWidget(SmartType):
           elif self.schema["bsonType"] == "object":
               self.widget = QFrame()
               self.valid = True
+              self.subWidgets = []
               
               self.subLayout = QVBoxLayout()
 
@@ -357,6 +360,7 @@ class SmartWidget(SmartType):
                      subWidget = SmartWidget().init(str(item), self.value[item], self.schema["items"])
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
+                         self.subWidgets.append(subWidget)
                      else:
                          print("Failed to create a widget for "+str(v))
                          self.valid = False
@@ -410,9 +414,34 @@ class SmartWidget(SmartType):
    ##
    #\brief function to get the value.
    #
-   # For complex types, this function will build hte the value recursively
+   # For complex types, this function will build the the value recursively
    def getValue(self):
-       return self.value
+       if self.type == "array":
+           value = []
+           for item in self.subWidgets:
+               print("subwidgets: "+str(item.value))
+ 
+               """
+               if isinstance( item.value, list ):
+                   for item2 in item.value:
+                       print("Adding value:"+str(item2.value))
+                       value.append(item2)
+               """
+               value.append(item.value )
+           return value
+           return True
+       elif self.type == "object":
+           value = {}
+
+           for item in self.subWidgets:
+               value[item.key] = item.value
+
+           return value
+
+       else:
+           return self.widget.text
+
+           return self.value
 
    ##
    # \brief returns the key of the object
@@ -538,7 +567,7 @@ class unitTestViewer( QWidget ):
                     {"value":[1,2,3],"schema": {"bsonType":"array", "items":{"bsonType":"integer"}}},
                     {"value":[1.1,2.1,3.1], "schema": {"bsonType":"array", "items":{"bsonType":"double"}}},
                     {"value":[True, False, True], "schema": {"bsonType":"array", "items":{"bsonType":"boolean"}}},
-                    {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
+#                    {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
                     {"value":[[1,2,3],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"integer"}}}},
                     {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"integer"}}}}
           ],
@@ -546,9 +575,9 @@ class unitTestViewer( QWidget ):
                      {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "items":{"bsonType":"string"}}},
                      {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "items":{"bsonType":"double"}}},
                      {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "items":{"bsonType":"boolean"}}},
-                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+#                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+#                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+#                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
                      {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "items":{"bsonType":"array","items":{"bsonType":"integer"}}}},
                      {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "items":{"bsonType":"object","items":{"bsonType":"integer"}}}}
           ]
@@ -632,10 +661,30 @@ class unitTestViewer( QWidget ):
 
    def submitButtonPressEvent(self):
        print("SUBMIT")
-       i = 0
+       widgetNum = 0 
+
+       testValues = []
+       for item in self.testData:
+           testArray = self.testData[item]
+           j = 0
+           for subItem in testArray:
+               testValues.append(subItem["value"])
+       
+       testWidgets = []
        for item in self.testWidgets:
-          print(str(item.key) + " -  " + str( item.getValue()))
-          i = i +1
+          testWidgets.append(item.getValue())
+
+       i = 0
+       while i < len(testWidgets):
+           if testValues[i] != testWidgets[i]:
+               print("Mismatch1: "+str(i)+": "+str(testValues[i]))
+               print("Mismatch2: "+str(i)+": "+str(testWidgets[i]))
+           else:
+               print("Value:"+str(testWidgets[i]))
+
+           i = i +1
+       
+       exit()
 
 if __name__ == '__main__':
     # parse command line arguments
