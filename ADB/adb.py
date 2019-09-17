@@ -5,6 +5,7 @@ from pymongo import MongoClient
 from bson import json_util
 import json
 import time
+from collections import OrderedDict
 
 #Gets a list of databases and collections
 class ADB:
@@ -31,6 +32,8 @@ class ADB:
     def getDatabase(self):
         return self.dbase 
 
+    def getCollections(self):
+       return self.client[self.dbase].collection_names()
     ##
     # \brief Function to get the specified indexes for the given database
     def getIndexes(self, collection):
@@ -39,10 +42,10 @@ class ADB:
            return
    
         return self.db[collection].index_information()
-    
 
     ##
-    # \brief Returns the structure of the databse    
+    # \brief Returns the structure of the mongo system
+    # \return object where the keys are the databases and the values are the list of collections
     def getDbStructure(self):
         dbs = self.client.database_names()
         dbStructure = {}
@@ -55,39 +58,117 @@ class ADB:
             
         return dbStructure;
 
+    ##
+    #\brief creates a collection
+    def createCollection( self, name, schema = None ):
+       if schema != None:
+           validator = {}
+           validator["validator"] = schema
+           self.db.createCollection( name, validator )
+       else:
+           self.db.createCollection( name )
 
-    def getProfile():
-        print("No profile yet")
+    ##
+    # \brief returns the schema for the current collection
+    #
+    # SDF - this need to be cleaner
+    def getSchema(self, collection):
+#       print("getting schema for "+str(collection)+" in database: "+str(self.db))
+       info = self.db.command({"listCollections":1, "filter":{"name":collection}})
+       result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]
+       return  result
 
+    ##
+    # \brief updates the schema for the specified collection
+    def setSchema( self, collection, schema ):
+        query = { "$jsonSchema":{ "bsonType":"object"},
+                  "valdator":schema
+                }      
+  
+        self.db.command({"collMod": collection, "validator":query})
+
+        s2 = self.getSchema(collection)
+        
+        return True
+    
+
+    ##
+    # \brief return the URI of the current sesion
     def getUri(self):
         return self.uri
 
+
+def test(uri):
+
+    print("Unit test")
+     
+    #Create database
+    #check if database exists. If so, print message and bail
+    #create database object
+    adb = ADB(uri)
+    
+    adb.setDatabase("adbTestDB")
+
+    collections = adb.getCollections()
+#    if len(collections) > 0 :
+#        print("adbTest database is not empty")
+#        retury False
+
+    #create test1 collection
+    collection1 = "temp"
+
+    #create test1 schema
+#    schema = { "bsonType":"object", "properties":{ "name":{"bsonType":"string"}}}
+    schema = {"name":{"$bsontype":"string"}}
+    adb.setSchema( collection1, schema ) 
+    schema2 = adb.getSchema( collection1 )
+
+    if schema2 != schema:
+        print("Failure setting schema")
+        print("schema: "+str(schema))
+        print(str(schema2))
+        return False
+
+    #test test1 schema
+        #Good cases
+
+        #bad cases
+
+    #remove test1 collection
+
+    #remove test database
+
 def main():
+    dbase = "test"
+    uri = "localhost:27017"
+
     parser = argparse.ArgumentParser(description="Database Script")
     parser.add_argument('-uri', action='store', dest='uri', help='URI of the mongodb system')
-    parser.add_argument('-dbase', action='store', dest='dbase', required=True , help='database to reference')
+    parser.add_argument('-dbase', action='store', dest='dbase', help='database to reference')
+    parser.add_argument('-test', action='store_true', dest='test', help='unit test')
     args=parser.parse_args()
-
-
     
     if args.uri:
-       uri = args.uri
-    else:
-       uri = "localhost:27017"
+        uri = args.uri
 
-    dbase =args.dbase
+    if args.dbase:
+        dbase =args.dbase
+
+    #############################################
+    # Begin testing
+    #############################################
+    if args.test:
+       return test(uri)
 
 
-    #create database
+    #create database object
     adb = ADB(uri)
 
     #Specify the database to use
     adb.setDatabase(dbase);
 
 
-    #############################################
-    # Begin testing
-    #############################################
+
     #start queries
     query = {}
     query["streamIds"] = "XX00000000000000070019-300729315229696-3"

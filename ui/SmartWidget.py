@@ -440,7 +440,6 @@ class SmartWidget(SmartType):
                except:
                   print("Value exception for "+str(item))
                   value.append( item.value)
-                
            return value
        else:
            if self.type == "string":
