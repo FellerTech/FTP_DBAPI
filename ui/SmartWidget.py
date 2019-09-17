@@ -419,28 +419,41 @@ class SmartWidget(SmartType):
        if self.type == "array":
            value = []
            for item in self.subWidgets:
-               print("subwidgets: "+str(item.value))
- 
-               """
-               if isinstance( item.value, list ):
-                   for item2 in item.value:
-                       print("Adding value:"+str(item2.value))
-                       value.append(item2)
-               """
-               value.append(item.value )
+               #See if we're a smart widget
+               try:
+                  print("Trying to get value for "+str(item.getValue()))
+                  value.append( item.getValue())
+               except:
+                  print("Value exception for "+str(item))
+                  value.append( item.value)
+                
            return value
-           return True
+         
        elif self.type == "object":
            value = {}
-
            for item in self.subWidgets:
-               value[item.key] = item.value
-
+               #See if we're a smart widget
+               try:
+                  print("Trying to get value for "+str(item.getValue()))
+                  myValue = item.getValue()
+                  value[item.key] = item.getValue()
+               except:
+                  print("Value exception for "+str(item))
+                  value.append( item.value)
+                
            return value
-
        else:
-           return self.widget.text
-
+           if self.type == "string":
+               self.setValue( self.widget.text())
+           elif self.type == "integer":
+               self.setValue( int(self.widget.text()))
+           elif self.type == "number":
+               self.setValue( float(self.widget.text()))
+           elif self.type == "boolean":
+               if self.widget.text() == "True":
+                  self.setValue(True) 
+               else:
+                  self.setValue(False) 
            return self.value
 
    ##
