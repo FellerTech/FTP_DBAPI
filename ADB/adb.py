@@ -20,6 +20,13 @@ class ADB:
             self.setDatabase(dbase)
 
     ##
+    # \brief Removes a database
+    # \param [in] dbase name of the database to remove
+    def removeDatabase( self, dbase ):
+#        self.db["client"].dropDatabase( dbase )
+        self.db.client.drop_database(dbase)
+
+    ##
     # \brief Sets the specified database
     def setDatabase( self, dbase ):
         self.db = self.client[dbase]
@@ -72,18 +79,13 @@ class ADB:
     #
     # SDF - this need to be cleaner
     def getSchema(self, collection):
-#       print("getting schema for "+str(collection)+" in database: "+str(self.db))
        info = self.db.command({"listCollections":1, "filter":{"name":collection}})
-       print("Info:"+str(info))
        result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]["properties"]
        return  result
 
     ##
     # \brief updates the schema for the specified collection
     def setSchema( self, collection, schema ):
-#        query = { "$jsonSchema":{ "bsonType":"object"},
-#                }      
-        
         query = { 
             "$jsonSchema":{ 
                 "bsonType":"object", 
@@ -91,22 +93,6 @@ class ADB:
             }
         }
        
-        """
-        query = { 
-            "$jsonSchema":{ 
-                "bsonType":"object", 
-                "properties": {
-                    "name":{
-                        "bsonType":"string"
-                    }
-                }
-            }
-        }
-        """
-
-        query2 = {"validator":query}
-
-        print("Query:"+str(query))
         self.db.command({"collMod": collection, "validator":query})
 
         s2 = self.getSchema(collection)
@@ -122,7 +108,7 @@ class ADB:
         return self.uri
 
 
-def test(uri):
+def test(uri, testDB = "adbTestDB" ):
 
     print("Unit test")
      
@@ -131,7 +117,7 @@ def test(uri):
     #create database object
     adb = ADB(uri)
     
-    adb.setDatabase("adbTestDB")
+    adb.setDatabase(testDB)
 
     collections = adb.getCollections()
 #    if len(collections) > 0 :
@@ -142,29 +128,18 @@ def test(uri):
     collection1 = "temp"
 
     #create test1 schema
-#    schema = { "bsonType":"object", "properties":{ "name":{"bsonType":"string"}}}
-    schema = {"name":{"bsonType":"string"}}
+    schema1 = {"name":{"bsonType":"string"}}
                 
-    adb.createCollection( collection1, schema )
-    adb.setSchema( collection1, schema )
-    schema2 = adb.getSchema( collection1 )
+    adb.createCollection( collection1, schema1 )
+    adb.setSchema( collection1, schema1 )
 
-    if schema2 != schema:
+    #Compare set schema with returned schema
+    schema2 = adb.getSchema( collection1 )
+    if schema2 != schema1:
         print("Schema mismatch")
-        print("expected: "+str(schema))
+        print("expected: "+str(schema1))
         print("actual: "+str(schema2))
         return False
-
-    """
-    adb.setSchema( collection1, schema ) 
-    schema2 = adb.getSchema( collection1 )
-
-    if schema2 != schema:
-        print("Failure setting schema")
-        print("schema: "+str(schema))
-        print(str(schema2))
-        return False
-    """
 
     #test test1 schema
         #Good cases
@@ -174,6 +149,8 @@ def test(uri):
     #remove test1 collection
 
     #remove test database
+    adb.removeDatabase(testDB)
+
     return True
 
 def main():
@@ -196,14 +173,14 @@ def main():
     # Begin testing
     #############################################
     if args.test:
-       result = test(uri)
-       if result:
-          print("Unit test successfully passed")
-       else:
-          print("Unit test failed")
-       return result
+        result = test(uri)
+        if result:
+            print("Unit test successfully passed")
+        else:
+            print("Unit test failed")
+        return result
 
-
+    """
     #create database object
     adb = ADB(uri)
 
@@ -266,6 +243,7 @@ def main():
             print(str(count)+": "+elapsed+" seconds, time offset: "+str(offset)+", id:"+str(item["_id"]))
         target = target + step
         count  = count  + 1
+    """
 
 
 if __name__ == "__main__":
