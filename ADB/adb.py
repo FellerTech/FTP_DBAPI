@@ -61,12 +61,11 @@ class ADB:
     ##
     #\brief creates a collection
     def createCollection( self, name, schema = None ):
+       self.db[name]
+       self.db[name].insert_one({"t":1})
+
        if schema != None:
-           validator = {}
-           validator["validator"] = schema
-           self.db.createCollection( name, validator )
-       else:
-           self.db.createCollection( name )
+           self.setSchema( name, schema )
 
     ##
     # \brief returns the schema for the current collection
@@ -75,19 +74,44 @@ class ADB:
     def getSchema(self, collection):
 #       print("getting schema for "+str(collection)+" in database: "+str(self.db))
        info = self.db.command({"listCollections":1, "filter":{"name":collection}})
-       result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]
+       print("Info:"+str(info))
+       result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]["properties"]
        return  result
 
     ##
     # \brief updates the schema for the specified collection
     def setSchema( self, collection, schema ):
-        query = { "$jsonSchema":{ "bsonType":"object"},
-                  "valdator":schema
-                }      
-  
+#        query = { "$jsonSchema":{ "bsonType":"object"},
+#                }      
+        
+        query = { 
+            "$jsonSchema":{ 
+                "bsonType":"object", 
+                "properties": schema
+            }
+        }
+       
+        """
+        query = { 
+            "$jsonSchema":{ 
+                "bsonType":"object", 
+                "properties": {
+                    "name":{
+                        "bsonType":"string"
+                    }
+                }
+            }
+        }
+        """
+
+        query2 = {"validator":query}
+
+        print("Query:"+str(query))
         self.db.command({"collMod": collection, "validator":query})
 
         s2 = self.getSchema(collection)
+        print()
+        print("Schema:"+str(s2))
         
         return True
     
@@ -112,14 +136,26 @@ def test(uri):
     collections = adb.getCollections()
 #    if len(collections) > 0 :
 #        print("adbTest database is not empty")
-#        retury False
+#        return False
 
     #create test1 collection
     collection1 = "temp"
 
     #create test1 schema
 #    schema = { "bsonType":"object", "properties":{ "name":{"bsonType":"string"}}}
-    schema = {"name":{"$bsontype":"string"}}
+    schema = {"name":{"bsonType":"string"}}
+                
+    adb.createCollection( collection1, schema )
+    adb.setSchema( collection1, schema )
+    schema2 = adb.getSchema( collection1 )
+
+    if schema2 != schema:
+        print("Schema mismatch")
+        print("expected: "+str(schema))
+        print("actual: "+str(schema2))
+        return False
+
+    """
     adb.setSchema( collection1, schema ) 
     schema2 = adb.getSchema( collection1 )
 
@@ -128,6 +164,7 @@ def test(uri):
         print("schema: "+str(schema))
         print(str(schema2))
         return False
+    """
 
     #test test1 schema
         #Good cases
@@ -137,6 +174,7 @@ def test(uri):
     #remove test1 collection
 
     #remove test database
+    return True
 
 def main():
     dbase = "test"
@@ -158,7 +196,12 @@ def main():
     # Begin testing
     #############################################
     if args.test:
-       return test(uri)
+       result = test(uri)
+       if result:
+          print("Unit test successfully passed")
+       else:
+          print("Unit test failed")
+       return result
 
 
     #create database object
