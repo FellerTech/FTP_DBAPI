@@ -68,11 +68,16 @@ class ADB:
     ##
     #\brief creates a collection
     def createCollection( self, name, schema = None ):
-       self.db[name]
+       #required to hold database open
        self.db[name].insert_one({"t":1})
 
        if schema != None:
            self.setSchema( name, schema )
+    ##
+    # \brief removes the specified collectoin
+    def removeCollection( self, name ):
+        self.db[name].drop()
+   
 
     ##
     # \brief returns the schema for the current collection
@@ -83,6 +88,16 @@ class ADB:
        result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]["properties"]
        return  result
 
+    def setValue( self, collection, value ):
+       print("Collection " + str(collection) + " setting value to :"+str(value))
+       try:
+           result = self.db[collection].insert_one(value)
+           output = result.acknowledged
+       except:
+           output = False
+
+       return output
+
     ##
     # \brief updates the schema for the specified collection
     def setSchema( self, collection, schema ):
@@ -92,12 +107,19 @@ class ADB:
                 "properties": schema
             }
         }
-       
-        self.db.command({"collMod": collection, "validator":query})
+        
+        print("Setting query:" +str(query))
+        try:
+            self.db.command({"collMod": collection, "validator":query})
+        except:
+            print("Failed to setSchema")
+            print("Collection: "+str(collection))
+            print("Query:" +str(query))
+            exit(1)
 
         s2 = self.getSchema(collection)
         print()
-        print("Schema:"+str(s2))
+        print("Returned Schema:"+str(s2))
         
         return True
     
@@ -111,6 +133,39 @@ class ADB:
 def test(uri, testDB = "adbTestDB" ):
 
     print("Unit test")
+    testData = ({
+         "strings":[{"value":"test","schema":{"bsonType":"string"}},
+                    {"value":"test2","schema":{"bsonType":"string"}}
+         ],
+         "integers":[{"value":1,"schema":{"bsonType":"int"}},
+                     {"value":-1, "schema":{"bsonType":"int"}}
+         ],
+         "doubles":[{"value":1.5,"schema":{"bsonType":"double"}},
+                    {"value":2.0,"schema":{"bsonType":"double"}}
+         ],
+         "booleans":[{"value":True, "schema": {"bsonType":"bool"}},
+                    {"value":True, "schema": {"bsonType":"bool"}}
+         ],
+         "arrays":[{"value":["A","B","C"], "schema": {"bsonType":"array", "items":{"bsonType":"string"}}},
+                   {"value":[1,2,3],"schema": {"bsonType":"array", "items":{"bsonType":"int"}}},
+                   {"value":[1.1,2.1,3.1], "schema": {"bsonType":"array", "items":{"bsonType":"double"}}},
+                   {"value":[True, False, True], "schema": {"bsonType":"array", "items":{"bsonType":"bool"}}},
+#                   {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
+                   {"value":[[1,2,3],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}},
+                   {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
+         ],
+         "objects":[{"value":{"k1":1,"k2":2,"k3":3}, "schema":{"bsonType":"object", "items":{"bsonType":"int"}}},
+                    {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "items":{"bsonType":"string"}}},
+                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "items":{"bsonType":"double"}}},
+                    {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "items":{"bsonType":"bool"}}},
+#                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+#                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+#                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+                    {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "items":{"bsonType":"array","items":{"bsonType":"int"}}}},
+                    {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
+         ]
+    })
+
      
     #Create database
     #check if database exists. If so, print message and bail
@@ -127,9 +182,50 @@ def test(uri, testDB = "adbTestDB" ):
     #create test1 collection
     collection1 = "temp"
 
+#    print("Creating collection: "+str(collection1)) 
+    adb.createCollection( collection1 )
+
+    keys = testData.keys()
+
+    # Loop through all items in testData
+    for key in keys:
+        #Loop through each entry for the specified key
+        for item in testData[key]:
+            value = item["value"]
+
+            #Set the schema to the specified item schema
+            schema = {key:item["schema"]}
+            print("Setting schema to "+str(schema))
+            adb.setSchema( collection1, schema )
+
+            #Loop through all testData values and try to set. Should only
+            #success if schemas match
+            for key2 in keys:
+                for item2 in testData[key2]:
+#                   print("Creating collection: "+str(collection1)) 
+#                   adb.createCollection( collection1 )
+
+                   print("Key:"+str(key))
+                   result = adb.setValue( collection1, {key:item2["value"] })
+                   if result and item2["schema"] != item["schema"]:
+                       print("Error: Succeeded with schema mismatch for "+str(key)+":")
+                       print("schema:"+str(item["schema"]))
+                       print("schema2:"+str(item2["schema"]))
+                       return False
+                   elif not result and item2["schema"] == item["schema"]:
+                       print("Error: Failed with schema match "+str(key))
+                       print("schema:"+str(item["schema"]))
+                       print("schema2:"+str(item2["schema"]))
+                       return False
+   
+    
+#                   print("Removing collection: "+str(collection1)) 
+    """
     #create test1 schema
+    # SDF - need to make sure this approach will support required and other fields
     schema1 = {"name":{"bsonType":"string"}}
                 
+        "strings":[{"value":"test","schema":{"bsonType":"string"}},
     adb.createCollection( collection1, schema1 )
     adb.setSchema( collection1, schema1 )
 
@@ -142,11 +238,14 @@ def test(uri, testDB = "adbTestDB" ):
         return False
 
     #test test1 schema
+    
         #Good cases
 
         #bad cases
+    """
 
     #remove test1 collection
+    adb.removeCollection( collection1 )
 
     #remove test database
     adb.removeDatabase(testDB)
