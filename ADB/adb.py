@@ -154,15 +154,17 @@ def test(uri, testDB = "adbTestDB" ):
                    {"value":[[1,2,3],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}},
                    {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
          ],
-         "objects":[{"value":{"k1":1,"k2":2,"k3":3}, "schema":{"bsonType":"object", "items":{"bsonType":"int"}}},
-                    {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "items":{"bsonType":"string"}}},
-                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "items":{"bsonType":"double"}}},
-                    {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "items":{"bsonType":"bool"}}},
-#                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-#                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-#                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-                    {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "items":{"bsonType":"array","items":{"bsonType":"int"}}}},
-                    {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
+         "objects":[
+                    {"value":{"k1":1,"k2":2,"k3":3}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"int"}}}},
+                    {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"string"}}}},
+#                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":"double"}}},
+                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"double"}}}},
+                    {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"bool"}}}},
+##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "properties":{"k1":"mixed"}}},
+                    {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"array","items":{"bsonType":"int"}}}}},
+                    {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"object","properties":{"k11":{"bsonType":"int"}}}}}}
          ]
     })
 
@@ -175,20 +177,22 @@ def test(uri, testDB = "adbTestDB" ):
     adb.setDatabase(testDB)
 
     collections = adb.getCollections()
-#    if len(collections) > 0 :
-#        print("adbTest database is not empty")
+    if len(collections) > 0 :
+        print("adbTest database is not empty")
 #        return False
 
     #create test1 collection
     collection1 = "temp"
 
 #    print("Creating collection: "+str(collection1)) 
-    adb.createCollection( collection1 )
+#    adb.createCollection( collection1 )
 
     keys = testData.keys()
 
     # Loop through all items in testData
     for key in keys:
+        adb.createCollection( collection1 )
+
         #Loop through each entry for the specified key
         for item in testData[key]:
             value = item["value"]
@@ -219,7 +223,9 @@ def test(uri, testDB = "adbTestDB" ):
                        return False
    
     
-#                   print("Removing collection: "+str(collection1)) 
+        print("Removing collection: "+str(collection1)) 
+        adb.removeCollection( collection1 )
+
     """
     #create test1 schema
     # SDF - need to make sure this approach will support required and other fields
