@@ -656,7 +656,6 @@ class unitTestViewer( QWidget ):
        submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
        self.mainLayout.addWidget(submitButton)
 
-
        self.scrollArea = QScrollArea()
        self.scrollWidget = QWidget()
 #       self.scrollWidget_layout = QVBoxLayout()

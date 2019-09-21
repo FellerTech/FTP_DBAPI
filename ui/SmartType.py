@@ -34,7 +34,7 @@ an undefined type can be anything, but it will not be included in the interface 
 """
 
 class SmartType:
-   types = ["string", "integer", "float", "bool", "array", "object"]
+   types = ["string", "int", "float", "bool", "array", "object"]
 
    ##
    # \brief Default initializer
@@ -98,6 +98,7 @@ class SmartType:
    # This function is used to set a new value to  item
    def setValue(self, value ):
        self.value = None
+#       print("Setting value to "+str(value))
 
        #If a schema is undefined, the value is converted to a reado-only string
        if self.schema == None:
@@ -114,7 +115,7 @@ class SmartType:
                print("SmartType::Error - Value type "+str(self.value)+" does not match schema type of \"string\"")
                return False
 
-       elif self.schema["bsonType"] == "integer":
+       elif self.schema["bsonType"] == "int":
            if isinstance( value, int ):
                self.value = value
            elif self.value != None:
@@ -163,7 +164,7 @@ class SmartType:
                        if not isinstance( item, str):
                            print("SmartType::Error array schema mismatch -"+ str(item)+" is not a string")
                            valid = False
-                   elif self.schema["items"]["bsonType"] == "integer":
+                   elif self.schema["items"]["bsonType"] == "int":
                        if not isinstance( item, int):
                            print("SmartType::Error array schema mismatch -"+ str(item)+" is not an integer")
                            valid = False
@@ -198,8 +199,9 @@ class SmartType:
 
            else:
                self.value = value
+               return True
 
-           return True
+       return True
    ##
    # \brief Append a vlue to an array
    # \param in value the new value to append to the array
@@ -222,7 +224,7 @@ class SmartType:
                if self.schema["items"]["bsonType"] == "string":
                    if not isinstance( value, str):
                        valid = False
-               elif self.schema["items"]["bsonType"] == "integer":
+               elif self.schema["items"]["bsonType"] == "int":
                    if not isinstance( value, int):
                        valid = False
                elif self.schema["items"]["bsonType"] == "double":
@@ -246,6 +248,7 @@ class SmartType:
                    print( str(item)+" is not of type "+str(self.schema["items"]["bsonType"])) 
                else:
                    self.value.append( value  )
+                   prnt("Appending value "+str(value))
                    return True
            else:
               print("SmartType::Error: Schema type is not a string")
@@ -253,7 +256,9 @@ class SmartType:
        except:
            print("SmartType::Error: Invalid schema "+str(self.schema))
            return False
-       
+
+       print("Appending True")
+       return True
 
    ##
    # \brief Tries to set the string to the given type
@@ -271,7 +276,7 @@ class SmartType:
               return False
 
        #Set to string
-       elif self.schema["bsonType"] == "integer":
+       elif self.schema["bsonType"] == "int":
           try: 
               self.setValue( int(text))
           except:
@@ -312,7 +317,8 @@ class SmartType:
            print("SmartType::Error Invalid bsonType of "+self.schema["bsonType"])
 
        return True
-
+   ##
+   #\brief returns the software version
    def getVersion(self):
        return "2.0.1"
 ##
@@ -321,7 +327,7 @@ def unitTest():
       ###############
       #Test strings
       ###############
-
+      """
       type1 = SmartType( "string", "value1", {"bsonType":"string"})
       if type1.value != "value1":
           print("key 1 Unable to set string value")
@@ -339,7 +345,7 @@ def unitTest():
       ###############
       #Test Integers
       ###############
-      type1 = SmartType( "integer", 1, {"bsonType":"integer"})
+      type1 = SmartType( "int", 1, {"bsonType":"int"})
       if type1.value != 1:
           print("Failure: Value not set to 1")
           return False
@@ -399,9 +405,47 @@ def unitTest():
           print("FAILURE set bool to an int")
           return False
 
+      """
       ###############
       # Test Lists
       ###############
+      testData = ({
+         "strings":[{"value":"test","schema":{"bsonType":"string"}},
+                    {"value":"test2","schema":{"bsonType":"string"}}
+         ],
+         "integers":[{"value":1,"schema":{"bsonType":"int"}},
+                     {"value":-1, "schema":{"bsonType":"int"}}
+         ],
+         "doubles":[{"value":1.5,"schema":{"bsonType":"double"}},
+                    {"value":2.0,"schema":{"bsonType":"double"}}
+         ],
+         "booleans":[{"value":True, "schema": {"bsonType":"bool"}},
+                    {"value":True, "schema": {"bsonType":"bool"}}
+#         ],
+#         "arrays":[{"value":["A","B","C"], "schema": {"bsonType":"array", "items":{"bsonType":"string"}}},
+#                   {"value":[1,2,3],"schema": {"bsonType":"array", "items":{"bsonType":"int"}}},
+#                   {"value":[1.1,2.1,3.1], "schema": {"bsonType":"array", "items":{"bsonType":"double"}}},
+#                   {"value":[True, False, True], "schema": {"bsonType":"array", "items":{"bsonType":"bool"}}},
+##                   {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
+#                   {"value":[[1,2,3],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}},
+#                   {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
+#         ],
+#         "objects":[
+#                    {"value":{"k1":1,"k2":2,"k3":3}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"int"}}}},
+#                    {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"string"}}}},
+##                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":"double"}}},
+#                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"double"}}}},
+#                    {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"bool"}}}},
+###                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+###                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+###                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "properties":{"k1":"mixed"}}},
+#                    {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"array","items":{"bsonType":"int"}}}}},
+#                    {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"object","properties":{"k11":{"bsonType":"int"}}}}}}
+         ]
+    })
+
+
+      """
       testData = ({
          "strings":[{"value":"test","schema":{"bsonType":"string"}},
                     {"value":"test","schema":{"bsonType":"string"}}
@@ -439,10 +483,46 @@ def unitTest():
              }
           }
       })
+      """
+
 
       #Get a list of all keys in the test array. This will be used for comparison
-      keys = testData["arrays"].keys()
+      #keys = testData["arrays"].keys()
+      keys = testData.keys()
 
+      #Loop through each entry in testData
+      for key in keys:
+          for item in testData[key]:
+              schema = item["schema"]
+          
+              #Loop through all entries and try to set values
+              for key2 in keys:
+                   for item2 in testData[key2]:
+                       value = item2["value"]
+
+                       smartType = SmartType(key, value, schema )
+                       result = smartType.setValue(value)
+
+                       if result == False:
+                           if ( key == key2 or
+                                key == "mixed" or
+                                (key == "int" and key2 == "boolean") or
+                                (key == "double" and key2 == "boolean") or
+                                (key == "double" and key2 == "int")
+                           ):
+                               print("Valid result with mismatched keys")
+                               print("key1:"+str(key))
+                               print("key2:"+str(key2))
+                               print("schema:"+str(schema))
+                               print("value:"+str(value))
+                           
+                               return False
+                       elif result == False and key == key2:
+                           print("InValid result with matched keys")
+                           return False
+
+      return True
+      """
       #Try to create a SmartType for every key in the testData and try to assign
       #all other keys to that key type.
       for k in testData["arrays"]:
@@ -457,9 +537,9 @@ def unitTest():
                #Good cases
                if( k == key or 
                    k == "mixed" or
-                   (k == "integer" and key == "boolean") or 
+                   (k == "int" and key == "boolean") or 
                    (k == "double" and key == "boolean")  or 
-                   (k == "double" and key == "integer")  
+                   (k == "double" and key == "int")  
                  ):
                      continue
                else:
@@ -485,9 +565,9 @@ def unitTest():
                    #Good cases
                    if( k == key or 
                        k == "mixed" or
-                       (k == "integer" and key == "boolean") or 
+                       (k == "int" and key == "boolean") or 
                        (k == "double" and key == "boolean")  or 
-                       (k == "double" and key == "integer")  
+                       (k == "double" and key == "int")  
                      ):
                          continue
                    #Not good. Print Failure and set valid to falks             
@@ -495,6 +575,7 @@ def unitTest():
                        print("Failure: "+str(k)+","+str(key)+" values match: "+str(smartType.value))
                        return False
 
+      """
                
                   
 
