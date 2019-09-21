@@ -1,38 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-
-"""
-Types
-
-Arrays and objects require new layouts?
-
-object.key
-object.value
-object.schema
-
-schema:
-- type: type of value 
-   "type": int, string, float, array, dict, undefined
-
-an undefined type can be anything, but it will not be included in the interface (although it may be displayed as a string)
-
-
-#example for array
-{
-   "value":<value>,
-   "schema":{
-      "type":"array",
-      "schema:"{
-         "key":<name>
-         "type":<type>
-      }
-   }
-
-}
-
-"""
-
 class SmartType:
    types = ["string", "int", "float", "bool", "array", "object"]
 
@@ -129,7 +97,7 @@ class SmartType:
                print("SmartType::Error - Value type does not match schema type of \"double\"")
                return False
 
-       elif self.schema["bsonType"] == "boolean":
+       elif self.schema["bsonType"] == "bool":
            if isinstance( value, bool ):
                self.value = value
            elif self.value != None:
@@ -172,9 +140,9 @@ class SmartType:
                        if not isinstance( item, float) and not isinstance( item, int):
                            print("SmartType::Error array schema mismatch -"+ str(item)+" is not a double")
                            valid = False
-                   elif self.schema["items"]["bsonType"] == "boolean":
+                   elif self.schema["items"]["bsonType"] == "bool":
                        if not isinstance( item, bool):
-                           print("SmartType::Error array schema mismatch -"+ str(item)+" is not a boolean")
+                           print("SmartType::Error array schema mismatch -"+ str(item)+" is not a bool")
                            valid = False
                    elif self.schema["items"]["bsonType"] == "array":
                        if not isinstance( item, list):
@@ -186,7 +154,7 @@ class SmartType:
                            valid = False
                    elif self.schema["items"]["bsonType"] != "mixed":
 #                   else:
-#                       print("SmartType::Error unknown type: "+str(self.schema["items"]["bsonType"]))
+                       print("SmartType::Error unknown type: "+str(self.schema["items"]["bsonType"]))
                        valid = False
            except:
                #SDF: Need a NOP....`
@@ -231,7 +199,7 @@ class SmartType:
                    if not isinstance( value, float) and not isinstance( value, int):
                        print(str(value)+" is not a double")
                        valid = False
-               elif self.schema["items"]["bsonType"] == "boolean":
+               elif self.schema["items"]["bsonType"] == "bool":
                    if not isinstance( value, bool):
                        valid = False
                elif self.schema["items"]["bsonType"] == "object":
@@ -290,7 +258,7 @@ class SmartType:
               return False
 
        #Set to string
-       elif self.schema["bsonType"] == "boolean":
+       elif self.schema["bsonType"] == "bool":
           #Convert string to boolean type
           if text == "True":
               bval = True
@@ -325,89 +293,7 @@ class SmartType:
 # \brief Test function
 def unitTest():
       ###############
-      #Test strings
-      ###############
-      """
-      type1 = SmartType( "string", "value1", {"bsonType":"string"})
-      if type1.value != "value1":
-          print("key 1 Unable to set string value")
-          return False
-
-      if not type1.setStringAsValue("test2"):
-          print("Unable to set string value for string")
-          return False
-
-      #try non-string values
-      if type1.setValue(15):
-          print("FAILURE set string to an int")
-          return False
-
-      ###############
-      #Test Integers
-      ###############
-      type1 = SmartType( "int", 1, {"bsonType":"int"})
-      if type1.value != 1:
-          print("Failure: Value not set to 1")
-          return False
-
-      if not type1.setStringAsValue("2"):
-          print("Unable to set string value for int")
-          return False
-
-      if type1.value != 2:
-          print("Failure: Value not set to 1")
-          return False
-
-      #try non-string values
-      if type1.setValue("test"):
-          print("FAILURE set int to a string")
-          return False
-
-      ###############
-      # Test Floats
-      ###############
-      type1 = SmartType( "float", 1.1, {"bsonType":"double"})
-      if type1.value != 1.1:
-          print("Failure: Float value not set to 1.1")
-          return False
-
-      if not type1.setStringAsValue("1.2"):
-          print("Unable to set string value for float")
-          return False
-
-      if type1.value != 1.2:
-          print("Failure: Float value not set to 1.1")
-          return False
-
-      #try non-string values
-      if type1.setValue(99):
-          print("FAILURE set float to a string")
-          return False
-      
-      ###############
-      # Test Bools
-      ###############
-      type1 = SmartType( "bool", True, {"bsonType":"boolean"})
-      if type1.value != True:
-          print("Failure: Bool value not set to True")
-          return False
-
-      if not type1.setStringAsValue("False"):
-          print("Unable to set string value for bool")
-          return False
-
-      if type1.value != False:
-          print("Failure: Bool value not set to False")
-          return False
-
-      #try non-string values
-      if type1.setValue(99):
-          print("FAILURE set bool to an int")
-          return False
-
-      """
-      ###############
-      # Test Lists
+      # Test data
       ###############
       testData = ({
          "strings":[{"value":"test","schema":{"bsonType":"string"}},
@@ -421,71 +307,29 @@ def unitTest():
          ],
          "booleans":[{"value":True, "schema": {"bsonType":"bool"}},
                     {"value":True, "schema": {"bsonType":"bool"}}
-#         ],
-#         "arrays":[{"value":["A","B","C"], "schema": {"bsonType":"array", "items":{"bsonType":"string"}}},
-#                   {"value":[1,2,3],"schema": {"bsonType":"array", "items":{"bsonType":"int"}}},
-#                   {"value":[1.1,2.1,3.1], "schema": {"bsonType":"array", "items":{"bsonType":"double"}}},
-#                   {"value":[True, False, True], "schema": {"bsonType":"array", "items":{"bsonType":"bool"}}},
-##                   {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
-#                   {"value":[[1,2,3],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}},
-#                   {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
-#         ],
-#         "objects":[
-#                    {"value":{"k1":1,"k2":2,"k3":3}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"int"}}}},
-#                    {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"string"}}}},
+         ],
+         "arrays":[{"value":["A","B","C"], "schema": {"bsonType":"array", "items":{"bsonType":"string"}}},
+                   {"value":[1,2,3],"schema": {"bsonType":"array", "items":{"bsonType":"int"}}},
+                   {"value":[1.1,2.1,3.1], "schema": {"bsonType":"array", "items":{"bsonType":"double"}}},
+                   {"value":[True, False, True], "schema": {"bsonType":"array", "items":{"bsonType":"bool"}}},
+#                   {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
+                   {"value":[[11,12,13],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}},
+                   {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
+         ],
+         "objects":[
+                    {"value":{"k1":1,"k2":2,"k3":3}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"int"}}}},
+                    {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"string"}}}},
 ##                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":"double"}}},
-#                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"double"}}}},
-#                    {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"bool"}}}},
-###                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-###                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-###                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "properties":{"k1":"mixed"}}},
-#                    {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"array","items":{"bsonType":"int"}}}}},
-#                    {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"object","properties":{"k11":{"bsonType":"int"}}}}}}
+                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"double"}}}},
+                    {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"bool"}}}},
+##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
+##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "properties":{"k1":"mixed"}}},
+                    {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"array","items":{"bsonType":"int"}}}}},
+                    {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"object","properties":{"k11":{"bsonType":"int"}}}}}}
          ]
     })
-
-
-      """
-      testData = ({
-         "strings":[{"value":"test","schema":{"bsonType":"string"}},
-                    {"value":"test","schema":{"bsonType":"string"}}
-                   ],
-         "integers":[{"value":1,"schema":{"bsonType":"integer"}},
-                     {"value":-1, "schema":{"bsonType":"integer"}}
-                    ],
-         "doubles":[{"value":1.5,"schema":{"bsonType":"double"}},
-                    {"value":2,"schema":{"bsonType":"double"}}
-                   ],
-         "booleans":[{"value":True, "schema": {"bsonType":"boolean"}},
-                     {"value":True, "schema": {"bsonType":"boolean"}}
-                    ],
-         "arrays":{
-             "string":{ "value":["A","B","C"],
-                        "schema": {"bsonType":"array", "items":{"bsonType":"string"}}
-             },
-             "integer":{ "value":[1,2,3],
-                        "schema": {"bsonType":"array", "items":{"bsonType":"integer"}}
-             },
-             "double":{"value":[1.1,2.1,3.1],
-                        "schema": {"bsonType":"array", "items":{"bsonType":"double"}}
-             },
-             "boolean":{ "value":[True, False, True],
-                        "schema": {"bsonType":"array", "items":{"bsonType":"boolean"}}
-             },
-             "mixed":{ "value":["A",2,True],
-                        "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}
-             },
-             "array":{ "value":[[1,2,3],[4,5,6],[7,8,9]],
-                        "schema": {"bsonType":"array", "items":{"bsonType":"array"}}
-             },
-             "object":{ "value":[{"key1":1},{"key2":2},{"key3":3}],
-                        "schema": {"bsonType":"array", "items":{"bsonType":"object"}}
-             }
-          }
-      })
-      """
-
-
+      
       #Get a list of all keys in the test array. This will be used for comparison
       #keys = testData["arrays"].keys()
       keys = testData.keys()
@@ -503,11 +347,28 @@ def unitTest():
                        smartType = SmartType(key, value, schema )
                        result = smartType.setValue(value)
 
+                       #sdf need to make to check the correct values
                        if result == False:
+                           if ( item["schema"] == item2["schema"] or
+                                (item["schema"]["bsonType"] == "int" and item2["schema"]["bsonType"] == "bool") or
+                                (item["schema"]["bsonType"] == "double" and item2["schema"]["bsonType"] == "bool") or
+                                (item["schema"]["bsonType"] == "double" and item2["schema"]["bsonType"] == "int")
+                              ):
+                               print("Invalid result with result with valid schema")
+                               print("key1:"+str(key))
+                               print("key2:"+str(key2))
+                               print("schema:"+str(schema))
+                               print("value:"+str(value))
+                           
+                               return False
+                 
+                              
+                               
+                           """
                            if ( key == key2 or
                                 key == "mixed" or
-                                (key == "int" and key2 == "boolean") or
-                                (key == "double" and key2 == "boolean") or
+                                (key == "int" and key2 == "bool") or
+                                (key == "double" and key2 == "bool") or
                                 (key == "double" and key2 == "int")
                            ):
                                print("Valid result with mismatched keys")
@@ -517,68 +378,12 @@ def unitTest():
                                print("value:"+str(value))
                            
                                return False
+                           """
                        elif result == False and key == key2:
                            print("InValid result with matched keys")
                            return False
 
       return True
-      """
-      #Try to create a SmartType for every key in the testData and try to assign
-      #all other keys to that key type.
-      for k in testData["arrays"]:
-         #Try to create a type for each key
-         for key in keys:
-            smartType = SmartType( k, testData["arrays"][key]["value"], testData["arrays"][k]["schema"])
-
-            #We should only succeed when k = key unless k is mixed or if an integer 
-            #array is mapped to a number. The following statement should only be true
-            #for compatible keys.
-            if smartType.value == testData["arrays"][key]["value"]:
-               #Good cases
-               if( k == key or 
-                   k == "mixed" or
-                   (k == "int" and key == "boolean") or 
-                   (k == "double" and key == "boolean")  or 
-                   (k == "double" and key == "int")  
-                 ):
-                     continue
-               else:
-                   print("Failure: "+str(k)+","+str(key)+" values match: "+str(smartType.value))
-                   return False
-
-            else:
-               if smartType.value != None:
-                  print("Failure. Expected value to be None")
-                  return False
-
-
-
-            #Test appendValue for this SmartType
-            print("Testing array appends for key "+key)
-            for key2 in keys:
-               smartType.appendValue(testData["arrays"][key2]["value"])
-
-               reference = []
-               reference.append( testData["arrays"][key]["value"])
-               reference.append(testData["arrays"][key2]["value"])
-               if smartType.value == reference:
-                   #Good cases
-                   if( k == key or 
-                       k == "mixed" or
-                       (k == "int" and key == "boolean") or 
-                       (k == "double" and key == "boolean")  or 
-                       (k == "double" and key == "int")  
-                     ):
-                         continue
-                   #Not good. Print Failure and set valid to falks             
-                   else:
-                       print("Failure: "+str(k)+","+str(key)+" values match: "+str(smartType.value))
-                       return False
-
-      """
-               
-                  
-
 
       ###############
       # Test Dicts
