@@ -448,12 +448,12 @@ class SmartWidget(SmartType):
                try:
                    self.setValue( int(self.widget.text()))
                except:
-                   print(self.widget.key+":"+self.widget.text()+" is not an integer"
+                   print(self.widget.key+":"+self.widget.text()+" is not an integer")
            elif self.type == "number":
                try:
                    self.setValue( float(self.widget.text()))
                except:
-                   print(self.widget.key+":"+self.widget.text()+" is not a number"
+                   print(self.widget.key+":"+self.widget.text()+" is not a number")
            elif self.type == "bool":
                if self.widget.text() == "True":
                   self.setValue(True) 
