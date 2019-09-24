@@ -450,7 +450,7 @@ class SmartWidget(SmartType):
                try:
                    self.setValue( int(self.widget.text()))
                except:
-                   print(self.widget.key+":"+self.widget.text()+" is not an integer")
+                   print("SmartWidget::ERROR: "+self.key+":"+self.widget.text()+" is not an integer")
            elif self.type == "number":
                try:
                    self.setValue( float(self.widget.text()))
@@ -673,7 +673,7 @@ class unitTestViewer( QWidget ):
        
 
    def submitButtonPressEvent(self):
-       print("SUBMIT")
+       testPass = True
        widgetNum = 0 
 
        testValues = []
@@ -695,11 +695,14 @@ class unitTestViewer( QWidget ):
            if testValues[i] != testWidgets[i]:
                print("Mismatch1: "+str(i)+": "+str(testValues[i]))
                print("Mismatch2: "+str(i)+": "+str(testWidgets[i]))
+               testPass = False
            else:
                pass
 
            i = i +1
        
+       if testPass:
+           print("Submitted values match")
        exit()
 
 if __name__ == '__main__':

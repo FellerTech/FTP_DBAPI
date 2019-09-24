@@ -105,12 +105,10 @@ class SmartType:
                return False
 
        elif self.schema["bsonType"] == "object":
-           print(str(self.key)+" object value:"+str(value)+", schema:"+str(self.schema ))
          
            if isinstance( value, dict ):
                self.value = value
            elif self.value != None:
-               print( "---- Value:"+str(self.value))
                print( "SmartType::Error - Value type does not match schema type of \"object\"")
                return False
 
