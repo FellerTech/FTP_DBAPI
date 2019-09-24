@@ -22,6 +22,7 @@ class SchemaEditor( QWidget ):
         uriMap = {}
         self.dbs = []
         self.dbase = None
+        self.collection = None
 
     def init( self, uri ):
         print("Initializing")
@@ -70,12 +71,21 @@ class SchemaEditor( QWidget ):
         
 #        self.dbLayout = self.dbSelectorWidget()
 #        self.mainLayout.addLayout(self.dbLayout)
+        #The middle section will have a scroll area
+        scrollArea = QScrollArea()
+        scrollWidget = QWidget()
 
+        scrollArea.setWidget(scrollWidget)
+        scrollArea.setWidgetResizable(True)
+
+        scrollLayout = QVBoxLayout()
+        scrollLayout.addWidget(scrollArea)
         #Create a middle section
         self.midLayout = QVBoxLayout()
-        self.mainLayout.addLayout( self.midLayout)
+        scrollWidget.setLayout(self.midLayout)
+        self.mainLayout.addLayout( scrollLayout )
 
-        self.draw()
+#        self.draw()
 
         self.mainLayout.addStretch(1)
 
@@ -84,8 +94,8 @@ class SchemaEditor( QWidget ):
         submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
         self.mainLayout.addWidget(submitButton)
 
+        self.setLayout( self.mainLayout)
         print("Finishing init")
-
 
     ##
     # \brief draw all items in the window
@@ -96,9 +106,26 @@ class SchemaEditor( QWidget ):
              widget = item.widget()
              if widget is not None:
                   widget.deleteLater()
+       
+        
+        collection = self.collCombo.currentText()
 
-        #Generate the collection drop down. This will be used to change the collection we are workign on
+        try:
+            schema = self.adb.getSchema(collection)
+            value  = self.adb.db[collection].find().limit(1)[0]
+        except:
+            schema = None
+            value = {}
+ 
+        print("value:"+str(value))
+        print("schema:"+str(schema))
+        smartWidget = SmartWidget().init("schema", value, schema )
 
+        #Get the current schema, if any
+        info = QLabel()
+        info.setText(str(schema))
+        self.midLayout.addWidget(info)
+        """
         scrollArea = QScrollArea()
         scrollWidget = QWidget()
 
@@ -110,8 +137,13 @@ class SchemaEditor( QWidget ):
         lastLayout.addWidget(scrollArea)
 
         self.setLayout( lastLayout)
+        """
 
     def genCollSelectorWidget(self):
+        self.dbase = self.dbCombo.currentText()
+        print("Using :"+self.dbase)
+        self.adb.setDatabase( self.dbase )
+
         #the database to use
         self.collLayout = QHBoxLayout()
         info = QLabel()
@@ -120,9 +152,11 @@ class SchemaEditor( QWidget ):
         self.collCombo = QComboBox()
         self.collCombo.addItems( self.adb.getCollections())
 
+        print("Getting collections for "+self.dbase)
+        print("Collections:"+str(self.adb.getCollections()))
+
         submitButton = QPushButton("UpdateColl")
         submitButton.clicked.connect( lambda: self.updateCollButtonPressEvent())
-#        self.mainLayout.addWidget(submitButton)
 
         self.collLayout.addWidget(info)
         self.collLayout.addWidget(self.collCombo)
@@ -132,6 +166,7 @@ class SchemaEditor( QWidget ):
         return self.collLayout
 
     ##
+    # \brief Generate the database selector widget
     def genDBSelectorWidget(self):
         #the database to use
         self.dbLayout = QHBoxLayout()
@@ -158,20 +193,25 @@ class SchemaEditor( QWidget ):
         value = self.collCombo.currentText()
         if self.collection == value:
             print("collections match")
-        if self.collection != value:
-            self.collection= value
-
+        else:
             self.draw()
+#        if self.collection != value:
+#            self.collection= value
+#            self.draw()
 
     ##
     # \brief handles database updates
     def updateDBButtonPressEvent(self):
+        print("Updating db")
         value = self.dbCombo.currentText()
         if self.dbase == value:
             print("Databases match")
-        if self.dbase != value:
+        else:
+            print("Setting database to "+value )
             self.dbase = value
             self.adb.setDatabase( self.dbase )
+            self.collCombo.clear()
+            self.collCombo.addItems( self.adb.getCollections())
 
             self.draw()
 

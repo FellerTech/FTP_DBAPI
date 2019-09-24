@@ -3,6 +3,7 @@ import argparse
 from datetime import datetime
 from pymongo import MongoClient
 from bson import json_util
+from bson import ObjectId
 import json
 import time
 from collections import OrderedDict
@@ -97,38 +98,25 @@ class ADB:
        result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]["properties"]
        return  result
 
-    def setValue( self, collection, value ):
-       print("Collection " + str(collection) + " setting value to :"+str(value))
-       try:
-           result = self.db[collection].insert_one(value)
-           output = result.acknowledged
-       except:
-           output = False
-
-       return output
 
     ##
     # \brief updates the schema for the specified collection
     def setSchema( self, collection, schema ):
-        query = { 
+        validator = { 
             "$jsonSchema":{ 
                 "bsonType":"object", 
                 "properties": schema
             }
         }
         
-        print("Setting query:" +str(query))
         try:
-            self.db.command({"collMod": collection, "validator":query})
+            self.db.command({"collMod": collection, "validator": validator})
         except:
             print("Failed to setSchema")
             print("Collection: "+str(collection))
-            print("Query:" +str(query))
             exit(1)
 
         s2 = self.getSchema(collection)
-        print()
-        print("Returned Schema:"+str(s2))
         
         return True
     
@@ -139,41 +127,112 @@ class ADB:
         return self.uri
 
 
+    ##
+    # \brief queries based on the given query
+    # \param [in] collection the collection to perform the query on
+    # \param [in] query query to perform
+    # \param [in] limit number of items to return
+    def getDocuments( self, collection, query, limit=1 ):
+        docs = []
+      
+        if "_id" in query:
+            query["_id"] = ObjectId(query["_id"])
+        for doc in self.db[collection].find(query).limit(limit):
+            if "_id" in doc.keys():
+                #All "_id" fields are converted to strings on queries. They must
+                #be re-converted on insert
+                doc["_id"] = str(doc["_id"])
+           
+                docs.append(doc)
+             
+        return docs
+
+    ##
+    # \brief inserts a document into the database
+    # \return False on failure. On success, new object as entered into database
+    def insertDocument( self, collection, doc, update = True ):
+       duplicate = False
+
+       #to object Ids
+       if "_id" in doc.keys():
+            doc["_id"] = ObjectId(doc["_id"])
+            print("new id on insert:"+str(doc["_id"]))
+
+            #If there is a key, see if it exists
+            matches = self.getDocuments(collection, {"_id":doc["_id"]})
+            if len(matches) > 0:
+                duplicate = True
+
+       if duplicate and not update:
+            print("Document exists with update disabled. Unable to insert")
+            return False
+
+       elif duplicate and update:
+            print("Updating an existing record")
+            try:
+                query = {"_id":ObjectId(doc["_id"])}
+                self.db[collection].update(query, doc)
+                doc["_id"] = str(doc["_id"])
+            except:
+                print("Failed to update and existing docuement")
+                doc["_id"] = str(doc["_id"])
+                return False
+       else:
+            print("Inserting a new document"+str(doc))
+            try:
+                print("Inserting: "+str(doc))
+
+                #Extrin
+                result = self.db[collection].insert_one(doc)
+                print("Result: "+str(result.acknowledged))
+                if not result.acknowledged:
+                     print("Failed to insert data")
+                     return False
+                print("NEW ID:"+str(result.inserted_id))
+                doc["_id"] = str(result.inserted_id)
+                
+            except:
+                print("insert exception for "+str(doc))
+                return False
+
+       return doc
+
+
 def test(uri, testDB = "adbTestDB" ):
 
     print("Unit test")
     testData = ({
-         "strings":[{"value":"test","schema":{"bsonType":"string"}},
-                    {"value":"test2","schema":{"bsonType":"string"}}
+         "strings":[{"value":{"key":"test"},"schema":{"key":{"bsonType":"string"}}},
+                    {"value":{"key":"test2"},"schema":{"key":{"bsonType":"string"}}}
          ],
-         "integers":[{"value":1,"schema":{"bsonType":"int"}},
-                     {"value":-1, "schema":{"bsonType":"int"}}
+         "integers":[{"value":{"key":1},"schema":{"key":{"bsonType":"int"}}},
+                     {"value":{"key":-1}, "schema":{"key":{"bsonType":"int"}}}
          ],
-         "doubles":[{"value":1.5,"schema":{"bsonType":"double"}},
-                    {"value":2.0,"schema":{"bsonType":"double"}}
+         "doubles":[{"value":{"key":1.5},"schema":{"key":{"bsonType":"double"}}},
+                    {"value":{"key":2.0},"schema":{"key":{"bsonType":"double"}}}
          ],
-         "booleans":[{"value":True, "schema": {"bsonType":"bool"}},
-                    {"value":True, "schema": {"bsonType":"bool"}}
+         "booleans":[{"value":{"key":True}, "schema": {"key":{"bsonType":"bool"}}},
+                    {"value":{"key":True}, "schema": {"key":{"bsonType":"bool"}}}
          ],
-         "arrays":[{"value":["A","B","C"], "schema": {"bsonType":"array", "items":{"bsonType":"string"}}},
-                   {"value":[1,2,3],"schema": {"bsonType":"array", "items":{"bsonType":"int"}}},
-                   {"value":[1.1,2.1,3.1], "schema": {"bsonType":"array", "items":{"bsonType":"double"}}},
-                   {"value":[True, False, True], "schema": {"bsonType":"array", "items":{"bsonType":"bool"}}},
-#                   {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
-                   {"value":[[1,2,3],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}},
-                   {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
+         "arrays":[{"value":{"key":["A","B","C"]}, "schema":{"key":{"bsonType":"array", "items":{"bsonType":"string"}}}},
+                   {"value":{"key":[1,2,3]},"schema": {"key":{"bsonType":"array", "items":{"bsonType":"int"}}}},
+                   {"value":{"key":[1.1,2.1,3.1]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"double"}}}},
+                   {"value":{"key":[True, False, True]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"bool"}}}},
+#                   {"value":{"key":["A",2,True]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"mixed"}}}},
+                   {"value":{"key":[[1,2,3],[4,5,6],[7,8,9]]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}}},
+                   {"value":{"key":[{"key1":1},{"key2":2},{"key3":3}]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}}
          ],
          "objects":[
-                    {"value":{"k1":1,"k2":2,"k3":3}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"int"}}}},
-                    {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"string"}}}},
-#                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":"double"}}},
-                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"double"}}}},
-                    {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"bool"}}}},
-##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "properties":{"k1":"mixed"}}},
-                    {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"array","items":{"bsonType":"int"}}}}},
-                    {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"object","properties":{"k11":{"bsonType":"int"}}}}}}
+                    {"value":{"key":{"k1":1,"k2":2,"k3":3}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"int"}}}}},
+                    {"value":{"key":{"k1":"S1","k2":"s2","k3":"s3"}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"string"}}}}},
+#                    {"value":{"key":{"k1":1.2,"k2":2,"k3":True}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":"double"}}}}},
+                    {"value":{"key":{"k1":1.2,"k2":2,"k3":True}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"double"}}}}},
+                    {"value":{"key":{"k1":False,"k2":True,"k3":True}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"bool"}}}}},
+##                    {"value":{"key":{"k1":False,"k2":"test","k3":2.0}}, "schema":{"key":{"bsonType":"object", "items":{"bsonType":"mixed"}}}},
+##                    {"value":{"key":{"k1":False,"k2":"test","k3":2.0}}, "schema":{"key":{"bsonType":"object", "items":{"bsonType":"mixed"}}}},
+##                    {"value":{"key":{"k1":False,"k2":"test","k3":2.0}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":"mixed"}}},
+                    {"value":{"key":{"k1":[1,2,3],"k2":[4,5,6]}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"array","items":{"bsonType":"int"}}}}}},
+                    {"value":{"key":{"k1":{"k11":1,"k12":2,"k13":3}},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"object","properties":{"k11":{"bsonType":"int"}}}}}}}
          ]
     })
 
@@ -210,62 +269,65 @@ def test(uri, testDB = "adbTestDB" ):
         #Loop through each entry for the specified key
         for item in testData[key]:
             value = item["value"]
+            schema = item["schema"]
 
             #Set the schema to the specified item schema
-            schema = {key:item["schema"]}
             print("Setting schema to "+str(schema))
             adb.setSchema( collection1, schema )
 
             #Loop through all testData values and try to set. Should only
             #success if schemas match
             for key2 in keys:
+                count = 0
                 for item2 in testData[key2]:
 #                   print("Creating collection: "+str(collection1)) 
 #                   adb.createCollection( collection1 )
 
-                   print("Key:"+str(key))
-                   result = adb.setValue( collection1, {key:item2["value"] })
-                   if result and item2["schema"] != item["schema"]:
-                       print("Error: Succeeded with schema mismatch for "+str(key)+":")
+                   doc = item2["value"]
+                   print("New Doc: "+str(doc))
+                   doc2 = adb.insertDocument( collection1, doc)
+                   print("Post Insert: "+str(doc))
+                   if (doc2 != False ) and item2["schema"] != item["schema"]:
+                       print("Error: Succeeded with schema mismatch for "+str(key)+"["+str(count)+"]:")
                        print("schema:"+str(item["schema"]))
                        print("schema2:"+str(item2["schema"]))
                        return False
-                   elif not result and item2["schema"] == item["schema"]:
+                   elif (doc2 == False) and item2["schema"] == item["schema"]:
                        print("Error: Failed with schema match "+str(key))
                        print("schema:"+str(item["schema"]))
                        print("schema2:"+str(item2["schema"]))
                        return False
-   
+ 
+                   #It looks like we failed for a good reason. Continue to the next iter                  
+                   elif doc2 == False:
+                       continue
+
+                   #We were successful. We need to query inserted value to make sure it 
+                   #matches
+                   #We should have a valid schema. Let's compare values
+                   query = {"_id":doc["_id"]}
+                   docs = adb.getDocuments( collection1, query, 10 )
+
+                   #We should have only one answer
+                   if len(docs) != 1:
+                       print("Get documents returned "+str(len(docs))+" instead of 1 document")
+                       return False
+                   
+                   if doc != docs[0]:
+                       print("Document mismatch")
+                       print("Doc1:"+str(doc))
+                       print("Doc2:"+str(docs[0]))
+                       return False
+
+                   count = count +1
+  
     
-        print("Removing collection: "+str(collection1)) 
+#        print("Removing collection: "+str(collection1)) 
         adb.removeCollection( collection1 )
 
-    """
-    #create test1 schema
-    # SDF - need to make sure this approach will support required and other fields
-    schema1 = {"name":{"bsonType":"string"}}
-                
-        "strings":[{"value":"test","schema":{"bsonType":"string"}},
-    adb.createCollection( collection1, schema1 )
-    adb.setSchema( collection1, schema1 )
-
-    #Compare set schema with returned schema
-    schema2 = adb.getSchema( collection1 )
-    if schema2 != schema1:
-        print("Schema mismatch")
-        print("expected: "+str(schema1))
-        print("actual: "+str(schema2))
-        return False
-
-    #test test1 schema
-    
-        #Good cases
-
-        #bad cases
-    """
 
     #remove test1 collection
-    adb.removeCollection( collection1 )
+#    adb.removeCollection( collection1 )
 
     #remove test database
     adb.removeDatabase(testDB)
