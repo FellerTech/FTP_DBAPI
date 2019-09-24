@@ -117,6 +117,9 @@ class SmartType:
        #We are an array type
        elif self.schema["bsonType"] == "array":
            #if the value is not a list, return false. 
+#           if isinstance( value, str ):
+#               print("Array is a string. Returning False")
+#               return False
            if not isinstance( value, list ):
                print("SmartType::Error - unable to set an array type to a non-array value")
                return False
@@ -167,7 +170,6 @@ class SmartType:
 
            else:
                self.value = value
-               return True
 
        return True
    ##
@@ -296,10 +298,46 @@ def unitTest():
       # Test data
       ###############
       testData = ({
-         "strings":[{"value":"test","schema":{"bsonType":"string"}},
-                    {"value":"test2","schema":{"bsonType":"string"}}
+         "strings":[{"value":{"key":"test"},"schema":{"key":{"bsonType":"string"}}},
+                    {"value":{"key":"test2"},"schema":{"key":{"bsonType":"string"}}}
          ],
-         "integers":[{"value":1,"schema":{"bsonType":"int"}},
+         "integers":[{"value":{"key":1},"schema":{"key":{"bsonType":"int"}}},
+                     {"value":{"key":-1}, "schema":{"key":{"bsonType":"int"}}}
+         ],
+         "doubles":[{"value":{"key":1.5},"schema":{"key":{"bsonType":"double"}}},
+                    {"value":{"key":2.0},"schema":{"key":{"bsonType":"double"}}}
+         ],
+         "booleans":[{"value":{"key":True}, "schema": {"key":{"bsonType":"bool"}}},
+                    {"value":{"key":True}, "schema": {"key":{"bsonType":"bool"}}}
+         ],
+         "arrays":[{"value":{"key":["A","B","C"]}, "schema":{"key":{"bsonType":"array", "items":{"bsonType":"string"}}}},
+                   {"value":{"key":[1,2,3]},"schema": {"key":{"bsonType":"array", "items":{"bsonType":"int"}}}},
+                   {"value":{"key":[1.1,2.1,3.1]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"double"}}}},
+                   {"value":{"key":[True, False, True]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"bool"}}}},
+#                   {"value":{"key":["A",2,True]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"mixed"}}}},
+                   {"value":{"key":[[1,2,3],[4,5,6],[7,8,9]]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}}},
+                   {"value":{"key":[{"key1":1},{"key2":2},{"key3":3}]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}}
+         ],
+         "objects":[
+                    {"value":{"key":{"k1":1,"k2":2,"k3":3}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"int"}}}}},
+                    {"value":{"key":{"k1":"S1","k2":"s2","k3":"s3"}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"string"}}}}},
+#                    {"value":{"key":{"k1":1.2,"k2":2,"k3":True}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":"double"}}}}},
+                    {"value":{"key":{"k1":1.2,"k2":2,"k3":True}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"double"}}}}},
+                    {"value":{"key":{"k1":False,"k2":True,"k3":True}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"bool"}}}}},
+##                    {"value":{"key":{"k1":False,"k2":"test","k3":2.0}}, "schema":{"key":{"bsonType":"object", "items":{"bsonType":"mixed"}}}},
+##                    {"value":{"key":{"k1":False,"k2":"test","k3":2.0}}, "schema":{"key":{"bsonType":"object", "items":{"bsonType":"mixed"}}}},
+##                    {"value":{"key":{"k1":False,"k2":"test","k3":2.0}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":"mixed"}}},
+                    {"value":{"key":{"k1":[1,2,3],"k2":[4,5,6]}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"array","items":{"bsonType":"int"}}}}}},
+                    {"value":{"key":{"k1":{"k11":1,"k12":2,"k13":3}},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"object","properties":{"k11":{"bsonType":"int"}}}}}}}
+         ]
+      })
+
+      """
+      testData = ({
+         "strings":[{"value":{"key":"test"},"schema":{"key":{"bsonType":"string"}}},
+                    {"value":{"key":"test2"},"schema":{"key":{"bsonType":"string"}a}}
+         ],
+         "integers":[{"value":{"key":1},"schema":{"bsonType":"int"}},
                      {"value":-1, "schema":{"bsonType":"int"}}
          ],
          "doubles":[{"value":1.5,"schema":{"bsonType":"double"}},
@@ -329,6 +367,7 @@ def unitTest():
                     {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"object","properties":{"k11":{"bsonType":"int"}}}}}}
          ]
     })
+      """
       
       #Get a list of all keys in the test array. This will be used for comparison
       #keys = testData["arrays"].keys()
@@ -337,22 +376,24 @@ def unitTest():
       #Loop through each entry in testData
       for key in keys:
           for item in testData[key]:
-              schema = item["schema"]
+              schema = item["schema"]["key"]
           
               #Loop through all entries and try to set values
               for key2 in keys:
+                   count = 0
                    for item2 in testData[key2]:
-                       value = item2["value"]
+                       value = item2["value"]["key"]
 
-                       smartType = SmartType(key, value, schema )
+                       smartType = SmartType("key", value, schema)
                        result = smartType.setValue(value)
 
                        #sdf need to make to check the correct values
                        if result == False:
-                           if ( item["schema"] == item2["schema"] or
-                                (item["schema"]["bsonType"] == "int" and item2["schema"]["bsonType"] == "bool") or
-                                (item["schema"]["bsonType"] == "double" and item2["schema"]["bsonType"] == "bool") or
-                                (item["schema"]["bsonType"] == "double" and item2["schema"]["bsonType"] == "int")
+                           if (  item["schema"]["key"] == item2["schema"]["key"] or
+                                (item["schema"]["key"]["bsonType"] == "int" and item2["schema"]["key"]["bsonType"] == "bool") or
+                                (item["schema"]["key"]["bsonType"] == "double" and item2["schema"]["key"]["bsonType"] == "bool") or
+                                (item["schema"]["key"]["bsonType"] == "double" and item2["schema"]["key"]["bsonType"] == "int")
+ 
                               ):
                                print("Invalid result with result with valid schema")
                                print("key1:"+str(key))
@@ -383,6 +424,7 @@ def unitTest():
                            print("InValid result with matched keys")
                            return False
 
+                   count = count+1
       return True
 
       ###############
