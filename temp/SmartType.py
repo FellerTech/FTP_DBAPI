@@ -332,43 +332,6 @@ def unitTest():
          ]
       })
 
-      """
-      testData = ({
-         "strings":[{"value":{"key":"test"},"schema":{"key":{"bsonType":"string"}}},
-                    {"value":{"key":"test2"},"schema":{"key":{"bsonType":"string"}a}}
-         ],
-         "integers":[{"value":{"key":1},"schema":{"bsonType":"int"}},
-                     {"value":-1, "schema":{"bsonType":"int"}}
-         ],
-         "doubles":[{"value":1.5,"schema":{"bsonType":"double"}},
-                    {"value":2.0,"schema":{"bsonType":"double"}}
-         ],
-         "booleans":[{"value":True, "schema": {"bsonType":"bool"}},
-                    {"value":True, "schema": {"bsonType":"bool"}}
-         ],
-         "arrays":[{"value":["A","B","C"], "schema": {"bsonType":"array", "items":{"bsonType":"string"}}},
-                   {"value":[1,2,3],"schema": {"bsonType":"array", "items":{"bsonType":"int"}}},
-                   {"value":[1.1,2.1,3.1], "schema": {"bsonType":"array", "items":{"bsonType":"double"}}},
-                   {"value":[True, False, True], "schema": {"bsonType":"array", "items":{"bsonType":"bool"}}},
-#                   {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
-                   {"value":[[11,12,13],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}},
-                   {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
-         ],
-         "objects":[
-                    {"value":{"k1":1,"k2":2,"k3":3}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"int"}}}},
-                    {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"string"}}}},
-##                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":"double"}}},
-                    {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"double"}}}},
-                    {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"bool"}}}},
-##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-##                    {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "properties":{"k1":"mixed"}}},
-                    {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"array","items":{"bsonType":"int"}}}}},
-                    {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "properties":{"k1":{"bsonType":"object","properties":{"k11":{"bsonType":"int"}}}}}}
-         ]
-    })
-      """
-      
       #Get a list of all keys in the test array. This will be used for comparison
       #keys = testData["arrays"].keys()
       keys = testData.keys()

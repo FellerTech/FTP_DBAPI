@@ -333,7 +333,7 @@ class SmartWidget(SmartType):
               if self.value != None:
                   count = 0
                   for item in self.value:
-                     print(str(str(self.valid)+"schema for "+str(item)+" is "+str(self.schema["items"])))
+#                     print(str(str(self.valid)+"schema for "+str(item)+" is "+str(self.schema["items"])))
                      subWidget = SmartWidget().init(str(count), item, self.schema["items"])
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
@@ -343,7 +343,6 @@ class SmartWidget(SmartType):
                          print("Failed to create a widget for "+str(item))
                          self.valid = False
 
-                  print("added " + str(count) + " items")
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
           
@@ -356,8 +355,14 @@ class SmartWidget(SmartType):
 
               if self.value != None:
                   for item in self.value:
-#                     print("Item: "+str(item))
-                     subWidget = SmartWidget().init(str(item), self.value[item], self.schema["items"])
+
+                     try:
+                         subWidget = SmartWidget().init(str(item), self.value[item], self.schema["properties"][item])
+                     except:
+                         print("Failed to create widget for key: "+str(item))
+                         subWidget = False
+                         self.valid = False
+                     
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
                          self.subWidgets.append(subWidget)
@@ -421,7 +426,6 @@ class SmartWidget(SmartType):
            for item in self.subWidgets:
                #See if we're a smart widget
                try:
-                  print("Trying to get value for "+str(item.getValue()))
                   value.append( item.getValue())
                except:
                   print("Value exception for "+str(item))
@@ -433,11 +437,9 @@ class SmartWidget(SmartType):
            for item in self.subWidgets:
                #See if we're a smart widget
                try:
-                  print("Trying to get value for "+str(item.getValue()))
                   myValue = item.getValue()
                   value[item.key] = item.getValue()
                except:
-                  print("Value exception for "+str(item))
                   value.append( item.value)
            return value
        #Compare types to validate
@@ -509,19 +511,6 @@ class SmartWidget(SmartType):
 
       if self.schema["bsonType"] == "array":
          arrayDialog = ArrayDialog(self.updateChild)
-      
-         """
-         #check if we have a value. If not, create aan empty array
-         if self.value is None:
-            self.value = []
-
-         self.value.append(None)
-         print("New value: "+str(self.value))
-         if self.parent is not None:
-             self.parent.updateChild(self.key, None)
-         else:
-            self.draw()
-         """
       elif self.schema["bsonType"] == "object":
          objectDialog = ObjectDialog(self.updateChild)
       else:
@@ -568,38 +557,43 @@ class SmartWidget(SmartType):
 
 class unitTestViewer( QWidget ):
    def __init__(self):
+
        self.testData = ({
-         "strings":[{"value":"test","schema":{"bsonType":"string"}},
-                    {"value":"test2","schema":{"bsonType":"string"}}
-          ],
-          "integers":[{"value":1,"schema":{"bsonType":"int"}},
-                     {"value":-1, "schema":{"bsonType":"int"}}
-          ],
-          "doubles":[{"value":1.5,"schema":{"bsonType":"double"}},
-                     {"value":2,"schema":{"bsonType":"double"}}
-          ],
-          "booleans":[{"value":True, "schema": {"bsonType":"bool"}},
-                     {"value":True, "schema": {"bsonType":"bool"}}
-          ],
-          "arrays":[{"value":["A","B","C"], "schema": {"bsonType":"array", "items":{"bsonType":"string"}}},
-                    {"value":[1,2,3],"schema": {"bsonType":"array", "items":{"bsonType":"int"}}},
-                    {"value":[1.1,2.1,3.1], "schema": {"bsonType":"array", "items":{"bsonType":"double"}}},
-                    {"value":[True, False, True], "schema": {"bsonType":"array", "items":{"bsonType":"bool"}}},
-#                    {"value":["A",2,True], "schema": {"bsonType":"array", "items":{"bsonType":"mixed"}}},
-                    {"value":[[1,2,3],[4,5,6],[7,8,9]], "schema": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}},
-                    {"value":[{"key1":1},{"key2":2},{"key3":3}], "schema": {"bsonType":"array", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
-          ],
-          "objects":[{"value":{"k1":1,"k2":2,"k3":3}, "schema":{"bsonType":"object", "items":{"bsonType":"int"}}},
-                     {"value":{"k1":"S1","k2":"s2","k3":"s3"}, "schema":{"bsonType":"object", "items":{"bsonType":"string"}}},
-                     {"value":{"k1":1.2,"k2":2,"k3":True}, "schema":{"bsonType":"object", "items":{"bsonType":"double"}}},
-                     {"value":{"k1":False,"k2":True,"k3":True}, "schema":{"bsonType":"object", "items":{"bsonType":"boo"}}},
-#                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-#                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-#                     {"value":{"k1":False,"k2":"test","k3":2.0}, "schema":{"bsonType":"object", "items":{"bsonType":"mixed"}}},
-                     {"value":{"k1":[1,2,3],"k2":[4,5,6]}, "schema":{"bsonType":"object", "items":{"bsonType":"array","items":{"bsonType":"int"}}}},
-                     {"value":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}, "schema":{"bsonType":"object", "items":{"bsonType":"object","items":{"bsonType":"int"}}}}
-          ]
+         "strings":[{"value":{"key":"test"},"schema":{"key":{"bsonType":"string"}}},
+                    {"value":{"key":"test2"},"schema":{"key":{"bsonType":"string"}}}
+         ],
+         "integers":[{"value":{"key":1},"schema":{"key":{"bsonType":"int"}}},
+                     {"value":{"key":-1}, "schema":{"key":{"bsonType":"int"}}}
+         ],
+         "doubles":[{"value":{"key":1.5},"schema":{"key":{"bsonType":"double"}}},
+                    {"value":{"key":2.0},"schema":{"key":{"bsonType":"double"}}}
+         ],
+         "booleans":[{"value":{"key":True}, "schema": {"key":{"bsonType":"bool"}}},
+                    {"value":{"key":True}, "schema": {"key":{"bsonType":"bool"}}}
+         ],
+         "arrays":[{"value":{"key":["A","B","C"]}, "schema":{"key":{"bsonType":"array", "items":{"bsonType":"string"}}}},
+                   {"value":{"key":[1,2,3]},"schema": {"key":{"bsonType":"array", "items":{"bsonType":"int"}}}},
+                   {"value":{"key":[1.1,2.1,3.1]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"double"}}}},
+                   {"value":{"key":[True, False, True]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"bool"}}}},
+#                   {"value":{"key":["A",2,True]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"mixed"}}}},
+                   {"value":{"key":[[1,2,3],[4,5,6],[7,8,9]]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"array", "items":{"bsonType":"int"}}}}},
+                   {"value":{"key":[{"key1":1},{"key2":2},{"key3":3}]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"object","properties":{"key1":{"bsonType":"int"},"key2":{"bsonType":"int"},"key3":{"bsonType":"int"}, }}}}}
+         ],
+         "objects":[
+                    {"value":{"key":{"k1":1,"k2":2,"k3":3}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"int"},"k2":{"bsonType":"int"},"k3":{"bsonType":"int"}}}}},
+                    {"value":{"key":{"k1":"S1","k2":"s2","k3":"s3"}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"string"},"k2":{"bsonType":"string"},"k3":{"bsonType":"string"} }}}},
+#                    {"value":{"key":{"k1":1.2,"k2":2,"k3":True}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":"double"}}}}},
+                    {"value":{"key":{"k1":1.2,"k2":2,"k3":True}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"double"},"k2":{"bsonType":"double"},"k3":{"bsonType":"double"} }}}},
+                    {"value":{"key":{"k1":False,"k2":True,"k3":True}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"bool"},"k2":{"bsonType":"bool"},"k3":{"bsonType":"bool"}}}}},
+##                    {"value":{"key":{"k1":False,"k2":"test","k3":2.0}}, "schema":{"key":{"bsonType":"object", "items":{"bsonType":"mixed"}}}},
+##                    {"value":{"key":{"k1":False,"k2":"test","k3":2.0}}, "schema":{"key":{"bsonType":"object", "items":{"bsonType":"mixed"}}}},
+##                    {"value":{"key":{"k1":False,"k2":"test","k3":2.0}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":"mixed"}}},
+                    {"value":{"key":{"k1":[1,2,3],"k2":[4,5,6]}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"array","items":{"bsonType":"int"}},"k2":{"bsonType":"array","items":{"bsonType":"int"}},"k3":{"bsonType":"array","items":{"bsonType":"int"}}}}}},
+                    {"value":{"key":{"k1":{"k11":1,"k12":2,"k13":3},"k2":{"k21":4,"k22":5,"k23":6}}}, "schema":{"key":{"bsonType":"object", "properties":{"k1":{"bsonType":"object","properties":{"k11":{"bsonType":"int"},"k12":{"bsonType":"int"},"k13":{"bsonType":"int"}}}, "k2":{"bsonType":"object","properties":{"k21":{"bsonType":"int"},"k22":{"bsonType":"int"},"k23":{"bsonType":"int"}}}, "k3":{"bsonType":"object","properties":{"k11":{"bsonType":"int"},"k12":{"bsonType":"int"},"k13":{"bsonType":"int"}}}}}}}
+         ]
        })
+
+
 
        ###############
        # Create viewing application
@@ -644,14 +638,16 @@ class unitTestViewer( QWidget ):
           keyLabel.setText(str(key))
           subLayout.addWidget(keyLabel)
           for item in self.testData[key]:
-              print(key+":"+str(itemCount)+" - "+str(item))
-              widget = SmartWidget().init(key+":"+str(itemCount),item["value"], item["schema"])
-              itemCount = itemCount + 1
-              if widget.valid is False:
-                  print( "Unable to create string widget. Failure")
-              else:
-                  subLayout.addWidget(widget.frame)
-                  self.testWidgets.append(widget)
+              for k in item["value"]:
+                  #If were an object need to pass in the properties
+                  widget = SmartWidget().init(k, item["value"][k], item["schema"][k])
+
+                  itemCount = itemCount + 1
+                  if widget.valid is False:
+                      print( "Unable to create string widget. Failure")
+                  else:
+                      subLayout.addWidget(widget.frame)
+                      self.testWidgets.append(widget)
 
           self.mainLayout.addLayout(subLayout)
 
@@ -689,7 +685,10 @@ class unitTestViewer( QWidget ):
        
        testWidgets = []
        for item in self.testWidgets:
-          testWidgets.append(item.getValue())
+          value = {}
+          value[item.key] = item.getValue()
+          testWidgets.append(value)
+#          testWidgets.append(item.getValue())
 
        i = 0
        while i < len(testWidgets):
@@ -697,7 +696,7 @@ class unitTestViewer( QWidget ):
                print("Mismatch1: "+str(i)+": "+str(testValues[i]))
                print("Mismatch2: "+str(i)+": "+str(testWidgets[i]))
            else:
-               print("Value:"+str(testWidgets[i]))
+               pass
 
            i = i +1
        
