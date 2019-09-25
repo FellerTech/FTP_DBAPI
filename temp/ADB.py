@@ -96,6 +96,7 @@ class ADB:
     def getSchema(self, collection):
        info = self.db.command({"listCollections":1, "filter":{"name":collection}})
        result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]["properties"]
+#       result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]
        return  result
 
 
@@ -323,14 +324,14 @@ def test(uri, testDB = "adbTestDB" ):
   
     
 #        print("Removing collection: "+str(collection1)) 
-        adb.removeCollection( collection1 )
+#        adb.removeCollection( collection1 )
 
 
     #remove test1 collection
 #    adb.removeCollection( collection1 )
 
     #remove test database
-    adb.removeDatabase(testDB)
+#    adb.removeDatabase(testDB)
 
     return True
 

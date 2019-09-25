@@ -87,7 +87,7 @@ class SchemaEditor( QWidget ):
 
 #        self.draw()
 
-        self.mainLayout.addStretch(1)
+#        self.mainLayout.addStretch(1)
 
         #submitButton
         submitButton = QPushButton("Submit")
@@ -111,20 +111,29 @@ class SchemaEditor( QWidget ):
         collection = self.collCombo.currentText()
 
         try:
-            schema = self.adb.getSchema(collection)
-            value  = self.adb.db[collection].find().limit(1)[0]
+           schema = self.adb.getSchema(collection)
+           value  = self.adb.getDocuments(collection,{"_id":"5d8a9ff62dfe4c08d5850aab"},1)
+           value  = value[0]
         except:
+            print("Failed to get information for the database")
             schema = None
             value = {}
+            return
  
-        print("value:"+str(value))
-        print("schema:"+str(schema))
-        smartWidget = SmartWidget().init("schema", value, schema )
+        print("SDF value:"+str(value))
+        print("SDF schema:"+str(schema))
+        s2 = {}
+        s2["bsonType"] = "object"
+        s2["properties"] = schema
+        s2["properties"]["_id"]  = {"bsonType":"string"}
+        print("S2: "+str(s2))
+        smartWidget = SmartWidget().init("schema", value, s2 )
+        self.midLayout.addWidget(smartWidget.frame)
 
         #Get the current schema, if any
-        info = QLabel()
-        info.setText(str(schema))
-        self.midLayout.addWidget(info)
+#        info = QLabel()
+#        info.setText(str(schema))
+#        self.midLayout.addWidget(info)
         """
         scrollArea = QScrollArea()
         scrollWidget = QWidget()
@@ -183,7 +192,7 @@ class SchemaEditor( QWidget ):
         self.dbLayout.addWidget(info)
         self.dbLayout.addWidget(self.dbCombo)
         self.dbLayout.addWidget(submitButton)
-        self.dbLayout.addStretch(1)
+#        self.dbLayout.addStretch(1)
 
         return self.dbLayout
 

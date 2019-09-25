@@ -279,7 +279,7 @@ class SmartWidget(SmartType):
        self.valid = False 
 
        #Initialize the underlying SmartType with input values
-       SmartType.__init__(self, key, value, schema )
+       SmartType.__init__(self, key, value, schema)
 
        #Set our key to the appropriate value
        self.layout = QHBoxLayout()                         #!< Display out.
@@ -334,7 +334,7 @@ class SmartWidget(SmartType):
                   count = 0
                   for item in self.value:
 #                     print(str(str(self.valid)+"schema for "+str(item)+" is "+str(self.schema["items"])))
-                     subWidget = SmartWidget().init(str(count), item, self.schema["items"])
+                     subWidget = SmartWidget().init(str(count), item, self.schema["items"], 1)
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
                          self.subWidgets.append(subWidget)
@@ -357,7 +357,7 @@ class SmartWidget(SmartType):
                   for item in self.value:
 
                      try:
-                         subWidget = SmartWidget().init(str(item), self.value[item], self.schema["properties"][item])
+                         subWidget = SmartWidget().init(str(item), self.value[item], self.schema["properties"][item], 1)
                      except:
                          print("Failed to create widget for key: "+str(item))
                          subWidget = False
@@ -367,9 +367,14 @@ class SmartWidget(SmartType):
                          self.subLayout.addWidget(subWidget.frame)
                          self.subWidgets.append(subWidget)
                      else:
-                         print("Failed to create a widget for "+str(v))
+                         print("Failed to create a widget for "+str(item))
                          self.valid = False
                      
+              #addButton
+              addButton = QPushButton("add")
+              addButton.clicked.connect( lambda: self.addButtonPressEvent())
+              self.subLayout.addWidget(addButton)
+
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
              

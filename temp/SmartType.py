@@ -76,6 +76,7 @@ class SmartType:
            return True
 
        #check schema type
+       print("SDF Type sschema: "+str(self.schema))
        if self.schema["bsonType"] == "string":
            if isinstance( value, str):
                self.value = value
