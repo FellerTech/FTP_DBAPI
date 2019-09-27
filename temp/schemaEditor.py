@@ -19,6 +19,14 @@ from SmartWidget import SmartWidget
 #
 class SchemaEditor( QWidget ):
     def __init__(self):
+        self.schemaSchema = ({
+            "item":{
+                "bsonType":"object", 
+                "properties":{"key":{"bsonType":"string"}, 
+                    "type":{"enum":["string","int","double","bool","array","object"]}
+                     }
+             }
+        })
         uriMap = {}
         self.dbs = []
         self.dbase = None
@@ -118,8 +126,9 @@ class SchemaEditor( QWidget ):
             print("Failed to get information for the database")
             schema = None
             value = {}
-            return
+#            return
  
+        """
         print("SDF value:"+str(value))
         print("SDF schema:"+str(schema))
         s2 = {}
@@ -127,7 +136,11 @@ class SchemaEditor( QWidget ):
         s2["properties"] = schema
         s2["properties"]["_id"]  = {"bsonType":"string"}
         print("S2: "+str(s2))
-        smartWidget = SmartWidget().init("schema", value, s2 )
+#        smartWidget = SmartWidget().init("schema", value, s2 )
+        """
+        print("Smart widget with schema: "+str(self.schemaSchema))
+        smartWidget = SmartWidget().init("schema", {}, self.schemaSchema)
+ 
         self.midLayout.addWidget(smartWidget.frame)
 
         #Get the current schema, if any

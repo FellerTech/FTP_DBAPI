@@ -149,6 +149,10 @@ class ObjectDialog(QDialog):
            eturn
        tplate = {}
        tplate["bsonType"] = mytype
+       if mytype == "array":
+           tplate["items"] = {}  
+       elif mytype == "object":
+           tplate["properties"] = {}
        #tplate["required"] = req
 #       tplate["items"] = {}
 
@@ -257,7 +261,7 @@ class ArrayDialog(QDialog):
 #\brief This class is used to draw a widget for a smart type
 class SmartWidget(SmartType):
    def __init__(self):
-       self.value=""
+       self.value=None
        self.widgets={}
        self.frame = QFrame()
        return 
@@ -267,6 +271,7 @@ class SmartWidget(SmartType):
    # \param [in] key name of the item
    # \param [in] value value to set the item to
    # \param [in] schema Json object that defines what the object may contain
+   # \param [in] updateCallback(key, value, schema=None) function that is called when the inherited class changes
    # \return self reference
    #
    # This function is used to initalize a new smart widget with a new key-value
@@ -274,12 +279,14 @@ class SmartWidget(SmartType):
    # considered correct. The valid variable is set to True when the object has
    # a valid value
    #
-   def init(self, key, value, schema = None, parent=None):
+   def init(self, key, value, schema = None, parent = None ):
        self.parent = parent
        self.valid = False 
 
+       print("Creaeting "+key)
        #Initialize the underlying SmartType with input values
        SmartType.__init__(self, key, value, schema)
+       print("Creaeted "+key)
 
        #Set our key to the appropriate value
        self.layout = QHBoxLayout()                         #!< Display out.
@@ -330,11 +337,14 @@ class SmartWidget(SmartType):
               self.subLayout = QVBoxLayout()
               self.subWidgets = []
 
-              if self.value != None:
+              print("scheam: "+str(self.schema))
+#              if self.value != None:
+              if self.schema != None:
                   count = 0
-                  for item in self.value:
+                  for item in self.schema:
+#                  for item in self.value:
 #                     print(str(str(self.valid)+"schema for "+str(item)+" is "+str(self.schema["items"])))
-                     subWidget = SmartWidget().init(str(count), item, self.schema["items"], 1)
+                     subWidget = SmartWidget().init(str(count), item, self.schema["items"], self)
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
                          self.subWidgets.append(subWidget)
@@ -353,11 +363,38 @@ class SmartWidget(SmartType):
               
               self.subLayout = QVBoxLayout()
 
-              if self.value != None:
-                  for item in self.value:
-
+#              if self.value != None:
+#                  for item in self.value:
+              print("ObjSchema: "+str(self.schema))
+              if self.schema != None:
+                  for k in self.schema["properties"]:
+                     print("K:"+ str(k))
                      try:
-                         subWidget = SmartWidget().init(str(item), self.value[item], self.schema["properties"][item], 1)
+                         print("Value:"+ str(self.value))
+                         print("Schema:"+ str(self.schema["properties"][k]))
+                         print("Key:"+k)
+
+                         if self.value == None:
+                             subWidget = SmartWidget().init(str(k), None, self.schema["properties"][k], self)
+                         else:
+                             subWidget = SmartWidget().init(str(k), self.value[k], self.schema["properties"][k], self)
+                     except:
+                         print("Failed to create widget for key: "+str(k))
+                         subWidget = False
+                         self.valid = False
+                     
+                     if subWidget != False:
+                         self.subLayout.addWidget(subWidget.frame)
+                         self.subWidgets.append(subWidget)
+                     else:
+                         print("Failed to create a widget for "+str(item))
+                         self.valid = False
+
+                  """
+                  for item in self.schema:
+                     print("Creating "+str(item))
+                     try:
+                         subWidget = SmartWidget().init(str(item), self.value[item], self.schema["properties"][item], self)
                      except:
                          print("Failed to create widget for key: "+str(item))
                          subWidget = False
@@ -369,9 +406,9 @@ class SmartWidget(SmartType):
                      else:
                          print("Failed to create a widget for "+str(item))
                          self.valid = False
-                     
+                  """
               #addButton
-              addButton = QPushButton("add")
+              addButton = QPushButton("+")
               addButton.clicked.connect( lambda: self.addButtonPressEvent())
               self.subLayout.addWidget(addButton)
 
@@ -528,8 +565,10 @@ class SmartWidget(SmartType):
 
        #if we are a list, check for the specified item
        if isinstance( self.value, list ):
+           print("We are a list1")
            self.value[key] = value
        elif isinstance( self.value, dict ):
+           print("We are a object")
            self.value[key] = value
 
        if self.schema["bsonType"] == "object":
@@ -537,11 +576,18 @@ class SmartWidget(SmartType):
               self.schema["properties"] =  {}
 
            self.schema["properties"][key] = schema
+           print(self.key +" schema: "+str(self.schema))
        else:
            print("Not a object or array. No cannot update child")
 #           return False
 
-       self.draw()
+       #If we don't have a parent, draw
+       if self.parent == None:
+           print("Drawying "+str(self.key))
+           self.draw()
+       else: 
+           print("Key "+str(self.key)+" is updating its parent with "+str(self.value)+":"+str(self.schema))
+           self.parent.updateChild( self.key, self.value, self.schema )
 
    ##
    # Callback for removing an element frmo an array or a dictionary
@@ -561,7 +607,7 @@ class SmartWidget(SmartType):
        self.addCallback()
 
 class unitTestViewer( QWidget ):
-   def __init__(self):
+   def __init__(self ):
 
        self.testData = ({
          "strings":[{"value":{"key":"test"},"schema":{"key":{"bsonType":"string"}}},
@@ -676,6 +722,16 @@ class unitTestViewer( QWidget ):
 
        self.setLayout( self.lastLayout )
        
+   def test2( self ):
+       base = {"bsonType":"object", "properties":{}}
+       widget = SmartWidget().init("test2",{},base)
+       self.mainLayout.addWidget(widget.frame)
+
+       #submitButton
+       submitButton = QPushButton("submit")
+       submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
+       self.mainLayout.addWidget(submitButton)
+       self.setLayout( self.mainLayout )
 
    def submitButtonPressEvent(self):
        testPass = True
@@ -725,7 +781,8 @@ if __name__ == '__main__':
     window = unitTestViewer()
 
     #Check individual components
-    window.test()
+#    window.test()
+    window.test2()
 
     sys.exit(app.exec_())
 
