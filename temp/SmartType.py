@@ -34,8 +34,10 @@ class SmartType:
            print("No schema for key "+str(self.key))
            self.value = str( value )
            self.readOnly = True
-       else:
+       elif value != None:
            self.setValue(value)
+       else:
+           self.value = None
 
 
    ##
@@ -59,6 +61,11 @@ class SmartType:
        return True
 
    ##
+   # \breif returns the objects schema
+   def getSchema( self ):
+       return self.schema
+
+   ##
    # \brief specifies the value that the device should have
    # \param [in] Value to set. 
    # \return true on success, false on failure
@@ -66,7 +73,7 @@ class SmartType:
    # This function is used to set a new value to  item
    def setValue(self, value ):
        self.value = None
-#       print("Setting value to "+str(value))
+       print("Setting value to "+str(value)+" with schema "+str(self.schema))
 
        #If a schema is undefined, the value is converted to a reado-only string
        if self.schema == None:
@@ -76,8 +83,17 @@ class SmartType:
            return True
 
        #check schema type
-       print("SDF Type sschema: "+str(self.schema))
-       if self.schema["bsonType"] == "string":
+       #First, check if we are an enum. If so, pick first one
+       print("Working schema: "+str(self.schema))
+       if "enum" in self.schema.keys():
+           print("We are an enum for schema: "+str(self.schema))
+           try:
+               self.value = self.schema["enum"][0]
+           except:
+               print("SmartType::Error - Failed to set enum value")
+               return False
+
+       elif self.schema["bsonType"] == "string":
            if isinstance( value, str):
                self.value = value
            elif self.value != None:
@@ -242,6 +258,7 @@ class SmartType:
           try: 
               self.setValue( str(text))
           except:
+              print("Failed to setValue to "+str(text))
               return False
 
        #Set to string
@@ -297,6 +314,8 @@ def unitTest():
       # Test data
       ###############
       testData = ({
+         "enums":[{"value":{"key":"test"}, "schema":{"key":{"enum":["e1","e2"]}}}
+         ],
          "strings":[{"value":{"key":"test"},"schema":{"key":{"bsonType":"string"}}},
                     {"value":{"key":"test2"},"schema":{"key":{"bsonType":"string"}}}
          ],

@@ -113,11 +113,11 @@ class ADB:
         try:
             self.db.command({"collMod": collection, "validator": validator})
         except:
-            print("Failed to setSchema")
-            print("Collection: "+str(collection))
-            exit(1)
+            print("Collection: "+str(collection)+" failed to setSchema ")
+            print("schema: "+str(schema) )
+            return False
 
-        s2 = self.getSchema(collection)
+#        s2 = self.getSchema(collection)
         
         return True
     

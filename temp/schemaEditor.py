@@ -19,14 +19,20 @@ from SmartWidget import SmartWidget
 #
 class SchemaEditor( QWidget ):
     def __init__(self):
+        """
         self.schemaSchema = ({
-            "item":{
-                "bsonType":"object", 
-                "properties":{"key":{"bsonType":"string"}, 
-                    "type":{"enum":["string","int","double","bool","array","object"]}
-                     }
+            "bsonType":"object", 
+            "properties":{"key":{"bsonType":"string"}, 
+                "value":
+                    {"enum":["string","int","double","bool","array","object"],"bsonType":"string"}
              }
         })
+        """
+        self.schemaSchema = ({
+            "bsonType":"object", 
+            "properties":{}
+             })
+
         uriMap = {}
         self.dbs = []
         self.dbase = None
@@ -118,6 +124,7 @@ class SchemaEditor( QWidget ):
         
         collection = self.collCombo.currentText()
 
+        """
         try:
            schema = self.adb.getSchema(collection)
            value  = self.adb.getDocuments(collection,{"_id":"5d8a9ff62dfe4c08d5850aab"},1)
@@ -126,7 +133,8 @@ class SchemaEditor( QWidget ):
             print("Failed to get information for the database")
             schema = None
             value = {}
-#            return
+            return
+        """
  
         """
         print("SDF value:"+str(value))
@@ -138,10 +146,11 @@ class SchemaEditor( QWidget ):
         print("S2: "+str(s2))
 #        smartWidget = SmartWidget().init("schema", value, s2 )
         """
-        print("Smart widget with schema: "+str(self.schemaSchema))
-        smartWidget = SmartWidget().init("schema", {}, self.schemaSchema)
+#        print("Smart widget with schema: "+str(self.schemaSchema))
+        self.schemaWidget = SmartWidget().init("schema", self.schema, self.schemaSchema)
+#        smartWidget = SmartWidget().init("schema", self.schema )
  
-        self.midLayout.addWidget(smartWidget.frame)
+        self.midLayout.addWidget(self.schemaWidget.frame)
 
         #Get the current schema, if any
 #        info = QLabel()
@@ -216,6 +225,17 @@ class SchemaEditor( QWidget ):
         if self.collection == value:
             print("collections match")
         else:
+            self.collection = value    
+            print("Collection: "+str(self.collection))
+  
+         
+            try:
+                self.schema = self.adb.getSchema(self.collection)
+            except:
+                print("No schema found!")
+                self.schema = {}
+
+#            self.value  = self.adb.getDocuments(collection,{"_id":"5d8a9ff62dfe4c08d5850aab"},1)
             self.draw()
 #        if self.collection != value:
 #            self.collection= value
@@ -235,12 +255,24 @@ class SchemaEditor( QWidget ):
             self.collCombo.clear()
             self.collCombo.addItems( self.adb.getCollections())
 
-            self.draw()
+#            self.draw()
 
     ##
     # \brief handless a submit button event
     def submitButtonPressEvent(self):
         print("Submission")
+        schema = self.schemaWidget.getSchema()
+        print("output schema:"+str(schema))
+
+        print("Setting schema to collection: "+str(self.collection))
+        result = self.adb.setSchema( self.collection, schema["properties"] )
+
+        if not result:
+            print("Failed to set schema")
+        else:
+            print("Schema set")
+      
+        
         self.close()
 
 
