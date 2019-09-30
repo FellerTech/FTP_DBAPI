@@ -99,8 +99,6 @@ class SchemaEditor( QWidget ):
         scrollWidget.setLayout(self.midLayout)
         self.mainLayout.addLayout( scrollLayout )
 
-#        self.draw()
-
 #        self.mainLayout.addStretch(1)
 
         #submitButton
@@ -146,9 +144,13 @@ class SchemaEditor( QWidget ):
         print("S2: "+str(s2))
 #        smartWidget = SmartWidget().init("schema", value, s2 )
         """
-#        print("Smart widget with schema: "+str(self.schemaSchema))
-        self.schemaWidget = SmartWidget().init("schema", self.schema, self.schemaSchema)
-#        smartWidget = SmartWidget().init("schema", self.schema )
+        print("Smart widget with schema: "+str(self.schema))
+#        self.schemaWidget = SmartWidget().init("schema", self.schema, self.schemaSchema)
+        s = {"bsonType":"object"}
+        s["properties"] = self.schema
+
+        print("SDF: "+str(s))
+        self.schemaWidget = SmartWidget().init("schema", {}, s )
  
         self.midLayout.addWidget(self.schemaWidget.frame)
 
@@ -235,11 +237,7 @@ class SchemaEditor( QWidget ):
                 print("No schema found!")
                 self.schema = {}
 
-#            self.value  = self.adb.getDocuments(collection,{"_id":"5d8a9ff62dfe4c08d5850aab"},1)
             self.draw()
-#        if self.collection != value:
-#            self.collection= value
-#            self.draw()
 
     ##
     # \brief handles database updates
@@ -255,7 +253,9 @@ class SchemaEditor( QWidget ):
             self.collCombo.clear()
             self.collCombo.addItems( self.adb.getCollections())
 
-#            self.draw()
+            self.collection = self.collCombo.currentText()
+            self.schema = self.adb.getSchema(self.collection)
+            self.draw()
 
     ##
     # \brief handless a submit button event
