@@ -91,6 +91,7 @@ class ObjectDialog(QDialog):
        self.ss = self.key.styleSheet()
        self.keyLayout.addWidget(self.key)
 
+       #Layout to specify the type of object 
        typeLayout = QHBoxLayout()
        typeLabel = QLabel()
        typeLabel.setText("type")
@@ -100,14 +101,25 @@ class ObjectDialog(QDialog):
        self.types.addItems(SmartType.types)
        typeLayout.addWidget(self.types)
 
-       """
+       #Checkbox to see if we are required
        reqLayout = QHBoxLayout()
        reqLabel = QLabel()
        reqLabel.setText("required")
        self.reqCheck = QCheckBox()
        reqLayout.addWidget(reqLabel)
        reqLayout.addWidget(self.reqCheck)
-       """
+       
+       #Create a description pane
+       #The value layout is used to 
+       descLayout = QHBoxLayout()
+       descLabel = QLabel()
+       descLabel.setText("description")
+       descLayout.addWidget( descLabel )
+       
+       #default is for it to be a text box 
+       self.desc = QLineEdit()
+       self.ss = self.desc.styleSheet()
+       descLayout.addWidget(self.desc)
 
        #Create submit button
        controlLayout = QHBoxLayout()
@@ -118,20 +130,24 @@ class ObjectDialog(QDialog):
        cancelButton.clicked.connect( lambda: self.cancelButtonPressEvent())
        controlLayout.addWidget(cancelButton)
 
+
        #create layout
        keyFrame = QFrame()
        keyFrame.setLayout(self.keyLayout)
        typeFrame = QFrame()
        typeFrame.setLayout(typeLayout)
-       #reqFrame = QFrame()
-       #reqFrame.setLayout( reqLayout )
+       reqFrame = QFrame()
+       reqFrame.setLayout( reqLayout )
+       descFrame = QFrame()
+       descFrame.setLayout( descLayout )
        controlFrame = QFrame()
        controlFrame.setLayout(controlLayout)
 
        self.layout = QVBoxLayout()
        self.layout.addWidget(keyFrame)
        self.layout.addWidget(typeFrame)
-       #self.layout.addWidget( reqFrame )
+       self.layout.addWidget( reqFrame )
+       self.layout.addWidget( descFrame )
        self.layout.addWidget( controlFrame)
        self.setLayout(self.layout)
 
@@ -142,19 +158,20 @@ class ObjectDialog(QDialog):
     def submitButtonPressEvent(self):
        key = self.key.text()
        mytype = self.types.currentText()
-       #req = self.reqCheck.isChecked()
+       req = self.reqCheck.isChecked()
+       desc = self.desc.text()
 
        if key == "":
            print("Must enter a key")
-           eturn
+           return
        tplate = {}
        tplate["bsonType"] = mytype
+#       tplate["required"] = req
+       tplate["description"] = desc
        if mytype == "array":
            tplate["items"] = {}  
        elif mytype == "object":
            tplate["properties"] = {}
-       #tplate["required"] = req
-#       tplate["items"] = {}
 
        self.callback(key, None, tplate )
 
@@ -264,6 +281,7 @@ class SmartWidget(SmartType):
        self.value=None
        self.widgets={}
        self.frame = QFrame()
+       self.showSchema = True
        return 
 
    ##
@@ -284,7 +302,6 @@ class SmartWidget(SmartType):
        self.valid = False 
 
        #Initialize the underlying SmartType with input values
-       print(key+" Creating value:" +str(value)+", "+str(schema))
        SmartType.__init__(self, key, value, schema)
 
        #Set our key to the appropriate value
@@ -304,7 +321,6 @@ class SmartWidget(SmartType):
    # \brief Function to draw the frame
    # SDF - handle arrays and objects
    def draw(self):
-       print("Drawing "+self.key+" with value "+str(self.value)+", schema:"+str(self.schema))
        #Remove all widgets from the current layout
        while self.layout.count():
            item = self.layout.takeAt(0)
@@ -314,7 +330,8 @@ class SmartWidget(SmartType):
 
        #Create Label
        label = QLabel()
-       label.setText(str(self.key)+" : ")
+       
+       label.setText(str(self.key)+":")
        self.layout.addWidget( label )
 
        #Check if we have a defined schema
@@ -344,11 +361,6 @@ class SmartWidget(SmartType):
 
               self.widget.currentIndexChanged.connect( lambda: self.validate())
              
-
-#          #create layout
-#          self.layout.addWidget( self.widget )
-
-  
           #If we are an array, 
           elif self.schema["bsonType"] == "array":
               self.widget = QFrame()
@@ -357,12 +369,9 @@ class SmartWidget(SmartType):
               self.subWidgets = []
 
               print("scheam: "+str(self.schema))
-#              if self.value != None:
               if self.schema != None:
                   count = 0
                   for item in self.schema:
-#                  for item in self.value:
-#                     print(str(str(self.valid)+"schema for "+str(item)+" is "+str(self.schema["items"])))
                      subWidget = SmartWidget().init(str(count), item, self.schema["items"], self)
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
@@ -382,19 +391,16 @@ class SmartWidget(SmartType):
               
               self.subLayout = QVBoxLayout()
 
-#              if self.value != None:
-#                  for item in self.value:
-              print(self.key+" Schema: "+str(self.schema))
+              print(self.key+" mySchema: "+str(self.schema))
               if self.schema != None:
-                  for k in self.schema["properties"]:
+                  for k  in self.schema["properties"]:
                      try:
-                         print("Trying: "+str(k)+" - Value:"+ str(self.value)+", Schema:"+ str(self.schema["properties"][k]))
-
                          if self.value == None or self.value == {}:
-                             print("Creating subwidget with no value")
+                             print("SDF - Creating a widget with no value ")
                              subWidget = SmartWidget().init(str(k), None, self.schema["properties"][k], self)
                          else:
-                             print("Creating subwidget with value:" +str(self.value))
+                             print("SDF Creating("+str(k)+"): "+str(self.value)+", "+str(self.schema))
+                             print("SDF Creating("+str(k)+"): "+str(self.value[k])+", "+str(self.schema["properties"]))
                              subWidget = SmartWidget().init(str(k), self.value[k], self.schema["properties"][k], self)
                      except:
                          print("Failed to create widget for key: "+str(k))
@@ -429,7 +435,28 @@ class SmartWidget(SmartType):
 
           #create layout
           self.layout.addWidget( self.widget )
+      
+       #If we're showing schema, show type
+       if self.showSchema:
+           if "bsonType" in self.schema:
+               typeLabel = QLabel()  
+               typeLabel.setText( "type:"+str(self.schema["bsonType"]))
+               self.layout.addWidget( typeLabel )
+      
+           if "required" in self.schema:
+               reqCheck = QCheckBox("required")
+               reqCheck.setChecked(self.schema["required"])
+               self.layout.addWidget( reqCheck )
 
+           descLabel = QLabel()  
+           if "description" in self.schema:
+               descLabel.setText( "description: "+str(self.schema["description"]))
+           else:
+               descLabel.setText( "description: None")
+           self.layout.addWidget( descLabel )
+
+
+              
 
        #Add remove button to allow people to remove values
        removeButton = IndexButton("-", self.key, self.removeCallback)
@@ -442,7 +469,9 @@ class SmartWidget(SmartType):
    ##
    # \brief Callback to handle changes
    def validate(self):
-       print("--------Validating "+str(self.key))
+       self.value = self.getValue()
+#       self.schema = self.getSchema()
+       print("+++++++ Validating ("+str(self.type)+","+str(self.key)+")")
        print("Value: "+str(self.value))
        print("Schema: "+str(self.schema))
 
@@ -457,14 +486,12 @@ class SmartWidget(SmartType):
                print("No parent in validate for "+str(self.key))
            return
        
+       #We are a standard type
        if "enum" in self.schema.keys():
-           print("------ getting Enum Text")
            text = self.widget.currentText()
-           print("----------Enum text: "+str(text))
        else:
            text = self.widget.text()
 
-       print("-----Validating "+self.key+" with text "+text)
        #If we failed, set background as pink and state to invalid
 
        result = self.setStringAsValue( text )
@@ -780,9 +807,6 @@ class unitTestViewer( QWidget ):
    def test2SubmitButtonPressEvent(self):
        value = self.test2Widget.getValue()
        schema = self.test2Widget.getSchema()
-       print("Value: "+str(value))
-       print("Schema: "+str(schema))
-
 
    def submitButtonPressEvent(self):
        testPass = True

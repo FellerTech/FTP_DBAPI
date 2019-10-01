@@ -53,7 +53,7 @@ class SmartType:
 
        #Make sure we are a dictionary
        elif not isinstance( schema, dict ):
-           print("Error: schema is not a object "+str(schema))
+           print("Error: schema is not an object "+str(schema))
            return False
 
        self.schema = schema 

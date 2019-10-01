@@ -95,7 +95,10 @@ class ADB:
     # SDF - this need to be cleaner
     def getSchema(self, collection):
        info = self.db.command({"listCollections":1, "filter":{"name":collection}})
-       result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]["properties"]
+       try:
+           result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]["properties"]
+       except:
+           result = {}
 #       result = info["cursor"]["firstBatch"][0]["options"]["validator"]["$jsonSchema"]
        return  result
 

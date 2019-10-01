@@ -6,6 +6,7 @@ from bson import json_util
 import json
 import time
 from collections import OrderedDict
+from copy import deepcopy
 import sys
 
 from PyQt5.QtWidgets import QWidget, QApplication, QFrame, QDesktopWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QComboBox
@@ -13,26 +14,12 @@ from PyQt5.QtWidgets import QWidget, QApplication, QFrame, QDesktopWidget, QVBox
 from ADB import ADB
 from SmartWidget import SmartWidget
 
-
 ##
 # \class This class allows users to edit mongodb schemas
 #
 class SchemaEditor( QWidget ):
     def __init__(self):
-        """
-        self.schemaSchema = ({
-            "bsonType":"object", 
-            "properties":{"key":{"bsonType":"string"}, 
-                "value":
-                    {"enum":["string","int","double","bool","array","object"],"bsonType":"string"}
-             }
-        })
-        """
-        self.schemaSchema = ({
-            "bsonType":"object", 
-            "properties":{}
-             })
-
+        
         uriMap = {}
         self.dbs = []
         self.dbase = None
@@ -66,13 +53,9 @@ class SchemaEditor( QWidget ):
         self.titleLayout.addStretch(1)
         self.mainLayout.addLayout( self.titleLayout )
 
-        #create the selector layout (allow user to select database)
+        #create the selector layout (allow user to select database / collection)
         self.dbFrame = QFrame()
- 
-        print("Add QFrame")
         self.dbFrame.setLayout(self.genDBSelectorWidget())
-       
-        print("Added QFrame")
         self.collFrame = QFrame()
         self.collFrame.setLayout( self.genCollSelectorWidget())
 
@@ -83,8 +66,6 @@ class SchemaEditor( QWidget ):
 
         self.mainLayout.addLayout(selectorLayout)
         
-#        self.dbLayout = self.dbSelectorWidget()
-#        self.mainLayout.addLayout(self.dbLayout)
         #The middle section will have a scroll area
         scrollArea = QScrollArea()
         scrollWidget = QWidget()
@@ -98,8 +79,6 @@ class SchemaEditor( QWidget ):
         self.midLayout = QVBoxLayout()
         scrollWidget.setLayout(self.midLayout)
         self.mainLayout.addLayout( scrollLayout )
-
-#        self.mainLayout.addStretch(1)
 
         #submitButton
         submitButton = QPushButton("Submit")
@@ -122,35 +101,10 @@ class SchemaEditor( QWidget ):
         
         collection = self.collCombo.currentText()
 
-        """
-        try:
-           schema = self.adb.getSchema(collection)
-           value  = self.adb.getDocuments(collection,{"_id":"5d8a9ff62dfe4c08d5850aab"},1)
-           value  = value[0]
-        except:
-            print("Failed to get information for the database")
-            schema = None
-            value = {}
-            return
-        """
- 
-        """
-        print("SDF value:"+str(value))
-        print("SDF schema:"+str(schema))
-        s2 = {}
-        s2["bsonType"] = "object"
-        s2["properties"] = schema
-        s2["properties"]["_id"]  = {"bsonType":"string"}
-        print("S2: "+str(s2))
-#        smartWidget = SmartWidget().init("schema", value, s2 )
-        """
-        print("Smart widget with schema: "+str(self.schema))
-#        self.schemaWidget = SmartWidget().init("schema", self.schema, self.schemaSchema)
         s = {"bsonType":"object"}
-        s["properties"] = self.schema
+        s["properties"] = deepcopy(self.schema)
 
-        print("SDF: "+str(s))
-        self.schemaWidget = SmartWidget().init("schema", {}, s )
+        self.schemaWidget = SmartWidget().init("schema", self.schema, s )
  
         self.midLayout.addWidget(self.schemaWidget.frame)
 
@@ -186,7 +140,6 @@ class SchemaEditor( QWidget ):
         self.collCombo.addItems( self.adb.getCollections())
 
         print("Getting collections for "+self.dbase)
-        print("Collections:"+str(self.adb.getCollections()))
 
         submitButton = QPushButton("UpdateColl")
         submitButton.clicked.connect( lambda: self.updateCollButtonPressEvent())
@@ -233,6 +186,7 @@ class SchemaEditor( QWidget ):
          
             try:
                 self.schema = self.adb.getSchema(self.collection)
+                self.value  = self.adb.getValue( self.collection )
             except:
                 print("No schema found!")
                 self.schema = {}
@@ -242,7 +196,6 @@ class SchemaEditor( QWidget ):
     ##
     # \brief handles database updates
     def updateDBButtonPressEvent(self):
-        print("Updating db")
         value = self.dbCombo.currentText()
         if self.dbase == value:
             print("Databases match")
@@ -262,10 +215,13 @@ class SchemaEditor( QWidget ):
     def submitButtonPressEvent(self):
         print("Submission")
         schema = self.schemaWidget.getSchema()
+        value  = self.schemaWidget.getValue()
+        print("output value :"+str(value))
         print("output schema:"+str(schema))
 
-        print("Setting schema to collection: "+str(self.collection))
         result = self.adb.setSchema( self.collection, schema["properties"] )
+#        result = self.adb.setSchema( self.collection, schema )
+ 
 
         if not result:
             print("Failed to set schema")
