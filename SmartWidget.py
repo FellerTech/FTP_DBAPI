@@ -184,7 +184,7 @@ class ObjectDialog(QDialog):
        if mytype == "array":
            arrayDialog = ArrayDialog(self.arrayCallback)
            tplate["items"] = self.arraySchema  
-           print("Returned from teh Array dailog with schema:" +str(tplate))
+           print("Returned from the Array dailog with schema:" +str(tplate))
            print()
        elif mytype == "object":
            tplate["properties"] = {}
@@ -196,7 +196,7 @@ class ObjectDialog(QDialog):
     ##
     # \brief a callback for a new array type. Must specify sub-types
     def arrayCallback( self, schema ):
-        print("--------Processing an array with schema: "+str(schema))
+        print("--------OD Processing an array with schema: "+str(schema))
         self.arraySchema = schema
  
 
@@ -244,12 +244,11 @@ class ArrayDialog(QDialog):
        cancelButton.clicked.connect( lambda: self.cancelButtonPressEvent())
        controlLayout.addWidget(cancelButton)
 
-
        #create layout
        typeFrame = QFrame()
        typeFrame.setLayout(typeLayout)
        reqFrame = QFrame()
-       reqFrame.setLayout( reqLayout )
+       reqFrame.setLayout(reqLayout)
        controlFrame = QFrame()
        controlFrame.setLayout(controlLayout)
 
@@ -274,7 +273,7 @@ class ArrayDialog(QDialog):
        if mytype == "array":
            arrayDialog = ObjectDialog(self.arrayCallback)
            tplate["items"] = self.arraySchema  
-           print("Returned from teh Array dailog with schema:" +str(tplate))
+           print("Returned from the array dailog with schema:" +str(tplate))
            print()
        elif mytype == "object":
            tplate["properties"] = {}
@@ -288,10 +287,6 @@ class ArrayDialog(QDialog):
     def arrayCallback( self, key, value, schema ):
         self.arraySchema = schema
  
-
-
-
-
 
 ##
 #\brief This class is used to draw a widget for a smart type
@@ -341,6 +336,8 @@ class SmartWidget(SmartType):
    # \brief Function to draw the frame
    # SDF - handle arrays and objects
    def draw(self):
+       print("Drawing: "+str(self.key))
+
        #Remove all widgets from the current layout
        while self.layout.count():
            item = self.layout.takeAt(0)
@@ -388,7 +385,7 @@ class SmartWidget(SmartType):
               self.subLayout = QVBoxLayout()
               self.subWidgets = []
 
-              print("schema: "+str(self.schema))
+              print("array schema: "+str(self.schema))
               print("value: "+str(self.value))
               if self.value != None:
                   count = 0
@@ -396,7 +393,7 @@ class SmartWidget(SmartType):
                      print("Item: "+str(item))
                      try:
                          print("Creating subwidget with schema: "+ str(self.schema))
-                         subWidget = SmartWidget().init(str(count), item, self.schema["items"], self, self.showSchema )
+                         subWidget = SmartWidget().init("item: "+str(count), item, self.schema["items"], self, self.showSchema )
                      except:
                          print("Exception creating an array widget for "+str(item))
                          self.valid = False
@@ -413,13 +410,18 @@ class SmartWidget(SmartType):
 
               #create an extra with an add button
               addLayout = QHBoxLayout()
-              self.spareWidget = SmartWidget().init(str(count), item, self.schema["items"], self, self.showSchema)
+
+
+#SDF We are failing here. We need to add an item when it makes sense
+              print("SDF - adding add button")
+#SDF              self.spareWidget = SmartWidget().init("item2:"+str(count), None, self.schema["items"], self, self.showSchema)
               addButton = QPushButton("+")
               addButton.clicked.connect( lambda: self.addButtonPressEvent())
-              addLayout.addWidget(self.spareWidget.frame)
+#SDF              addLayout.addWidget(self.spareWidget.frame)
               addLayout.addWidget(addButton)
 
               addFrame = QFrame()
+              addFrame.setLayout(addLayout)
               self.subLayout.addWidget(addFrame)
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
@@ -450,7 +452,7 @@ class SmartWidget(SmartType):
                          self.subLayout.addWidget(subWidget.frame)
                          self.subWidgets.append(subWidget)
                      else:
-                         print("2Failed to create a widget for object key "+str(k))
+                         print("Failed to create a widget for object key "+str(k))
                          self.valid = False
 
               #addButton
@@ -514,6 +516,8 @@ class SmartWidget(SmartType):
        print("Value: "+str(self.value))
        print("Schema: "+str(self.schema))
 
+       print("Type: "+str(self.type))
+
        #If it's an object or an array pass the value forward
        if self.type == "object" or self.type == "array":
            if self.parent != None:
@@ -556,8 +560,8 @@ class SmartWidget(SmartType):
    #
    # For complex types, this function will build the the value recursively
    def getValue(self):
-       return self.value
-
+#SDF       return self.value
+        
        if self.type == "array":
            value = []
            for item in self.subWidgets:
@@ -566,6 +570,7 @@ class SmartWidget(SmartType):
                   value.append( item.getValue())
                except:
                   print("Value exception for "+str(item))
+                  print("Value exception2 for "+str(item.value))
                   value.append( item.value)
            return value
          
@@ -581,6 +586,7 @@ class SmartWidget(SmartType):
            return value
        #Compare types to validate
        else:
+           """
            if self.type == "string":
                self.setValue( self.widget.text())
            elif self.type == "int":
@@ -598,6 +604,7 @@ class SmartWidget(SmartType):
                   self.setValue(True) 
                else: 
                   self.setValue(False) 
+           """
            return self.value
 
    ##
@@ -648,8 +655,8 @@ class SmartWidget(SmartType):
 
       if self.schema["bsonType"] == "array":
           self.items = self.items+1
-
           value = self.spareWidget.getValue()
+          print("++++ Add Callback value: "+str(value))
           self.value.append(value)
           self.draw()
       elif self.schema["bsonType"] == "object":
@@ -662,11 +669,20 @@ class SmartWidget(SmartType):
 
    ##
    #\brief updates the children of this complex type
+   #\param [in] key name of the child to update.
+   #\param [in] value new value for the child
+   #\param [in] schema the new schema for the child. Default=None
    def updateChild( self, key, value, schema=None ):
        print(self.key+" is updating child "+str(key)+" with value "+str(value)+", schema:"+str(schema))
 
+       #If we have a schema, set it to the one that was passed in.
+       if schema != None:
+           self.schema = schema
+
        #If we're an object, we have to update the child
        if self.schema["bsonType"] == "object":
+#SDF       if schema["bsonType"] == "object":
+           print("+++sdf handling an object")
            if "properties" not in self.schema:
               self.schema["properties"] =  {}
 
@@ -679,28 +695,30 @@ class SmartWidget(SmartType):
            print(self.key +" value: "+str(self.value))
 
        if self.schema["bsonType"] == "array":
-           """ SDF TODO - check how this should work. If we are an array, 
+           print("+++sdf handling an array")
            if "items" not in self.schema:
               self.schema["items"] =  {}
-           """
 
            if self.value == None:
                self.value = []
 
-#           self.value.append(value)
            print(self.key +" schema: "+str(self.schema))
        else:
-           print("Not a object or array. No cannot update child")
+           print("Not an object or array. No cannot update child")
 #           return False
+
        print(self.key+" Validating with value "+str(self.value)+", schema: "+str(self.schema)) 
        self.validate()
+       print("Validated: "+str(self.key))
 
        #If we don't have a parent, draw
        if self.parent == None:
            self.draw()
-#       else: 
-#           print("Key "+str(self.key)+" is updating its parent with "+str(self.value)+":"+str(self.schema))
-#           self.parent.updateChild( self.key, self.value, self.schema )
+
+#SDF remove?
+       else: 
+           print("Key "+str(self.key)+" is updating its parent with "+str(self.value)+":"+str(self.schema))
+           self.parent.updateChild( self.key, self.value, self.schema )
 
 
 

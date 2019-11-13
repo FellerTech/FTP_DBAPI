@@ -16,12 +16,12 @@ class SmartType:
 
        self.schema= None
        if schema != None:
-          self.setSchema( schema)
+           self.setSchema( schema)
 
-          try:
-             self.type = schema["bsonType"]
-          except: 
-              pass
+           try:
+               self.type = schema["bsonType"]
+           except: 
+               pass
 
              
 
@@ -35,6 +35,7 @@ class SmartType:
            self.value = str( value )
            self.readOnly = True
        elif value != None:
+           print("-----"+key+" setting value to "+str(value))
            self.setValue(value)
        else:
            self.value = None
@@ -248,6 +249,8 @@ class SmartType:
    ##
    # \brief Tries to set the string to the given type
    def setStringAsValue( self, text ):
+       print("Setting string "+str(text)+" as value")
+
        #make sure the input is a string
        if not isinstance( text, str ):
            print("SmartType::setStringAsValue input not string")
