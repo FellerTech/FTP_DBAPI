@@ -104,7 +104,7 @@ class SchemaEditor( QWidget ):
         s = {"bsonType":"object"}
         s["properties"] = deepcopy(self.schema)
 
-        self.schemaWidget = SmartWidget().init("schema", self.schema, s )
+        self.schemaWidget = SmartWidget().init("schema", self.schema, s, showSchema = True )
  
         self.midLayout.addWidget(self.schemaWidget.frame)
 
