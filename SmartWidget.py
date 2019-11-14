@@ -398,8 +398,6 @@ class SmartWidget(SmartType):
                          print("Exception creating an array widget for "+str(item))
                          self.valid = False
                          subWidget = False
-
-
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
                          self.subWidgets.append(subWidget)
@@ -411,18 +409,12 @@ class SmartWidget(SmartType):
               #create an extra with an add button
               addLayout = QHBoxLayout()
 
-
 #SDF We are failing here. We need to add an item when it makes sense
-              print("SDF - adding add button")
-#SDF              self.spareWidget = SmartWidget().init("item2:"+str(count), None, self.schema["items"], self, self.showSchema)
+              print("SDF - adding add button to key: "+str(self.key))
               addButton = QPushButton("+")
               addButton.clicked.connect( lambda: self.addButtonPressEvent())
-#SDF              addLayout.addWidget(self.spareWidget.frame)
-              addLayout.addWidget(addButton)
+              self.subLayout.addWidget(addButton)
 
-              addFrame = QFrame()
-              addFrame.setLayout(addLayout)
-              self.subLayout.addWidget(addFrame)
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
           
@@ -434,6 +426,7 @@ class SmartWidget(SmartType):
               self.subLayout = QVBoxLayout()
 
               if self.schema != None:
+                  print("Iterating through schema: "+str(self.schema))
                   for k  in self.schema["properties"]:
                      try:
                          if self.value == None or self.value == {}:
