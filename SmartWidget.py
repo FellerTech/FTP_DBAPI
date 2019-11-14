@@ -189,6 +189,7 @@ class ObjectDialog(QDialog):
        elif mytype == "object":
            tplate["properties"] = {}
 
+       print("OOOOO Entering updateChild from ObjectDialog with template "+str(tplate))
        self.callback(key, None, tplate )
 
        self.done(True)
@@ -328,6 +329,7 @@ class SmartWidget(SmartType):
        self.frame.setFrameStyle( 1 )
        self.frame.setLineWidth(1)
        
+       print("---"+str(self.key)+" is drawing frmo init")
        self.draw()
 
        return self
@@ -336,7 +338,7 @@ class SmartWidget(SmartType):
    # \brief Function to draw the frame
    # SDF - handle arrays and objects
    def draw(self):
-       print("Drawing: "+str(self.key))
+       print("Drawing: "+str(self.key)+" with schema "+str(self.schema))
 
        #Remove all widgets from the current layout
        while self.layout.count():
@@ -428,17 +430,17 @@ class SmartWidget(SmartType):
               if self.schema != None:
                   print("Iterating through schema: "+str(self.schema))
                   for k  in self.schema["properties"]:
+                     subWidget = False
                      try:
                          if self.value == None or self.value == {}:
                              print("creating schema for "+str(k))   
                              subWidget = SmartWidget().init(str(k), None, self.schema["properties"][k], self, self.showSchema )
-                         else:
-                             print("creating schema for "+str(k)+" with value: "+str(self.value[k]))   
-                             subWidget = SmartWidget().init(str(k), self.value[k], self.schema["properties"][k], self, self.showSchema)
+#                         else:
+#                             print("creating schema for "+str(k)+" with value: "+str(self.value[k]))   
+#                             subWidget = SmartWidget().init(str(k), self.value[k], self.schema["properties"][k], self, self.showSchema)
                      except:
                          print("Failed to create widget for object key: "+str(k))
                          print("Schema: "+str(self.schema["properties"][k]))
-                         subWidget = False
                          self.valid = False
                      
                      if subWidget != False:
@@ -448,6 +450,8 @@ class SmartWidget(SmartType):
                          print("Failed to create a widget for object key "+str(k))
                          self.valid = False
 
+              print("---- Creating add button")
+
               #addButton
               addButton = QPushButton("+")
               addButton.clicked.connect( lambda: self.addButtonPressEvent())
@@ -455,6 +459,7 @@ class SmartWidget(SmartType):
 
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
+              print("---- Created add button")
            
           else:
               #default is for it to be a text box 
@@ -490,7 +495,7 @@ class SmartWidget(SmartType):
            self.layout.addWidget( descLabel )
 
 
-              
+       print("--- Adding remove button")       
 
        #Add remove button to allow people to remove values
        removeButton = IndexButton("-", self.key, self.removeCallback)
@@ -566,39 +571,8 @@ class SmartWidget(SmartType):
                   print("Value exception2 for "+str(item.value))
                   value.append( item.value)
            return value
-         
-       elif self.type == "object":
-           value = {}
-           for item in self.subWidgets:
-               #See if we're a smart widget
-               try:
-                  myValue = item.getValue()
-                  value[item.key] = item.getValue()
-               except:
-                  value.append( item.value)
-           return value
-       #Compare types to validate
-       else:
-           """
-           if self.type == "string":
-               self.setValue( self.widget.text())
-           elif self.type == "int":
-               try:
-                   self.setValue( int(self.widget.text()))
-               except:
-                   print("SmartWidget::ERROR: "+self.key+":"+self.widget.text()+" is not an integer")
-           elif self.type == "number":
-               try:
-                   self.setValue( float(self.widget.text()))
-               except:
-                   print(self.widget.key+":"+self.widget.text()+" is not a number")
-           elif self.type == "bool":
-               if self.widget.text() == "True":
-                  self.setValue(True) 
-               else: 
-                  self.setValue(False) 
-           """
-           return self.value
+       
+       return self.value
 
    ##
    # \brief returns the key of the object
@@ -631,7 +605,7 @@ class SmartWidget(SmartType):
 #       if self.callback is not None:
 #          self.callback(key)
        else:
-           print(str(self.key)+" is drawing")
+           print(str(self.key)+" is drawing from removeCallback")
            self.draw()
 
        return 
@@ -651,12 +625,15 @@ class SmartWidget(SmartType):
           value = self.spareWidget.getValue()
           print("++++ Add Callback value: "+str(value))
           self.value.append(value)
+
+          print(str(self.key)+" is drawing frmo addCallback arra")
           self.draw()
+          print(str(self.key)+" is done drawing frmo addCallback arra")
       elif self.schema["bsonType"] == "object":
          objectDialog = ObjectDialog(self.updateChild)
       else:
          #This should never happen...
-         print("addCallback schema: "+str(self.schema))
+         print("ERROR!!!!! addCallback schema: "+str(self.schema))
 #         self.validate()
          
 
@@ -665,16 +642,15 @@ class SmartWidget(SmartType):
    #\param [in] key name of the child to update.
    #\param [in] value new value for the child
    #\param [in] schema the new schema for the child. Default=None
-   def updateChild( self, key, value, schema=None ):
-       print(self.key+" is updating child "+str(key)+" with value "+str(value)+", schema:"+str(schema))
+   def updateChild( self, key, value, childSchema=None ):
+       print(self.key+" is updating child "+str(key)+" with value "+str(value)+", schema:"+str(childSchema))
 
        #If we have a schema, set it to the one that was passed in.
-       if schema != None:
-           self.schema = schema
+#       if schema != None:
+#           self.schema = schema
 
        #If we're an object, we have to update the child
        if self.schema["bsonType"] == "object":
-#SDF       if schema["bsonType"] == "object":
            print("+++sdf handling an object")
            if "properties" not in self.schema:
               self.schema["properties"] =  {}
@@ -682,12 +658,15 @@ class SmartWidget(SmartType):
            if self.value == None:
                self.value = {}
 
-           self.schema["properties"][key] = schema
-           self.value[key] = value
-           print(self.key +" schema: "+str(self.schema))
-           print(self.key +" value: "+str(self.value))
+           if value != None:
+               self.value[key] = value
 
-       if self.schema["bsonType"] == "array":
+           self.schema["properties"][key] = childSchema
+           print("Setting value to "+str(value))
+           print("---"+self.key +" schema: "+str(self.schema))
+           print("---"+self.key +" value: "+str(self.value))
+
+       elif self.schema["bsonType"] == "array":
            print("+++sdf handling an array")
            if "items" not in self.schema:
               self.schema["items"] =  {}
@@ -695,7 +674,11 @@ class SmartWidget(SmartType):
            if self.value == None:
                self.value = []
 
-           print(self.key +" schema: "+str(self.schema))
+           self.scheme["items"] = childSchema
+           self.value.append(value)
+
+           print("---- "+self.key +" schema: "+str(self.schema))
+           print("----"+self.key +" value: "+str(self.value))
        else:
            print("Not an object or array. No cannot update child")
 #           return False
@@ -706,12 +689,13 @@ class SmartWidget(SmartType):
 
        #If we don't have a parent, draw
        if self.parent == None:
+           print("----"+str(self.key)+" is drawing fro updateChilde: no parent")
            self.draw()
 
 #SDF remove?
-       else: 
-           print("Key "+str(self.key)+" is updating its parent with "+str(self.value)+":"+str(self.schema))
-           self.parent.updateChild( self.key, self.value, self.schema )
+#       else: 
+#           print("Key "+str(self.key)+" is updating its parent with "+str(self.value)+":"+str(self.schema))
+#           self.parent.updateChild( self.key, self.value, self.schema )
 
 
 
