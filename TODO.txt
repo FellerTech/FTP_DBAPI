@@ -1,0 +1,5 @@
+- Finish unit test adb
+- Strategy to extend schemas via UI
+- Strategy to do joint queries via ADB.
+   - How to represent _ids in the interface
+   - How to 
