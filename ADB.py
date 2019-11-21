@@ -136,7 +136,7 @@ class ADB:
     # \param [in] collection the collection to perform the query on
     # \param [in] query query to perform
     # \param [in] limit number of items to return
-    def getDocuments( self, collection, query, limit=1 ):
+    def getDocuments( self, collection, query={}, limit=1 ):
         docs = []
       
         if "_id" in query:

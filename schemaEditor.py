@@ -186,9 +186,11 @@ class SchemaEditor( QWidget ):
          
             try:
                 self.schema = self.adb.getSchema(self.collection)
-                self.value  = self.adb.getValue( self.collection )
+#                self.value  = self.adb.getValue( self.collection )
+
+                print("Got schema: "+str(self.schema))
             except:
-                print("No schema found!")
+                print("No schema found for collection "+str(self.collection))
                 self.schema = {}
 
             self.draw()
@@ -208,6 +210,10 @@ class SchemaEditor( QWidget ):
 
             self.collection = self.collCombo.currentText()
             self.schema = self.adb.getSchema(self.collection)
+
+            print("Got schema2: "+str(self.schema))
+
+
             self.draw()
 
     ##
@@ -216,11 +222,9 @@ class SchemaEditor( QWidget ):
         print("Submission")
         schema = self.schemaWidget.getSchema()
         value  = self.schemaWidget.getValue()
-        print("output value :"+str(value))
         print("output schema:"+str(schema))
 
         result = self.adb.setSchema( self.collection, schema["properties"] )
-#        result = self.adb.setSchema( self.collection, schema )
  
 
         if not result:
