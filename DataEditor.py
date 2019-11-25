@@ -232,13 +232,9 @@ class DataEditor( QWidget ):
         print("----------------------------------")
 
 #        result = self.adb.setSchema( self.collection, schema["properties"] )
- 
 
-        if not result:
-            print("Failed to set schema")
-        else:
-            print("Schema set")
-      
+         
+        self.adb.insertDocument(self.collection, value )
         
         self.close()
 
