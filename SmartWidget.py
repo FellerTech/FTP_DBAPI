@@ -503,7 +503,7 @@ class SmartWidget(SmartType):
               else:
                   print("~~~~~~~ No value")
 
-
+              #SDF Need to modify to limit to min and max elements in schema
               #Add new, empty element
               subWidget = SmartWidget().init("item: "+str(count), "", self.schema["items"], self, self.showSchema )
               if subWidget == False:
@@ -729,17 +729,8 @@ class SmartWidget(SmartType):
           return
 
       if self.schema["bsonType"] == "array":
-           #Need an ArrayDialog
-
-
-#          self.items = self.items+1
-#          value = self.spareWidget.getValue()
-#SDF       print("++++ Add Callback value: "+str(value))
-#SDF       self.value.append(value)
-
-          print(str(self.key)+" is drawing from addCallback arra")
+          #Need an ArrayDialog
           self.draw()
-          print(str(self.key)+" is done drawing frmo addCallback arra")
       elif self.schema["bsonType"] == "object":
          objectDialog = ObjectDialog(self.updateChild)
       else:
@@ -786,13 +777,22 @@ class SmartWidget(SmartType):
                self.value = []
 
            self.schema["items"] = childSchema
-           self.value.append(value)
+           #SDF I think this should be treated as an object
+           #self.value.append(value)
+           
+           index = key[len("item:"):]
+           print("Index: "+str(index)) 
+
+           try:
+               self.value[int(index)] = str(value)
+           except:
+               self.value.append(value)
 
            print("---- "+self.key +" schema: "+str(self.schema))
            print("----"+self.key +" value: "+str(self.value))
        else:
            print("Not an object or array. No cannot update child")
-#           return False
+           return False
 
        print(self.key+" Validating with value "+str(self.value)+", schema: "+str(self.schema)) 
        self.validate()
@@ -800,7 +800,7 @@ class SmartWidget(SmartType):
 
        #If we don't have a parent, draw
        if self.parent == None:
-           print("----"+str(self.key)+" is drawing fro updateChilde: no parent")
+           print("----"+str(self.key)+" is drawing fro updateChild: no parent")
            self.draw()
 
 #SDF remove?
