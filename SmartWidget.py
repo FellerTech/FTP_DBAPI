@@ -183,22 +183,33 @@ class ObjectDialog(QDialog):
        tplate["description"] = desc
        if mytype == "array":
            arrayDialog = AddArrayDialog(self.arrayCallback)
+
            tplate["items"] = self.arraySchema  
+ 
+           try:
+               tplate["minItems"] = self.mods["minItems"]
+           except:
+               print("Unable to set minItems from "+str(key))
+          
+           try:
+               tplate["maxItems"] = self.mods["maxItems"]
+           except:
+               print("Unable to set maxItems from "+str(key))
+          
            print("Returned from the Array dailog with schema:" +str(tplate))
            print()
        elif mytype == "object":
            tplate["properties"] = {}
 
-       print("OOOOO Entering updateChild from ObjectDialog with template "+str(tplate))
        self.callback(key, None, tplate )
 
        self.done(True)
 
     ##
     # \brief a callback for a new array type. Must specify sub-types
-    def arrayCallback( self, schema ):
-        print("--------OD Processing an array with schema: "+str(schema))
+    def arrayCallback( self, schema, mods ):
         self.arraySchema = schema
+        self.mods = mods
  
 
 
@@ -237,6 +248,23 @@ class AddArrayDialog(QDialog):
        reqLayout.addWidget(self.reqCheck)
 
        #SDF add support for minItems, maxItems
+       #Text box to get min value
+       minLayout = QHBoxLayout()
+       minLabel = QLabel()
+       minLabel.setText("minValue")
+       self.minEdit = QLineEdit()
+       self.minEdit.setText("0")
+       minLayout.addWidget(minLabel)
+       minLayout.addWidget(self.minEdit)
+       
+       #Text box to get max value
+       maxLayout = QHBoxLayout()
+       maxLabel = QLabel()
+       maxLabel.setText("maxValue")
+       self.maxEdit = QLineEdit()
+       self.maxEdit.setText("0")
+       maxLayout.addWidget(maxLabel)
+       maxLayout.addWidget(self.maxEdit)
 
        #Create submit button
        controlLayout = QHBoxLayout()
@@ -252,11 +280,17 @@ class AddArrayDialog(QDialog):
        typeFrame.setLayout(typeLayout)
        reqFrame = QFrame()
        reqFrame.setLayout(reqLayout)
+       minFrame = QFrame()
+       minFrame.setLayout( minLayout)
+       maxFrame = QFrame()
+       maxFrame.setLayout( maxLayout)
        controlFrame = QFrame()
        controlFrame.setLayout(controlLayout)
 
        self.layout.addWidget(typeFrame)
        self.layout.addWidget( reqFrame )
+       self.layout.addWidget( minFrame )
+       self.layout.addWidget( maxFrame )
        self.layout.addWidget( controlFrame)
        self.setLayout(self.layout)
 
@@ -268,10 +302,18 @@ class AddArrayDialog(QDialog):
     def submitButtonPressEvent(self):
        mytype = self.types.currentText()
        req = self.reqCheck.isChecked()
-
+       minItems = str(self.minEdit.text())
+       maxItems = str(self.maxEdit.text())
+   
        tplate = {}
        tplate["bsonType"] = mytype
-#       tplate["required"] = req
+
+       #SDF This should belong in the parent
+       parentMods = {}
+       parentMods["minItems"] = int(minItems)
+       parentMods["maxItems"] = int(maxItems)
+        
+
        if mytype == "array":
            arrayDialog = ObjectDialog(self.arrayCallback)
            tplate["items"] = self.arraySchema  
@@ -280,8 +322,7 @@ class AddArrayDialog(QDialog):
        elif mytype == "object":
            tplate["properties"] = {}
 
-       self.callback(tplate)
-
+       self.callback(tplate, parentMods)
        self.done(True)
 
     ##
