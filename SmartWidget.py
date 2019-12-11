@@ -195,9 +195,6 @@ class ObjectDialog(QDialog):
                tplate["maxItems"] = self.mods["maxItems"]
            except:
                print("Unable to set maxItems from "+str(key))
-          
-           print("Returned from the Array dailog with schema:" +str(tplate))
-           print()
        elif mytype == "object":
            tplate["properties"] = {}
 
@@ -317,8 +314,6 @@ class AddArrayDialog(QDialog):
        if mytype == "array":
            arrayDialog = ObjectDialog(self.arrayCallback)
            tplate["items"] = self.arraySchema  
-           print("Returned from the array dailog with schema:" +str(tplate))
-           print()
        elif mytype == "object":
            tplate["properties"] = {}
 
@@ -328,7 +323,6 @@ class AddArrayDialog(QDialog):
     ##
     # \brief a callback for a new array type. Must specify sub-types
     def arrayCallback( self, key, value, schema ):
-        print("~~~~~ArraySchema:"+str(schema))
         self.arraySchema = schema
  
 ##
@@ -405,8 +399,6 @@ class ArrayDialog(QDialog):
        if mytype == "array":
            arrayDialog = ObjectDialog(self.arrayCallback)
            tplate["items"] = self.arraySchema  
-           print("Returned from the array dailog with schema:" +str(tplate))
-           print()
        elif mytype == "object":
            tplate["properties"] = {}
 
@@ -417,7 +409,6 @@ class ArrayDialog(QDialog):
     ##
     # \brief a callback for a new array type. Must specify sub-types
     def arrayCallback( self, key, value, schema ):
-        print("~~~~~ArraySchema:"+str(schema))
         self.arraySchema = schema
 
 ##
@@ -460,7 +451,6 @@ class SmartWidget(SmartType):
        self.frame.setFrameStyle( 1 )
        self.frame.setLineWidth(1)
        
-       print("---"+str(self.key)+" is drawing from init")
        self.draw()
 
        return self
@@ -469,7 +459,6 @@ class SmartWidget(SmartType):
    # \brief Function to draw the frame
    # SDF - handle arrays and objects
    def draw(self):
-       print("Drawing: "+str(self.key)+" with schema "+str(self.schema))
 
        #Remove all widgets from the current layout
        while self.layout.count():
@@ -501,9 +490,7 @@ class SmartWidget(SmartType):
           #We assume enum and bsonTypes are mutally exclusive
           if "enum" in self.schema:
               self.type = "enum"
-              print("Enum type: "+str(self.type))
               self.widget = QComboBox()
-              print("enum schema: "+str( self.schema["enum"] ))
               self.widget.insertItems(0, self.schema["enum"])
 
               self.ss = self.widget.styleSheet()
@@ -519,19 +506,12 @@ class SmartWidget(SmartType):
               self.subLayout = QVBoxLayout()
               self.subWidgets = []
 
-              print("array schema: "+str(self.schema))
-              print("value: "+str(self.value))
-
-              
               count = 0
               if self.value != None:
                   for item in self.value:
-                     print("Item: "+str(item))
                      try:
-                         print("Creating subwidget with schema: "+ str(self.schema))
                          subWidget = SmartWidget().init("item: "+str(count), item, self.schema["items"], self, self.showSchema )
                      except:
-                         print("Exception creating an array widget for "+str(item))
                          self.valid = False
                          subWidget = False
                      if subWidget != False:
@@ -541,14 +521,15 @@ class SmartWidget(SmartType):
                      else:
                          print("Failed to create an array widget for "+str(item))
                          self.valid = False
-              else:
-                  print("~~~~~~~ No value")
+              #else:
+              #    print("~~~~~~~ No value")
 
               #SDF Need to modify to limit to min and max elements in schema
               #Add new, empty element
               subWidget = SmartWidget().init("item: "+str(count), "", self.schema["items"], self, self.showSchema )
               if subWidget == False:
                   print("Failed to create array widget for "+str(key))
+
               self.subLayout.addWidget(subWidget.frame)
               self.subWidgets.append(subWidget)
               count = count + 1
@@ -557,7 +538,6 @@ class SmartWidget(SmartType):
               addLayout = QHBoxLayout()
 
               #SDF We are failing here. We need to add an item when it makes sense
-              print("SDF - adding add button to key: "+str(self.key))
               addButton = QPushButton("+")
               addButton.clicked.connect( lambda: self.addButtonPressEvent())
               self.subLayout.addWidget(addButton)
@@ -573,19 +553,16 @@ class SmartWidget(SmartType):
               self.subLayout = QVBoxLayout()
 
               if self.schema != None:
-                  print("Iterating through schema: "+str(self.schema))
                   for k  in self.schema["properties"]:
                      subWidget = False
                      try:
                          if self.value == None or self.value == {}:
-                             print("creating schema for "+str(k))   
                              subWidget = SmartWidget().init(str(k), None, self.schema["properties"][k], self, self.showSchema )
                          else:
                              #SDF create object
-                             print("creating schema for "+str(k)+" with value: "+str(self.value[k]))   
                              subWidget = SmartWidget().init(str(k), self.value[k], self.schema["properties"][k], self, self.showSchema)
                      except:
-                         print("Failed to create widget for object key: "+str(k))
+                         print("Exception: Failed to create widget for object key: "+str(k))
                          print("Schema: "+str(self.schema["properties"][k]))
                          self.valid = False
                      
@@ -596,8 +573,6 @@ class SmartWidget(SmartType):
                          print("Failed to create a widget for object key "+str(k))
                          self.valid = False
 
-              print("---- Creating add button")
-
               #addButton
               addButton = QPushButton("+")
               addButton.clicked.connect( lambda: self.addButtonPressEvent())
@@ -605,7 +580,6 @@ class SmartWidget(SmartType):
 
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
-              print("---- Created add button")
            
           else:
               #default is for it to be a text box 
@@ -641,8 +615,6 @@ class SmartWidget(SmartType):
            self.layout.addWidget( descLabel )
 
 
-       print("--- Adding remove button")       
-
        #Add remove button to allow people to remove values
        removeButton = IndexButton("-", self.key, self.removeCallback)
        self.layout.addWidget( removeButton )
@@ -655,19 +627,10 @@ class SmartWidget(SmartType):
    # \brief Callback to handle changes
    def validate(self):
        self.value = self.getValue()
-#       self.schema = self.getSchema()
-       print("+++++++ Validating ("+str(self.type)+","+str(self.key)+")")
-       print("Value: "+str(self.value))
-       print("Schema: "+str(self.schema))
-
-       print("Type: "+str(self.type))
 
        #If it's an object or an array pass the value forward
        if self.type == "object" or self.type == "array":
            if self.parent != None:
-               print("Telling parent "+str(self.parent.key)+" to update child "+self.key)
-               print("Value: "+str(self.value))
-               print("Schema: "+str(self.schema))
                self.parent.updateChild(self.key, self.value, self.schema)
            else:
                print("No parent in validate for "+str(self.key))
@@ -694,9 +657,6 @@ class SmartWidget(SmartType):
 
           #Tell our parent to update
           if self.parent != None:
-             print("Telling parent "+str(self.parent.key)+" to update child "+self.key)
-             print("Value: "+str(self.value))
-             print("Schema: "+str(self.schema))
              self.parent.updateChild(self.key, self.value, self.schema)
 
    ##
@@ -730,18 +690,12 @@ class SmartWidget(SmartType):
    ##
    # \brief callback called by a child to remove itself
    def removeCallback(self, key ):
-       print(self.key+" remove callback for "+str(key))
-
-#       print("Removing key "+str(key)+" in "+str(self.components))
-#       del self.components[str(key)]
-
        #remove key
 #       if self.type == "array":
        if self.type == "object":
           del self.value[key]
  
        elif isinstance( self.value, dict ):
-          print("Removing key: "+key)
           self.value.pop(key)
        else:
           print("Cannot remove item from unknown type")
@@ -754,7 +708,6 @@ class SmartWidget(SmartType):
 #       if self.callback is not None:
 #          self.callback(key)
        else:
-           print(str(self.key)+" is drawing from removeCallback")
            self.draw()
 
        return 
@@ -786,7 +739,6 @@ class SmartWidget(SmartType):
    #\param [in] value new value for the child
    #\param [in] schema the new schema for the child. Default=None
    def updateChild( self, key, value, childSchema=None ):
-       print(self.key+" is updating child "+str(key)+" with value "+str(value)+", schema:"+str(childSchema))
 
        #If we have a schema, set it to the one that was passed in.
 #       if schema != None:
@@ -794,7 +746,6 @@ class SmartWidget(SmartType):
 
        #If we're an object, we have to update the child
        if self.schema["bsonType"] == "object":
-           print("+++sdf handling an object")
            if "properties" not in self.schema:
               self.schema["properties"] =  {}
 
@@ -805,12 +756,8 @@ class SmartWidget(SmartType):
                self.value[key] = value
 
            self.schema["properties"][key] = childSchema
-           print("Setting value to "+str(value))
-           print("---"+self.key +" schema: "+str(self.schema))
-           print("---"+self.key +" value: "+str(self.value))
 
        elif self.schema["bsonType"] == "array":
-           print("+++sdf handling an array")
            if "items" not in self.schema:
               self.schema["items"] =  {}
 
@@ -822,26 +769,20 @@ class SmartWidget(SmartType):
            #self.value.append(value)
            
            index = key[len("item:"):]
-           print("Index: "+str(index)) 
 
            try:
                self.value[int(index)] = str(value)
            except:
                self.value.append(value)
 
-           print("---- "+self.key +" schema: "+str(self.schema))
-           print("----"+self.key +" value: "+str(self.value))
        else:
            print("Not an object or array. No cannot update child")
            return False
 
-       print(self.key+" Validating with value "+str(self.value)+", schema: "+str(self.schema)) 
        self.validate()
-       print("Validated: "+str(self.key))
 
        #If we don't have a parent, draw
        if self.parent == None:
-           print("----"+str(self.key)+" is drawing fro updateChild: no parent")
            self.draw()
 
 #SDF remove?
@@ -854,9 +795,6 @@ class SmartWidget(SmartType):
    ##
    # Callback for removing an element frmo an array or a dictionary
    def removeButtonPressEvent( self, index):
-       print("Request to remove "+str(index))
-
-       print("Callback to remove "+str(self.key))
        if self.parent != None:
            self.frame.deleteLate()
            self.parent.removeCallback( self.key)
@@ -947,7 +885,6 @@ class unitTestViewer( QWidget ):
 
        self.testWidgets = []
        for key in keys:
-          print("-------- key: "+str(key)+" ----------")
           itemCount = 0
           subLayout = QVBoxLayout()
           keyLabel = QLabel();
@@ -1025,8 +962,6 @@ class unitTestViewer( QWidget ):
        i = 0
        while i < len(testWidgets):
            if testValues[i] != testWidgets[i]:
-               print("Mismatch1: "+str(i)+": "+str(testValues[i]))
-               print("Mismatch2: "+str(i)+": "+str(testWidgets[i]))
                testPass = False
            else:
                pass

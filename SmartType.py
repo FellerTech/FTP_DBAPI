@@ -23,19 +23,12 @@ class SmartType:
            except: 
                pass
 
-             
-
-#       print(str(key)+" setting value to "+str(value)+" with schema: "+str(self.schema))
-       
-#       self.value = value
-
        #If a schema is undefined, the value is converted to a reado-only string
        if self.schema == None:
            print("No schema for key "+str(self.key))
            self.value = str( value )
            self.readOnly = True
        elif value != None:
-           print("-----"+key+" setting value to "+str(value))
            self.setValue(value)
        else:
            self.value = None
@@ -74,7 +67,6 @@ class SmartType:
    # This function is used to set a new value to  item
    def setValue(self, value ):
        self.value = None
-       print("Setting value to "+str(value)+" with schema "+str(self.schema))
 
        #If a schema is undefined, the value is converted to a reado-only string
        if self.schema == None:
@@ -85,9 +77,7 @@ class SmartType:
 
        #check schema type
        #First, check if we are an enum. If so, pick first one
-       print("Working schema: "+str(self.schema))
        if "enum" in self.schema.keys():
-           print("We are an enum for schema: "+str(self.schema))
            try:
                self.value = self.schema["enum"][0]
            except:
