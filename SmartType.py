@@ -10,6 +10,7 @@ class SmartType:
    # \param [in] value value to set the item to
    # \param [in] schema Json object that defines what the object may contain
    def __init__(self, key, value, schema=None):
+
        self.key = key
        self.type = "Unknown"
        self.value = None

@@ -25,6 +25,37 @@ class SchemaEditor( QWidget ):
         self.dbase = None
         self.collection = None
 
+        print("Types: "+str(SmartWidget().types))
+
+        #This defines the informatiaon needed for an object.
+        #The enums for the bsonType of the properties is added programmatically 
+        #after the defintion
+        self.objectSchema = {}
+        self.objectSchema["bsonType"]="object"
+        self.objectSchema["properties"]={}
+        self.objectSchema["properties"]["bsonType"]={}
+        self.objectSchema["properties"]["bsonType"]["description"] = "base type for the variable"
+        self.objectSchema["properties"]["bsonType"]["enum"]=SmartWidget().types
+
+        #This defines the information needed for an array
+        #The enums for the bsonType of the items is added programmatically 
+        #after the defintion
+        self.arraySchema = {}
+        self.arraySchema["bsonType"] = "object"
+        self.arraySchema["minItems"] = {}
+        self.arraySchema["minItems"]["bsonType"] = "int"
+        self.arraySchema["minItems"]["description"] = "minimum number of items required"
+        self.arraySchema["maxItems"] = {}
+        self.arraySchema["maxItems"]["bsonType"] = "int"
+        self.arraySchema["maxItems"]["description"] = "maximum number of items allowed"
+        self.arraySchema["properties"] = {}
+        self.arraySchema["properties"]["bsonType"]={}
+        self.arraySchema["properties"]["bsonType"]["description"] = "base type for object"
+        self.arraySchema["properties"]["bsonType"]["enum"] = SmartWidget().types
+
+     
+
+
     def init( self, uri ):
         print("Initializing")
         #URI Value

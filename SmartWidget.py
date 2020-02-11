@@ -68,6 +68,9 @@ class IndexButton(QPushButton):
     def pressEvent(self):
         self.callback( self.index)
 
+
+
+
 ##
 # \brief dialog for modifying dictionaries
 #
@@ -76,6 +79,82 @@ class IndexButton(QPushButton):
 #       Value and validate type
 #
 class ObjectDialog(QDialog):
+    ##
+    #\brief Initialization function for the object dialog
+    #\param [in] callback callback for the submit function
+    def __init__(self, callback):
+        super().__init__()
+
+        self.callback = callback
+
+
+        #The enums for the bsonType of the properties is added programmatically 
+        #after the defintion
+        self.objectSchema = {}
+        self.objectSchema["bsonType"] =  "object"
+        self.objectSchema["required"] = ["key", "bsonType"]
+        self.objectSchema["properties"]={}
+        self.objectSchema["properties"]["key"]={}
+        self.objectSchema["properties"]["key"]["bsonType"]="string"
+        self.objectSchema["properties"]["key"]["description"]="key or name of the new value"
+        self.objectSchema["properties"]["bsonType"]={}
+        self.objectSchema["properties"]["bsonType"]["description"]="base type for the variable"
+        self.objectSchema["properties"]["bsonType"]["enum"] = SmartType.types
+        self.objectSchema["properties"]["description"]={}
+        self.objectSchema["properties"]["description"]["bsonType"]="string"
+#        self.objectSchema["properties"]["description"]["description"]="option description of the value"
+#        self.objectSchema["properties"]["description"]["description"]="option description of the value"
+
+        self.layout = QVBoxLayout()
+
+        title = QLabel()
+        title.setText("Object Dialog")
+        self.layout.addWidget(title)
+
+
+        self.subWidget = SmartWidget().init("New Object", {} ,self.objectSchema )
+        if self.subWidget == False:
+            print("Failed to create object widget for "+str(key)+" with schema "+str(self.objectSchema))
+
+        self.layout.addWidget(self.subWidget.frame)
+
+        #Create submit button
+        controlLayout = QHBoxLayout()
+        submitButton = QPushButton("submit")
+        submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
+        controlLayout.addWidget(submitButton)
+        cancelButton = QPushButton("cancel")
+        cancelButton.clicked.connect( lambda: self.cancelButtonPressEvent())
+        controlLayout.addWidget(cancelButton)
+
+        controlFrame = QFrame()
+        controlFrame.setLayout(controlLayout)
+        self.layout.addWidget( controlFrame)
+        self.setLayout(self.layout)
+
+        self.show()
+
+        self.setLayout(self.layout)
+        self.show()
+        self.exec_()
+    
+    ##
+    # \brief handles submission
+    def submitButtonPressEvent(self):
+        schema = self.subWidget.getValue()
+        print("New schema:"+str(schema))
+        exit()
+       
+        self.callback("test", None, schema)
+        self.done(True)
+##
+# \brief dialog for modifying dictionaries
+#
+# TODO: Know supported types from template (if possible)
+#       Select only from those. 
+#       Value and validate type
+#
+class ObjectDialog2(QDialog):
     ##
     #\brief Initialization function for the object dialog
     #\param [in] callback callback for the submit function
@@ -415,24 +494,61 @@ class ArrayDialog(QDialog):
 #\brief This class is used to draw a widget for a smart type
 class SmartWidget(SmartType):
    def __init__(self):
-       self.value=None
-       self.widgets={}
-       self.frame = QFrame()
-       self.showSchema = False
-       return 
+        self.value=None
+        self.widgets={}
+        self.frame = QFrame()
+        self.showSchema = False
+
+        #This defines the informatiaon needed for an object.
+        #The enums for the bsonType of the properties is added programmatically 
+        #after the defintion
+        self.objectSchema = {}
+        self.objectSchema["bsonType"] =  "object"
+        self.objectSchema["properties"]={}
+        self.objectSchema["properties"]["bsonType"]={}
+        self.objectSchema["properties"]["bsonType"]["enum"] = SmartType.types
+        self.objectSchema["properties"]["description"]={}
+        self.objectSchema["properties"]["description"]["bsonType"]="string"
+       
+
+            
+        print("Object Schema: "+str(self.objectSchema))
+        print("TYPES: "+str(SmartType.types))
+        print("Bson: "+str(self.objectSchema["bsonType"]))
+
+        #This defines the information needed for an array
+        #The enums for the bsonType of the items is added programmatically 
+        #after the defintion
+        self.arraySchema =  """{
+            "bsonType": "object",
+            "minItems":{"bsonType":"int", "description":"minimum number of items required",
+            "maxItems":{"bsonType":"int", "description":"maximum number of items required",
+            "properties": { 
+                "bsonType":"object",
+                "properties": {
+                    "bsonType": { "description": "base type for the objects in the array" },
+                    "description":{"bsonType":"string","description":"Optional description of what the variable repres
+                }
+            }
+            """
+            #SDF: Do we need an items entry for arrays?
+        #self.arraySchema["properties"]["bsonType"]["enum"] = SmartType.types
+
+        return 
 
    ##
    # \brief Default initializer
    # \param [in] key name of the item
    # \param [in] value value to set the item to
    # \param [in] schema Json object that defines what the object may contain
-   # \param [in] updateCallback(key, value, schema=None) function that is called when the inherited class changes
-   # \return self reference
+   # \param [in] parent reference to object that instantiated this class
+   # \param [in] showSchema flag to indicate if the schemaShould be displayed (default=False)
+   # \return self reference to this object
    #
    # This function is used to initalize a new smart widget with a new key-value
    # pair. If a schema is provided, it is used to ensure that the value is 
    # considered correct. The valid variable is set to True when the object has
-   # a valid value
+   # a valid value.
    #
    def init(self, key, value, schema = None, parent = None, showSchema = False):
        self.parent = parent
@@ -546,6 +662,7 @@ class SmartWidget(SmartType):
               self.widget.setLayout(self.subLayout)
           
           elif self.schema["bsonType"] == "object":
+              print("Drawing object with schema: "+str(self.schema))
               self.widget = QFrame()
               self.valid = True
               self.subWidgets = []
@@ -553,24 +670,35 @@ class SmartWidget(SmartType):
               self.subLayout = QVBoxLayout()
 
               if self.schema != None:
+                  #If we don't have properties, create them
+                  if not "properties" in self.schema.keys():
+                       self.schema["properties"] = {}
+
                   for k  in self.schema["properties"]:
                      subWidget = False
-                     try:
+#                     try:
+                     if True:
+#                         if self.value == None or self.value == {} or str(self.value) == self.value["bsonType"]=="":
                          if self.value == None or self.value == {}:
+                             print("No value")
                              subWidget = SmartWidget().init(str(k), None, self.schema["properties"][k], self, self.showSchema )
-                         else:
+                         elif k in self.value.keys():
+                             print("value for "+str(k)+": "+str(self.value)+" with schema:"+str(self.schema))
                              #SDF create object
                              subWidget = SmartWidget().init(str(k), self.value[k], self.schema["properties"][k], self, self.showSchema)
-                     except:
-                         print("Exception: Failed to create widget for object key: "+str(k))
-                         print("Schema: "+str(self.schema["properties"][k]))
-                         self.valid = False
+                         else:
+                             print("no object")
+                             subWidget = SmartWidget().init(str(k), None, self.schema["properties"][k], self, self.showSchema )
+#                      except:
+#                         print("Exception: Failed to create widget for object key: "+str(k)+" and schema:"+str(self.schema["properties"][k]))
+#                         self.valid = False
                      
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
                          self.subWidgets.append(subWidget)
                      else:
                          print("Failed to create a widget for object key "+str(k))
+                         print(str(self.schema["properties"]))
                          self.valid = False
 
               #addButton
@@ -726,7 +854,7 @@ class SmartWidget(SmartType):
           #Need an ArrayDialog
           self.draw()
       elif self.schema["bsonType"] == "object":
-         objectDialog = ObjectDialog(self.updateChild)
+          objectDialog = ObjectDialog(self.updateChild)
       else:
          #This should never happen...
          print("ERROR!!!!! addCallback schema: "+str(self.schema))
@@ -738,14 +866,14 @@ class SmartWidget(SmartType):
    #\param [in] key name of the child to update.
    #\param [in] value new value for the child
    #\param [in] schema the new schema for the child. Default=None
+   #
+   #This function is called when a child is updated
    def updateChild( self, key, value, childSchema=None ):
-
-       #If we have a schema, set it to the one that was passed in.
-#       if schema != None:
-#           self.schema = schema
+       print(self.key+" updating child from "+key)
 
        #If we're an object, we have to update the child
        if self.schema["bsonType"] == "object":
+           print(self.key+" is updating children")
            if "properties" not in self.schema:
               self.schema["properties"] =  {}
 
@@ -924,10 +1052,14 @@ class unitTestViewer( QWidget ):
        self.setLayout( self.lastLayout )
        
    def test2( self ):
-      
-       base = {"bsonType":"object", "properties":{}}
+#       base = {"bsonType":"object", "properties":{}}
 #       base = {'bsonType': 'object', 'properties': {'o1': {'bsonType': 'object', 'properties': {'k1': {'bsonType': 'string'}}}}}
-       base = {'bsonType': 'object', 'properties': {'key': {'bsonType': 'string'}, 'type': {'enum': ['string', 'int', 'double', 'bool', 'array', 'object']}}}
+#       base = {'bsonType': 'object', 'properties': {'key': {'bsonType': 'string'}, 'type': {'enum': ['string', 'int', 'double', 'bool', 'array', 'object']}}}
+
+#       base={'bsonType': 'object', 'properties': {'name': {'bsonType': 'object', 'description': 'An alphanumeric  sequence of characters', 'properties': {'bsonType': {'description': 'base type for the variable', 'bsonType': 'string'}, 'description': {'bsonType': 'string', 'description': 'provides a description of the value'}}}}}
+#       self.test2Widget = SmartWidget().init("test2",{},base)
+       base={"bsonType":"object"}
+
        self.test2Widget = SmartWidget().init("test2",{},base)
        self.mainLayout.addWidget(self.test2Widget.frame)
 
@@ -987,8 +1119,8 @@ if __name__ == '__main__':
     window = unitTestViewer()
 
     #Check individual components
-    window.test()
-#    window.test2()
+#    window.test()
+    window.test2()
 
     sys.exit(app.exec_())
 
