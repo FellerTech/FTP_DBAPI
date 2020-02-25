@@ -124,11 +124,8 @@ class SmartType:
        #We are an array type
        elif self.schema["bsonType"] == "array":
            #if the value is not a list, return false. 
-#           if isinstance( value, str ):
-#               print("Array is a string. Returning False")
-#               return False
            if not isinstance( value, list ):
-               print("SmartType::Error - unable to set an array type to a non-array value")
+               print("SmartType::Error - unable to set an array type to non-array value "+str(value))
                return False
 
            #If any items are not of the correct type print an error and set valiu to False
@@ -239,6 +236,7 @@ class SmartType:
 
    ##
    # \brief Tries to set the string to the given type
+   #SDF Need to handle enum
    def setStringAsValue( self, text ):
        print("Setting string "+str(text)+" as value")
 
@@ -247,8 +245,12 @@ class SmartType:
            print("SmartType::setStringAsValue input not string")
            return False
 
+       #Set enum value
+       if "enum" in self.schema.keys():
+          self.setValue( text)
+
        #Set to string
-       if self.schema["bsonType"] == "string":
+       elif self.schema["bsonType"] == "string":
           try: 
               self.setValue( str(text))
           except:
