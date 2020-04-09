@@ -26,7 +26,7 @@ class SmartType:
 
        #If a schema is undefined, the value is converted to a reado-only string
        if self.schema == None:
-           print("No schema for key "+str(self.key))
+           print("__init__:No schema for key "+str(self.key))
            self.value = str( value )
            self.readOnly = True
        elif value != None:
@@ -71,7 +71,7 @@ class SmartType:
 
        #If a schema is undefined, the value is converted to a reado-only string
        if self.schema == None:
-           print("No schema for key "+str(self.key))
+           print("setValue: No schema for key "+str(self.key))
            self.value = value
            self.readOnly = True
            return True
@@ -429,7 +429,7 @@ if __name__ == '__main__':
     result = unitTest()
 
     if result == True:
-        print( "Unit test passed")
+        print( "No unexpected errors. Unit test passed")
         exit(1)
     else:
         print( "Unit test FAILED")

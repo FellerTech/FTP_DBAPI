@@ -155,6 +155,7 @@ class ObjectDialog(QDialog):
         del values["key"]
     
         print("ooooooo "+str(key)+ ", values: "+str(values))
+
 #        print("Creating an object dialog with schema: "+str(self.objectSchema))
        
 #        self.callback("test", None, schema)
@@ -691,20 +692,24 @@ class SmartWidget(SmartType):
                              print("No value")
                              subWidget = SmartWidget().init(str(k), None, self.schema["properties"][k], self, self.showSchema )
                          elif k in self.value.keys():
+                             print("Creating subwidget "+str(k)+" with value "+str(self.value[k])+" and schema:"+str(self.schema["properties"]))
                              subWidget = SmartWidget().init(str(k), self.value[k], self.schema["properties"][k], self, self.showSchema)
                          else:
                              print("no object")
                              subWidget = SmartWidget().init(str(k), None, self.schema["properties"][k], self, self.showSchema )
                      except:
                          print("Exception: Failed to create widget for object key: "+str(k)+" and schema:"+str(self.schema["properties"][k]))
+                         print("Exception: Failed to create widget for object key: "+str(k)+" and schema:"+str(self.schema))
                          self.valid = False
                      
                      if subWidget != False:
                          self.subLayout.addWidget(subWidget.frame)
                          self.subWidgets.append(subWidget)
                      else:
+                         #SDF ERROR here
                          print("++++Failed to create a widget for object key "+str(k)+" with schema")
                          print(str(self.schema))
+                         print(nnn)
                          exit()
                          self.valid = False
 
@@ -761,9 +766,7 @@ class SmartWidget(SmartType):
    ##
    # \brief Callback to handle changes
    def validate(self):
-       print("----------- "+self.key+" validating as "+self.type)
        self.value = self.getValue()
-       print("SDF----------- "+self.key+" value: "+str(self.value))
         
 
        #If it's an object or an array pass the value forward
@@ -772,14 +775,14 @@ class SmartWidget(SmartType):
                self.parent.updateChild(self.key, self.value, self.schema)
            else:
                print("No parent in validate for object/array "+str(self.key))
-               print("Value: "+str(self.value))
+               print("----Value: "+str(self.value))
            return
        
        #We are a standard type
        if self.type == "enum":
            text = self.widget.currentText()
            self.value = text
-
+ 
            if self.parent != None:
                self.parent.updateChild(self.key, self.value, self.schema)
            else:
@@ -812,22 +815,6 @@ class SmartWidget(SmartType):
    def getValue(self):
        return self.value
  
-       """       
-       if self.type == "array":
-           value = []
-           for item in self.subWidgets:
-               #See if we're a smart widget
-               try:
-                  value.append( item.getValue())
-               except:
-                  print("Value exception for "+str(item))
-                  print("Value exception2 for "+str(item.value))
-                  value.append( item.value)
-           return value
-       
-       return self.value
-       """       
-
    ##
    # \brief returns the key of the object
    def getKey(self):
@@ -934,9 +921,9 @@ class SmartWidget(SmartType):
            self.draw()
 
 #SDF remove?
-#       else: 
-#           print("Key "+str(self.key)+" is updating its parent with "+str(self.value)+":"+str(self.schema))
-#           self.parent.updateChild( self.key, self.value, self.schema )
+       else: 
+           print("Key "+str(self.key)+" is updating its parent with "+str(self.value)+":"+str(self.schema))
+           self.parent.updateChild( self.key, self.value, self.schema )
 
 
 
@@ -1024,7 +1011,10 @@ class unitTestViewer( QWidget ):
        self.mainLayout.addLayout( self.titleLayout )
 
    ###
-   # \brief Test function
+   # \brief Unit function
+   #
+   # This function creates a window for every type in the testData object. The user can go through
+   # and manually test each supported type
    def test(self):
        #New Test
        valid = True
@@ -1127,6 +1117,7 @@ class unitTestViewer( QWidget ):
 if __name__ == '__main__':
     # parse command line arguments
     parser = argparse.ArgumentParser(description='AWARE Database Script') 
+    parser.add_argument('-t2', action='store_const', dest='t2', const='True', help='select test to run (test or test2)')
     parser.add_argument('-v', action='store_const', dest='version', const='True', help='Prints the software version')   
     args=parser.parse_args()
     
@@ -1134,13 +1125,21 @@ if __name__ == '__main__':
     if args.version:
         print("SmartWidget version: "+version)
         exit(1)
+
+
+    testType = "t1"
+
+    if args.t2:
+        testType = "t2"
         
     app = QApplication( sys.argv )
     window = unitTestViewer()
 
     #Check individual components
-#    window.test()
-    window.test2()
+    if testType == "t1":
+        window.test()
+    elif testType == "t2":
+        window.test2()
 
     sys.exit(app.exec_())
 

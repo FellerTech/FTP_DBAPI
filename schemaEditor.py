@@ -25,8 +25,6 @@ class SchemaEditor( QWidget ):
         self.dbase = None
         self.collection = None
 
-        print("Types: "+str(SmartWidget().types))
-
         #This defines the informatiaon needed for an object.
         #The enums for the bsonType of the properties is added programmatically 
         #after the defintion
@@ -54,7 +52,6 @@ class SchemaEditor( QWidget ):
         self.arraySchema["properties"]["bsonType"]["enum"] = SmartWidget().types
 
      
-
 
     def init( self, uri ):
         print("Initializing")
@@ -139,24 +136,14 @@ class SchemaEditor( QWidget ):
  
         self.midLayout.addWidget(self.schemaWidget.frame)
 
-        #Get the current schema, if any
-#        info = QLabel()
-#        info.setText(str(schema))
-#        self.midLayout.addWidget(info)
-        """
-        scrollArea = QScrollArea()
-        scrollWidget = QWidget()
+    ##
+    #\brief callback to get result from SmartWidget
+    def widgetCallback(self) 
+        print("Widget Callback")
+        exit(1)
 
-        scrollWidget.setLayout(self.mainLayout)
-        scrollArea.setWidget(scrollWidget)
-        scrollArea.setWidgetResizable(True)
-
-        lastLayout = QVBoxLayout()
-        lastLayout.addWidget(scrollArea)
-
-        self.setLayout( lastLayout)
-        """
-
+    ##
+    #\brief Generat aa widget to select a collection
     def genCollSelectorWidget(self):
         self.dbase = self.dbCombo.currentText()
         print("Using :"+self.dbase)
