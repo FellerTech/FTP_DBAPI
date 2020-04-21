@@ -161,147 +161,6 @@ class ObjectDialog(QDialog):
 #        self.callback("test", None, schema)
         self.callback(key, values)
         self.done(True)
-##
-# \brief dialog for modifying dictionaries
-#
-# TODO: Know supported types from template (if possible)
-#       Select only from those. 
-#       Value and validate type
-#
-class ObjectDialog2(QDialog):
-    ##
-    #\brief Initialization function for the object dialog
-    #\param [in] callback callback for the submit function
-    def __init__(self, callback):
-       super().__init__()
-
-       self.callback = callback
-       self.layout = QVBoxLayout()
-
-       title = QLabel()
-       title.setText("Object Dialog")
-#       titleLayout.addWidget(title)
-#       titleFrame = QFrame()
-#       titleFrame.setLayout(titleLayout)
-       self.layout.addWidget(title)
-
-       #The value layout is used to 
-       self.keyLayout = QHBoxLayout()
-       keyLabel = QLabel()
-       keyLabel.setText("key")
-       self.keyLayout.addWidget( keyLabel )
-       keyFrame = QFrame()
-       keyFrame.setLayout(self.keyLayout)
-       self.layout.addWidget(keyFrame)
-
-       #default is for it to be a text box 
-       self.key = QLineEdit()
-       self.ss = self.key.styleSheet()
-       self.keyLayout.addWidget(self.key)
-
-       #Layout to specify the type of object 
-       typeLayout = QHBoxLayout()
-       typeLabel = QLabel()
-       typeLabel.setText("type")
-       typeLayout.addWidget(typeLabel)
-
-       self.types = QComboBox()
-       self.types.addItems(SmartType.types)
-       typeLayout.addWidget(self.types)
-
-       #Checkbox to see if we are required
-       reqLayout = QHBoxLayout()
-       reqLabel = QLabel()
-       reqLabel.setText("required")
-       self.reqCheck = QCheckBox()
-       reqLayout.addWidget(reqLabel)
-       reqLayout.addWidget(self.reqCheck)
-       
-       #Create a description pane
-       #The value layout is used to 
-       descLayout = QHBoxLayout()
-       descLabel = QLabel()
-       descLabel.setText("description")
-       descLayout.addWidget( descLabel )
-       
-       #default is for it to be a text box 
-       self.desc = QLineEdit()
-       self.ss = self.desc.styleSheet()
-       descLayout.addWidget(self.desc)
-
-       #Create submit button
-       controlLayout = QHBoxLayout()
-       submitButton = QPushButton("submit")
-       submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
-       controlLayout.addWidget(submitButton)
-       cancelButton = QPushButton("cancel")
-       cancelButton.clicked.connect( lambda: self.cancelButtonPressEvent())
-       controlLayout.addWidget(cancelButton)
-
-
-       #create layout
-       typeFrame = QFrame()
-       typeFrame.setLayout(typeLayout)
-       reqFrame = QFrame()
-       reqFrame.setLayout( reqLayout )
-       descFrame = QFrame()
-       descFrame.setLayout( descLayout )
-       controlFrame = QFrame()
-       controlFrame.setLayout(controlLayout)
-
-       self.layout.addWidget(typeFrame)
-       self.layout.addWidget( reqFrame )
-       self.layout.addWidget( descFrame )
-       self.layout.addWidget( controlFrame)
-       self.setLayout(self.layout)
-
-       self.show()
-
-       self.exec_()
-
-    ##
-    # \brief Object Dialog submit button press event
-    def submitButtonPressEvent(self):
-       key = self.key.text()
-       mytype = self.types.currentText()
-       req = self.reqCheck.isChecked()
-       desc = self.desc.text()
-
-       if key == "":
-           print("Must enter a key")
-           return
-       tplate = {}
-       tplate["bsonType"] = mytype
-#       tplate["required"] = req
-       tplate["description"] = desc
-       if mytype == "array":
-           arrayDialog = AddArrayDialog(self.arrayCallback)
-
-           tplate["items"] = self.arraySchema  
- 
-           try:
-               tplate["minItems"] = self.mods["minItems"]
-           except:
-               print("Unable to set minItems from "+str(key))
-          
-           try:
-               tplate["maxItems"] = self.mods["maxItems"]
-           except:
-               print("Unable to set maxItems from "+str(key))
-       elif mytype == "object":
-           tplate["properties"] = {}
-
-       self.callback(key, None, tplate )
-
-       self.done(True)
-
-    ##
-    # \brief a callback for a new array type. Must specify sub-types
-    def arrayCallback( self, schema, mods ):
-        self.arraySchema = schema
-        self.mods = mods
- 
-
 
 ##
 # \brief dialog for modifying dictionaries
@@ -505,7 +364,12 @@ class ArrayDialog(QDialog):
         self.arraySchema = schema
 
 ##
-#\brief This class is used to draw a widget for a smart type
+#\brief Class is used to draw a widget for a smart type
+#
+#  A smartwidget creates a PyQt5 Widget based on a value and schema provided on 
+#  initialization. This class can handle any schema type support by MongoDB 3.6.3
+#  include simple types as well as complex types such as arrays and object. For
+#  these complex types, the output will be a widget with one or more subwidgets.
 class SmartWidget(SmartType):
    def __init__(self):
         self.value=None
@@ -809,9 +673,11 @@ class SmartWidget(SmartType):
              self.parent.updateChild(self.key, self.value, self.schema)
 
    ##
-   #\brief function to get the value.
+   #\brief function to get the value of the widget. 
    #
-   # For complex types, this function will build the the value recursively
+   #  This function returns the value of the widget as the appropriate type. For 
+   #  complex types, this function will build the the value recursively from
+   #  any subwidgets.
    def getValue(self):
        return self.value
  

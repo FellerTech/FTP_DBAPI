@@ -138,7 +138,7 @@ class SchemaEditor( QWidget ):
 
     ##
     #\brief callback to get result from SmartWidget
-    def widgetCallback(self) 
+    def widgetCallback(self):
         print("Widget Callback")
         exit(1)
 
