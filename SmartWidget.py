@@ -947,7 +947,7 @@ class unitTestViewer( QWidget ):
               for k in item["value"]:
                   #If were an object need to pass in the properties
 #                  widget = SmartWidget().init(k, item["value"][k], item["schema"][k], showSchema = True)
-                  widget = SmartWidget().init(k, item["value"][k], item["schema"][k], self.testUpdate, showsSchema=True)
+                  widget = SmartWidget().init(k, item["value"][k], item["schema"][k], self.testUpdate, showSchema=True)
 
                   itemCount = itemCount + 1
                   if widget.valid is False:
