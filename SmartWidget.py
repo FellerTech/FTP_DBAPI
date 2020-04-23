@@ -388,10 +388,11 @@ class SmartWidget(SmartType):
 
    ##
    #  \brief Init function
-   #  \param [in] key name of the item
-   #  \param [in] value value to set the item to
-   #  \param [in] schema Json object that defines what the object may contain. Default = None
+   #  \param [in] key            name of the item
+   #  \param [in] value          value to set the item to
+   #  \param [in] schema         JSON object that defines what the object may contain. Default = None
    #  \param [in] updateCallback function that is called when the value changes. Default = None
+   #  \param [in] showSchema     flag to indicate if schema info is shown with data. Defaut = True
    #  \return A reference to itself on success, or None on failure.
    #
    #  This function is used to initalize a new smart widget with a new key-value
@@ -404,8 +405,9 @@ class SmartWidget(SmartType):
    #  The updateCallback isn't assigned until the last step to allow the validate
    #  function to be called before updates can occur.
    #
-   def init(self, key, value, schema = None, updateCallback=None):
+   def init(self, key, value, schema = None, updateCallback=None, showSchema = True):
        self.valid = False 
+       self.showSchema = showSchema
 
        #Initialize the underlying SmartType with input variables
        SmartType.__init__(self, key, value, schema)
@@ -609,7 +611,6 @@ class SmartWidget(SmartType):
           #create layout
           self.layout.addWidget( self.widget )
       
-       """
        #If we're showing schema, show type
        if self.showSchema:
            if "bsonType" in self.schema:
@@ -617,10 +618,12 @@ class SmartWidget(SmartType):
                typeLabel.setText( "type:"+str(self.schema["bsonType"]))
                self.layout.addWidget( typeLabel )
       
+           """
            if "required" in self.schema:
                reqCheck = QCheckBox("required")
                reqCheck.setChecked(self.schema["required"])
                self.layout.addWidget( reqCheck )
+           """
 
            descLabel = QLabel()  
            if "description" in self.schema:
@@ -628,7 +631,6 @@ class SmartWidget(SmartType):
            else:
                descLabel.setText( "description: None")
            self.layout.addWidget( descLabel )
-       """
 
        #Add remove button to allow people to remove values
 #       removeButton = IndexButton("-", self.key, self.removeCallback)
@@ -765,7 +767,9 @@ class SmartWidget(SmartType):
          print("ERROR!!!!!  addButtonPressEvent for a non-complex type: "+str(self.schema))
 
    ##
-   # \brief function for updating an object
+   #  \brief function for updating an object
+   #  \param [in] key   unique identified for the object
+   #  \param [in] value new value for the object
    def objectUpdate( self, key, value ):
        #Check if the key exists in the schema
        print("Schema:" +str(self.schema))
@@ -943,7 +947,7 @@ class unitTestViewer( QWidget ):
               for k in item["value"]:
                   #If were an object need to pass in the properties
 #                  widget = SmartWidget().init(k, item["value"][k], item["schema"][k], showSchema = True)
-                  widget = SmartWidget().init(k, item["value"][k], item["schema"][k], self.testUpdate)
+                  widget = SmartWidget().init(k, item["value"][k], item["schema"][k], self.testUpdate, showsSchema=True)
 
                   itemCount = itemCount + 1
                   if widget.valid is False:
