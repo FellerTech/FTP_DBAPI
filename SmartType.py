@@ -9,6 +9,8 @@ class SmartType:
    # \param [in] key name of the item
    # \param [in] value value to set the item to
    # \param [in] schema Json object that defines what the object may contain
+   #
+   # SDF - need to verify can handle bad inputs
    def __init__(self, key, value, schema=None):
 
        self.key = key
@@ -30,7 +32,7 @@ class SmartType:
            self.value = str( value )
            self.readOnly = True
        elif value != None:
-           self.setValue(value)
+           result = self.setValue(value)
        else:
            self.value = None
 
@@ -80,7 +82,9 @@ class SmartType:
        #First, check if we are an enum. If so, pick first one
        if "enum" in self.schema.keys():
            try:
-               self.value = self.schema["enum"][0]
+               #find value in schema to get index
+               index = self.schema["enum"].index(value)
+               self.value = self.schema["enum"][index]
            except:
                print("SmartType::Error - Failed to set enum value")
                return False
@@ -238,7 +242,6 @@ class SmartType:
    # \brief Tries to set the string to the given type
    #SDF Need to handle enum
    def setStringAsValue( self, text ):
-       print("Setting string "+str(text)+" as value")
 
        #make sure the input is a string
        if not isinstance( text, str ):
