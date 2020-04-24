@@ -1,8 +1,11 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+
+#SDF Need to test enums properly
+
 class SmartType:
-   types = ["string", "int", "float", "bool", "array", "object"]
+   types = ["string", "int", "double", "bool", "array", "object"]
 
    ##
    # \brief Default initializer
@@ -86,7 +89,7 @@ class SmartType:
                index = self.schema["enum"].index(value)
                self.value = self.schema["enum"][index]
            except:
-               print("SmartType::Error - Failed to set enum value")
+               print("SmartType::Error - enum value "+str(value)+" not in set:"+str(self.schema["enum"]))
                return False
 
        elif self.schema["bsonType"] == "string":
@@ -250,7 +253,11 @@ class SmartType:
 
        #Set enum value
        if "enum" in self.schema.keys():
-          self.setValue( text)
+          try:
+              self.setValue( text)
+          except:
+              print("Enum Failed to setValue to "+str(text))
+              return False
 
        #Set to string
        elif self.schema["bsonType"] == "string":
@@ -313,7 +320,7 @@ def unitTest():
       # Test data
       ###############
       testData = ({
-         "enums":[{"value":{"key":"test"}, "schema":{"key":{"enum":["e1","e2"]}}}
+         "enums":[{"value":{"key":"e1"}, "schema":{"key":{"enum":["e1","e2"]}}}
          ],
          "strings":[{"value":{"key":"test"},"schema":{"key":{"bsonType":"string"}}},
                     {"value":{"key":"test2"},"schema":{"key":{"bsonType":"string"}}}
@@ -369,19 +376,22 @@ def unitTest():
 
                        #sdf need to make to check the correct values
                        if result == False:
-                           if (  item["schema"]["key"] == item2["schema"]["key"] or
-                                (item["schema"]["key"]["bsonType"] == "int" and item2["schema"]["key"]["bsonType"] == "bool") or
-                                (item["schema"]["key"]["bsonType"] == "double" and item2["schema"]["key"]["bsonType"] == "bool") or
-                                (item["schema"]["key"]["bsonType"] == "double" and item2["schema"]["key"]["bsonType"] == "int")
+                           try: 
+                               if (  item["schema"]["key"] == item2["schema"]["key"] or
+                                  (item["schema"]["key"]["bsonType"] == "int" and item2["schema"]["key"]["bsonType"] == "bool") or
+                                  (item["schema"]["key"]["bsonType"] == "double" and item2["schema"]["key"]["bsonType"] == "bool") or
+                                  (item["schema"]["key"]["bsonType"] == "double" and item2["schema"]["key"]["bsonType"] == "int")
  
-                              ):
-                               print("Invalid result with result with valid schema")
-                               print("key1:"+str(key))
-                               print("key2:"+str(key2))
-                               print("schema:"+str(schema))
-                               print("value:"+str(value))
-                           
-                               return False
+                                  ):
+                                  print("Invalid result with result with valid schema")
+                                  print("key1:"+str(key))
+                                  print("key2:"+str(key2))
+                                  print("schema:"+str(schema))
+                                  print("value:"+str(value))
+                              
+                                  return False
+                           except:
+                                  pass
                  
                               
                                

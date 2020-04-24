@@ -69,12 +69,12 @@ class ObjectDialog(QDialog):
         self.layout.addWidget(title)
 
         #create a new smart widget based on the object schema without a value
-        self.subWidget = SmartWidget().init("New Object", {} ,self.objectSchema )
-
+        self.subWidget = SmartWidget().init("New Object", {} ,self.objectSchema, showSchema=True)
+  
         #Return on failure
         if self.subWidget == False:
-            #SDF May wannt to odify content to have a message in the window
-            print("ERROR: Failed to create object widget for "+str(key)+" with schema "+str(self.objectSchema))
+            #SDF May wannt to modify content to have a message in the window
+            print("ERROR: Failed to create object with schema "+str(self.objectSchema))
             return
 
         self.layout.addWidget(self.subWidget.frame)
@@ -107,14 +107,11 @@ class ObjectDialog(QDialog):
         #Extract the values from the object
         values = self.subWidget.getValue()
 
-        print("Values: "+str(values))
-
         #Try to extract a key from the values. 
         try:
             key = values["key"]
             del values["key"]
           
-            print(str(key))
             if key != "":
                 self.callback(key, values)
             else:
@@ -346,9 +343,11 @@ class SmartWidget(SmartType):
    #  is called.
    def __init__(self):
         self.value=None
-        self.initialized = False                           # Indicate if the widget has been initialized
-        self.updateCallback=None
-        self.removeCallback=None
+        self.valid          = False         # Flag to indicate that this object has valid data
+        self.initialized    = False         # Indicate if the widget has been initialized
+        self.valueChanged   = False         # The value has changed from initialization
+        self.updateCallback = None
+        self.removeCallback = None
         self.widgets={}
         self.frame = QFrame()
         self.showSchema = False
@@ -406,9 +405,9 @@ class SmartWidget(SmartType):
    #  function to be called before updates can occur.
    #
    def init(self, key, value, schema = None, updateCallback=None, showSchema = True):
-       self.valid = False 
        self.showSchema = showSchema
-
+       self.updateCallback = updateCallback
+       
        #Initialize the underlying SmartType with input variables
        SmartType.__init__(self, key, value, schema)
 
@@ -420,18 +419,21 @@ class SmartWidget(SmartType):
        self.frame.adjustSize()
        self.frame.setFrameStyle( 1 )
        self.frame.setLineWidth(1)
-       
-       #After we are initialized, we need to call the update Callback on changes
-       self.updateCallback = updateCallback
 
-       #Draw the widget to create the needed SubWidgets.
-       self.draw()
+       self.valid = False 
+       self.showSchema = showSchema
+
+       if value == {}:
+           value = None
+
+       self.draw(value)
 
        #Validate to check for schema mismatches.
        self.valid = self.validate()
 
-       if self.valid == False:
-          print(str(self.key)+" Failed validation!")
+       self.initialized = True
+       if self.valueChanged == True and self.updateCallback != None:
+           self.updateCallback( self.key, self.value)
 
        return self
 
@@ -443,7 +445,7 @@ class SmartWidget(SmartType):
    #  should only be called on created or when a new value or schema is applied
    #  to this object.
    #
-   def draw(self):
+   def draw(self, value = None):
 
        #Remove all widgets from the current layout
        while self.layout.count():
@@ -473,6 +475,10 @@ class SmartWidget(SmartType):
           #Check for enum first. If we have that, handle then exit
           #We assume enum and bsonTypes are mutally exclusive
           if "enum" in self.schema:
+              #If we already have a defined value, use it
+              if self.value != None:
+                  value = self.value
+
               self.type = "enum"
               self.widget = QComboBox()
 
@@ -482,22 +488,27 @@ class SmartWidget(SmartType):
               #See get index of value if it's in the list 
               try:
                   #Get index of value
-                  index = self.schema["enum"].index(self.value)
+                  index = self.schema["enum"].index(value)
                   self.widget.setCurrentIndex(index)
+              #Not in list, then we are not valid
               except:
                   self.valid = False
-                  pass
 
               #Extract text to set value
               #SDF Need to handle invalid enum  
               text = self.widget.currentText() 
-              self.setValue(text)
 
+              self.setStringAsValue(text)
+
+              #If we are successful, update callback
               self.ss = self.widget.styleSheet()
               self.widget.currentIndexChanged.connect( lambda: self.valueChange())
 
               #This is called for the parent to set the default
-              self.updateCallback( self.key, self.value)
+              #SDF need to revisit to see if logic is necessary
+              #if value != self.value:          
+              #    self.valueChange()
+             
              
           #If we are an array, create a subwidget for each item. Add one extra 
           #for a new value if editable is an option
@@ -510,9 +521,11 @@ class SmartWidget(SmartType):
               count = 0
               if self.value != None:
                   for item in self.value:
-                     try:
+                     if True:
+#SDF                  try:
                         subWidget = SmartWidget().init("item: "+str(count), item, self.schema["items"], self.update)
-                     except:
+                     else:
+#                     except:
                         self.valid = False
                         subWidget = False
 
@@ -532,7 +545,7 @@ class SmartWidget(SmartType):
               #Add new, empty element
               subWidget = SmartWidget().init("item: "+str(count), "", self.schema["items"], self.update )
               if subWidget == False:
-                  print("Failed to create array widget for "+str(key))
+                  print("Failed to create array widget for "+str(self.key))
 
               self.subLayout.addWidget(subWidget.frame)
               self.subWidgets.append(subWidget)
@@ -568,7 +581,15 @@ class SmartWidget(SmartType):
                      #Set the subWidget to false to we know if we are successful creating a new widget
                      subWidget = False
                      try:
-#                     if True:
+                         #SDF If we're an enum, we need to set a default if it doesn't exist.
+                         if "enum" in self.schema["properties"][k].keys():
+                             if not k in self.value.keys():
+                                 self.value[k] = self.schema["properties"][k]["enum"][0]
+                             
+                          
+
+
+
                          if self.value == None or self.value == {}:
                              subWidget = SmartWidget().init(str(k), {}, self.schema["properties"][k], self.update )
                          elif k in self.value.keys():
@@ -653,14 +674,12 @@ class SmartWidget(SmartType):
        #If it's an object or an array check if all children are valid. If so
        # this object is valid
        if self.type == "object" or self.type == "array":
-           #If we been previously validated (initialized), then object do not
-           #use the update Callback. If there are changes after the first pass
-           # they do.
            result = True
 
+           #Any subwidgets are invalid, this object is not valid
            for w in self.subWidgets:
                if w.valid == False:
-                  print("Invalud widget: "+str(w.getKey())+"!")
+                  print("Invalid widget: "+str(w.getKey())+"!")
                   result = False
            return result
 
@@ -668,8 +687,8 @@ class SmartWidget(SmartType):
        #the selection to our value using the setStringAsValue function.
        if self.type == "enum":
            text = self.widget.currentText()
-           self.value = text
-           result = True
+           result = self.setValue(text)
+           
 
        else:
 
@@ -703,15 +722,26 @@ class SmartWidget(SmartType):
 
    def valueChange(self):
       result = self.validate()
-      self.updateCallback( self.key, self.value)
+
+      if self.initialized and self.updateCallback != None:
+          self.updateCallback( self.key, self.value)
 
    ##
-   #\brief function to get the value of the widget. 
+   #  \brief function to get the value of the widget. 
+   #  \return value of the object if it is valid, None if it is not.
    #
-   #  This function returns the value of the widget as the appropriate type. For 
-   #  complex types, this function will build the the value recursively from
-   #  any subwidgets.
+   #  This function returns the value of the widget as the appropriate type. 
+   #  For complex types, this function will build the the 
+   #  value recursively from any subwidgets. 
+   #
+   #  Since subwidgets use callbacks on value changes, this function should
+   #  only be called at the top-level from an external application.  
+   # 
    def getValue(self):
+       #If we are not valid, return No value
+       if not self.valid:
+           return None
+
        return self.value
  
    ##
@@ -770,16 +800,17 @@ class SmartWidget(SmartType):
    #  \brief function for updating an object
    #  \param [in] key   unique identified for the object
    #  \param [in] value new value for the object
+   #
+   #  The object update is handled separately since changing the contents requires
+   #  schema modifications
    def objectUpdate( self, key, value ):
        #Check if the key exists in the schema
-       print("Schema:" +str(self.schema))
        try:
            if key in self.schema["properties"].keys:
-               print("Must remove a schema to change it")
+               print("Must remove existing obejct to change it")
                return
        except:
            self.schema["properties"][key] = value
-       print("Schema:" +str(self.schema))
 
        self.draw()
 
@@ -790,7 +821,7 @@ class SmartWidget(SmartType):
    #
    #This function is called when a child is updated
    def update( self, key, value):
-       valueChanged = True
+       self.valueChanged = True
 
        #If we're an object, we have to update the child
        if self.schema["bsonType"] == "object":
@@ -804,17 +835,16 @@ class SmartWidget(SmartType):
            try:
                #This if the key is already in value and its value matched, no change
                if self.value[key] == value:
-                   valueChanged = False
-               #Otherwise, set tehe new value
+                   self.valueChanged = False
+               #Otherwise, set the new value
                else:
                    self.value[key] = value
+
            #The exception occures when the key did not exist
            except:
                self.value[key] = value
-               valueChanged = True
 
        elif self.schema["bsonType"] == "array":
-           valueChanged = True
            if "items" not in self.schema:
               self.schema["items"] =  {}
 
@@ -833,17 +863,17 @@ class SmartWidget(SmartType):
                self.value.append(value)
 
        else:
-           text = self.widget.currentText()
-           self.isValid = self.setStringAsValue(text)
+           print("SmartWidget error: "+str(self.type)+" invalide for updates")
            return False
 
        #Once we have traversed back to the root widget, redraw all subwidgets
-       if self.updateCallback == None and valueChanged == True:
+       if self.updateCallback == None and self.valueChanged == True:
            self.draw()
-       elif valueChanged == True:
+       #If we are initialized, we need to call the update callback
+       elif self.initialized == True and self.valueChanged == True:
            self.updateCallback( self.key, self.value)
-
        else:
+           #No changes to the current value, carry on
            pass
 
    ##
@@ -1000,7 +1030,7 @@ class unitTestViewer( QWidget ):
 
    def test2SubmitButtonPressEvent(self):
        value = self.test2Widget.getValue()
-       schema = self.test2Widget.getSchema()
+       print("Value: "+str(value))
 
    def submitButtonPressEvent(self):
        testPass = True
@@ -1018,7 +1048,6 @@ class unitTestViewer( QWidget ):
           value = {}
           value[item.key] = item.getValue()
           testWidgets.append(value)
-#          testWidgets.append(item.getValue())
 
        i = 0
        while i < len(testWidgets):
