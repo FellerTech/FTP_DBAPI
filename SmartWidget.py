@@ -65,6 +65,8 @@ class ObjectDialog(QDialog):
         self.objectSchema["properties"]["bsonType"]["enum"] = SmartType.types
         self.objectSchema["properties"]["description"]={}
         self.objectSchema["properties"]["description"]["bsonType"]="string"
+        self.objectSchema["properties"]["required"]={}
+        self.objectSchema["properties"]["required"]["bsonType"]="bool"
 
         #The Object Dialog will use a Vertical layout. 
         self.layout = QVBoxLayout()
@@ -631,6 +633,17 @@ class SmartWidget(SmartType):
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
            
+          elif self.schema["bsonType"] == "bool":
+              self.widget = QRadioButton()
+              self.valid = True
+              
+              #to set the value
+              if self.value != None:
+                  self.widget.setChecked(self.value)
+     
+              self.widget.toggled.connect( lambda: self.valueChange())
+
+    
           else:
               #default is for it to be a text box 
               self.widget = QLineEdit()
@@ -713,6 +726,14 @@ class SmartWidget(SmartType):
            text = self.widget.currentText()
            result = self.setValue(text)
 
+       elif self.type == "bool":
+           text = str(self.widget.isChecked())
+           if text == "True":
+               result = self.setValue(True)
+           else:
+               result = self.setValue(False)
+          
+
        else:
            #Handle a basic type. For these cases, we verify the text can be
            #represented as the basic type. 
@@ -720,17 +741,6 @@ class SmartWidget(SmartType):
 
            #Use the SmartWidget function to validate text.
            result = self.setStringAsValue( text )
-
-
-       """
-           if not result:
-               self.value = None
-
-       #If our value is None and we are not required, we're still OK
-       if self.value == None and self.required == False:
-           print("Not required, so OK")
-           result = True
-       """
 
        # On failure, set the valid variable to false and create a pink background
        if not result:
@@ -747,8 +757,9 @@ class SmartWidget(SmartType):
 
        # On success, set the valid variable as true and call the updateCallback.
        else:
-          self.widget.setAutoFillBackground(False)
-          self.widget.setStyleSheet(self.ss)
+          if self.type != "bool":
+              self.widget.setAutoFillBackground(False)
+              self.widget.setStyleSheet(self.ss)
           self.valid = True
 
        return result
