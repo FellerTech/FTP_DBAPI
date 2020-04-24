@@ -103,6 +103,7 @@ class SmartType:
            if isinstance( value, int ):
                self.value = value
            elif self.value != None:
+               self.value = None
                print("SmartType::Error - Value type does not match schema type of \"int\"")
                return False
 
@@ -245,6 +246,7 @@ class SmartType:
    # \brief Tries to set the string to the given type
    #SDF Need to handle enum
    def setStringAsValue( self, text ):
+       self.value = None
 
        #make sure the input is a string
        if not isinstance( text, str ):
@@ -256,7 +258,6 @@ class SmartType:
           try:
               self.setValue( text)
           except:
-              print("Enum Failed to setValue to "+str(text))
               return False
 
        #Set to string
@@ -264,7 +265,6 @@ class SmartType:
           try: 
               self.setValue( str(text))
           except:
-              print("Failed to setValue to "+str(text))
               return False
 
        #Set to string
