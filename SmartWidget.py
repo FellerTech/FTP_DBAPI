@@ -25,11 +25,10 @@ class IndexButton(QPushButton):
         self.callback( self.index)
 
 ##
-# \brief dialog for modifying dictionaries
-#
-# TODO: Know supported types from template (if possible)
-#       Select only from those. 
-#       Value and validate type
+# \brief dialog for added elements to an object
+# 
+# This class creates a pop-up window that is used to add new entries
+# to an object
 #
 class ObjectDialog(QDialog):
     ##
@@ -65,6 +64,33 @@ class ObjectDialog(QDialog):
         self.objectSchema["properties"]["required"]={}
         self.objectSchema["properties"]["required"]["bsonType"]="bool"
 
+        #array specific values will be a smart subwidget
+        self.arraySchema = {}
+        self.arraySchema["bsonType"] =  "object"
+        self.arraySchema["readOnly"] =  True
+        self.arraySchema["required"] = ["itemType"]
+        self.arraySchema["properties"]={}
+        self.arraySchema["properties"]["itemType"]={}
+        self.arraySchema["properties"]["itemType"]["enum"]=SmartType.types
+#SDF        self.arraySchema["properties"]["itemType"]["enum"]=SmartTypes.types.append["mixed"]
+        self.arraySchema["properties"]["itemType"]["description"]="Type of items in array"
+
+        self.arraySchema["properties"]["minItems"]={}
+        self.arraySchema["properties"]["minItems"]["bsonType"]="int"
+        self.arraySchema["properties"]["minItems"]["description"]="minimum number of items in array"
+
+        self.arraySchema["properties"]["maxItems"]={}
+        self.arraySchema["properties"]["maxItems"]["bsonType"]="int"
+        self.arraySchema["properties"]["maxItems"]["description"]="maximum number of items in array"
+
+        self.draw()
+        self.show()
+
+    ##
+    # \brief Function to draw the dialog
+    #
+    def draw(self) :
+
         #The Object Dialog will use a Vertical layout. 
         self.layout = QVBoxLayout()
 
@@ -74,7 +100,7 @@ class ObjectDialog(QDialog):
         self.layout.addWidget(title)
 
         #create a new smart widget based on the object schema without a value
-        self.subWidget = SmartWidget().init("New Object", {} ,self.objectSchema, showSchema=True)
+        self.subWidget = SmartWidget().init("New Object", {} ,self.objectSchema, self.update, showSchema=True)
   
         #Return on failure
         if self.subWidget == False:
@@ -100,9 +126,20 @@ class ObjectDialog(QDialog):
         self.layout.addWidget( controlFrame)
         self.setLayout(self.layout)
 
-        self.show()
-#        self.exec_()
-    
+
+    ##
+    #  \brief handles an update of the subwidget. 
+    #  \param [in] key name of the child
+    #  \param [in] value new value for the child    
+    #
+    # This function is a callback used to update the value of a subwidget. It
+    # is used in this class to change the options for array sub-types
+    def update( self, key, value, remove=False):
+        print("Updating "+str(key)+" with "+str(value))
+        if remove:
+            print("ERROR Object update does not understand remove")
+
+
     ##
     #  \brief handles a submit event
     #
@@ -126,6 +163,7 @@ class ObjectDialog(QDialog):
     
         self.done(True)
 
+"""
 ##
 # \brief dialog for modifying dictionaries
 class AddArrayDialog(QDialog):
@@ -241,86 +279,120 @@ class AddArrayDialog(QDialog):
     def arrayCallback( self, key, value, schema ):
         self.arraySchema = schema
  
+"""
+
 ##
-# \brief dialog for adding an array to either object or an array.
+# \brief dialog for adding an element to an array
+# This class creates a pop-up window that allows users to add an element 
+# to an array. 
 #
 class ArrayDialog(QDialog):
     ##
     #\brief Initialization function for the object dialog
     #\param [in] callback callback for the submit function
     def __init__(self, callback):
-       super().__init__()
+        super().__init__()
 
-       self.callback = callback
-       self.layout = QVBoxLayout()
+        self.callback = callback
 
-       title = QLabel()
-       title.setText("Array Dialog")
-       self.layout.addWidget(title)
+        #The schema for an object is defined here. It determines what fields 
+        #show up in the dialog box
+        #The enums for the bsonType of the properties is added programmatically 
+        #after the defintion
+        self.arraySchema = {}
+        self.arraySchema["bsonType"] =  "array"
+        self.arraySchema["readOnly"] =  True
+        self.arraySchema["required"] = ["key", "bsonType"]
+        self.arraySchema["properties"]={}
+        self.arraySchema["properties"]["key"]={}
+        self.arraySchema["properties"]["key"]["bsonType"]="string"
+        self.arraySchema["properties"]["key"]["description"]="key or name of the new value"
+        self.arraySchema["properties"]["bsonType"]={}
+        self.arraySchema["properties"]["bsonType"]["description"]="base type for the variable"
+        self.arraySchema["properties"]["bsonType"]["enum"] = SmartType.types
 
-       #Layout to specify the type of object 
-       typeLayout = QHBoxLayout()
-       typeLabel = QLabel()
-       typeLabel.setText("type")
-       typeLayout.addWidget(typeLabel)
+        self.arraySchema["properties"]["description"]={}
+        self.arraySchema["properties"]["description"]["bsonType"]="string"
 
-       self.types = QComboBox()
-       self.types.addItems(SmartType.types)
-       typeLayout.addWidget(self.types)
+        self.arraySchema["properties"]["minItems"]={}
+        self.arraySchema["properties"]["minItems"]["bsonType"]="int"
+        self.arraySchema["properties"]["minItems"]["description"]="minimum number of items in array"
 
-       #Checkbox to see if we are required
-       reqLayout = QHBoxLayout()
-       reqLabel = QLabel()
-       reqLabel.setText("required")
-       self.reqCheck = QCheckBox()
-       reqLayout.addWidget(reqLabel)
-       reqLayout.addWidget(self.reqCheck)
+        self.arraySchema["properties"]["maxItems"]={}
+        self.arraySchema["properties"]["maxItems"]["bsonType"]="int"
+        self.arraySchema["properties"]["maxItems"]["description"]="maximum number of items in array"
 
-       #SDF add support for minItems, maxItems
 
-       #Create submit button
-       controlLayout = QHBoxLayout()
-       submitButton = QPushButton("submit")
-       submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
-       controlLayout.addWidget(submitButton)
-       cancelButton = QPushButton("cancel")
-       cancelButton.clicked.connect( lambda: self.cancelButtonPressEvent())
-       controlLayout.addWidget(cancelButton)
 
-       #create layout
-       typeFrame = QFrame()
-       typeFrame.setLayout(typeLayout)
-       reqFrame = QFrame()
-       reqFrame.setLayout(reqLayout)
-       controlFrame = QFrame()
-       controlFrame.setLayout(controlLayout)
+        self.layout = QVBoxLayout()
 
-       self.layout.addWidget(typeFrame)
-       self.layout.addWidget( reqFrame )
-       self.layout.addWidget( controlFrame)
-       self.setLayout(self.layout)
+        title = QLabel()
+        title.setText("Array Dialog")
+        self.layout.addWidget(title)
 
-       self.show()
-       self.exec_()
+        #Layout to specify the type of object 
+        typeLayout = QHBoxLayout()
+        typeLabel = QLabel()
+        typeLabel.setText("type")
+        typeLayout.addWidget(typeLabel)
+
+        self.types = QComboBox()
+        self.types.addItems(SmartType.types)
+        typeLayout.addWidget(self.types)
+
+        #Checkbox to see if we are required
+        reqLayout = QHBoxLayout()
+        reqLabel = QLabel()
+        reqLabel.setText("required")
+        self.reqCheck = QCheckBox()
+        reqLayout.addWidget(reqLabel)
+        reqLayout.addWidget(self.reqCheck)
+
+        #SDF add support for minItems, maxItems
+
+        #Create submit button
+        controlLayout = QHBoxLayout()
+        submitButton = QPushButton("submit")
+        submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
+        controlLayout.addWidget(submitButton)
+        cancelButton = QPushButton("cancel")
+        cancelButton.clicked.connect( lambda: self.cancelButtonPressEvent())
+        controlLayout.addWidget(cancelButton)
+
+        #create layout
+        typeFrame = QFrame()
+        typeFrame.setLayout(typeLayout)
+        reqFrame = QFrame()
+        reqFrame.setLayout(reqLayout)
+        controlFrame = QFrame()
+        controlFrame.setLayout(controlLayout)
+
+        self.layout.addWidget(typeFrame)
+        self.layout.addWidget( reqFrame )
+        self.layout.addWidget( controlFrame)
+        self.setLayout(self.layout)
+
+        self.show()
+        self.exec_()
 
     ##
     # \brief Handles the submit button press event for an Array Dialog
     def submitButtonPressEvent(self):
-       mytype = self.types.currentText()
-       req = self.reqCheck.isChecked()
+        mytype = self.types.currentText()
+        req = self.reqCheck.isChecked()
 
-       tplate = {}
-       tplate["bsonType"] = mytype
-#       tplate["required"] = req
-       if mytype == "array":
-           arrayDialog = ObjectDialog(self.arrayCallback)
-           tplate["items"] = self.arraySchema  
-       elif mytype == "object":
-           tplate["properties"] = {}
+        tplate = {}
+        tplate["bsonType"] = mytype
+#        tplate["required"] = req
+        if mytype == "array":
+            arrayDialog = ObjectDialog(self.arrayCallback)
+            tplate["items"] = self.arraySchema  
+        elif mytype == "object":
+            tplate["properties"] = {}
 
-       self.callback(tplate)
+        self.callback(tplate)
 
-       self.done(True)
+        self.done(True)
 
     ##
     # \brief a callback for a new array type. Must specify sub-types
@@ -866,10 +938,9 @@ class SmartWidget(SmartType):
       if self.schema == None:
           print("Cannot add an item without a schema")
           return
-
       if self.schema["bsonType"] == "array":
-           #SDF Arry add not supported
-          self.draw()
+          print("Adding an array not supported")
+#          arrayDialog = ArrayDialog(self.objectUpdate)
       elif self.schema["bsonType"] == "object":
           objectDialog = ObjectDialog(self.objectUpdate)
       else:
