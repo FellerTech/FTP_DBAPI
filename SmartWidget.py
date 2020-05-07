@@ -14,7 +14,6 @@ from SmartType import SmartType
 compare = lambda x, y: collections.Counter(x) == collections.Counter(y)
 
 
-
 class IndexButton(QPushButton):
     def __init__(self, value, index, callback):
         QPushButton.__init__(self, value)
@@ -24,9 +23,6 @@ class IndexButton(QPushButton):
 
     def pressEvent(self):
         self.callback( self.index)
-
-
-
 
 ##
 # \brief dialog for modifying dictionaries
@@ -55,6 +51,7 @@ class ObjectDialog(QDialog):
         #after the defintion
         self.objectSchema = {}
         self.objectSchema["bsonType"] =  "object"
+        self.objectSchema["readOnly"] =  True
         self.objectSchema["required"] = ["key", "bsonType"]
         self.objectSchema["properties"]={}
         self.objectSchema["properties"]["key"]={}
@@ -442,6 +439,7 @@ class SmartWidget(SmartType):
        self.valid = self.validate()
 
        self.initialized = True
+
        if self.valueChanged == True and self.updateCallback != None:
            self.updateCallback( self.key, self.value)
 
@@ -508,18 +506,12 @@ class SmartWidget(SmartType):
               #Extract text to set value
               #SDF Need to handle invalid enum  
               text = self.widget.currentText() 
-
               self.setStringAsValue(text)
 
               #If we are successful, update callback
               self.ss = self.widget.styleSheet()
               self.widget.currentIndexChanged.connect( lambda: self.valueChange())
 
-              #This is called for the parent to set the default
-              #SDF need to revisit to see if logic is necessary
-              #if value != self.value:          
-              #    self.valueChange()
-             
              
           #If we are an array, create a subwidget for each item. Add one extra 
           #for a new value if editable is an option
@@ -567,10 +559,20 @@ class SmartWidget(SmartType):
               #create an extra with an add button
               addLayout = QHBoxLayout()
 
-              #SDF We are failing here. We need to add an item when it makes sense
-              addButton = QPushButton("+")
-              addButton.clicked.connect( lambda: self.addButtonPressEvent())
-              self.subLayout.addWidget(addButton)
+              #If we are not read only, include an add button
+              readOnly = False
+              try:
+                  print("Trying readOnly")
+                  readOnly = self.schema["readOnly"]
+              except:
+                  print("Failed")
+                  pass
+
+              if readOnly:
+                 #SDF We are failing here. We need to add an item when it makes sense
+                 addButton = QPushButton("+")
+                 addButton.clicked.connect( lambda: self.addButtonPressEvent())
+                 self.subLayout.addWidget(addButton)
 
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
@@ -601,9 +603,6 @@ class SmartWidget(SmartType):
                              if not k in self.value.keys():
                                  self.value[k] = self.schema["properties"][k]["enum"][0]
                              
-                          
-
-
 
                          if self.value == None or self.value == {}:
                              subWidget = SmartWidget().init(str(k), {}, self.schema["properties"][k], self.update )
@@ -625,14 +624,23 @@ class SmartWidget(SmartType):
                          print(str(self.schema))
                          self.valid = False
 
-              #addButton
-              addButton = QPushButton("+")
-              addButton.clicked.connect( lambda: self.addButtonPressEvent())
-              self.subLayout.addWidget(addButton)
+              #If we are not read only, include an add button
+              readOnly = False
+              try:
+                  readOnly = self.schema["readOnly"]
+              except:
+                  pass
+
+              if not readOnly:
+                  #addButton
+                  addButton = QPushButton("+")
+                  addButton.clicked.connect( lambda: self.addButtonPressEvent())
+                  self.subLayout.addWidget(addButton)
 
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
            
+          #Bool schema
           elif self.schema["bsonType"] == "bool":
               self.widget = QRadioButton()
               self.valid = True
@@ -640,10 +648,16 @@ class SmartWidget(SmartType):
               #to set the value
               if self.value != None:
                   self.widget.setChecked(self.value)
-     
+              else:
+                  self.widget.setChecked(False)
+
+              self.setValue(self.widget.isChecked())
+              self.valid = True
               self.widget.toggled.connect( lambda: self.valueChange())
 
-    
+              #If we are successful, update callback
+              self.ss = self.widget.styleSheet()
+             
           else:
               #default is for it to be a text box 
               self.widget = QLineEdit()
@@ -680,8 +694,7 @@ class SmartWidget(SmartType):
            self.layout.addWidget( descLabel )
 
        #Add remove button to allow people to remove values
-#       removeButton = IndexButton("-", self.key, self.removeCallback)
-       removeButton = IndexButton("-", self.key, self.removeChild)
+       removeButton = IndexButton("-", self.key, self.remove)
        self.layout.addWidget( removeButton )
        self.layout.addStretch(1)
 
@@ -726,13 +739,13 @@ class SmartWidget(SmartType):
            text = self.widget.currentText()
            result = self.setValue(text)
 
+       #Bool type
        elif self.type == "bool":
            text = str(self.widget.isChecked())
            if text == "True":
                result = self.setValue(True)
            else:
                result = self.setValue(False)
-          
 
        else:
            #Handle a basic type. For these cases, we verify the text can be
@@ -816,16 +829,19 @@ class SmartWidget(SmartType):
    # \brief callback called by a child to remove itself
    #  
    #  This funciton remove these child with teh specified key
-   def removeChild(self, key ):
+   def remove(self, key ):
+       self.updateCallback( key, None, remove=True )
+
+
+       """
        #remove key
-#       if self.type == "array":
        if self.type == "object":
           del self.value[key]
  
        elif isinstance( self.value, dict ):
           self.value.pop(key)
        else:
-          print("Cannot remove item from unknown type")
+          print("Cannot remove item from unknown type: "+str(self.type))
 
        print(str(self.value))
 
@@ -835,6 +851,7 @@ class SmartWidget(SmartType):
        else:
            print(self.key+" Remove Draw")
            self.draw()
+       """
 
        return 
 
@@ -879,19 +896,33 @@ class SmartWidget(SmartType):
 
    ##
    #\brief This function notifies the object that one of its values has changed
-   #\param [in] key name of this object
+   #\param [in] key name of the child
    #\param [in] value new value for the child
    #
    #This function is called when a child is updated
-   def update( self, key, value):
+   def update( self, key, value, remove=False):
        self.valueChanged = True
 
-       if value == None:
+       #Remove object
+       if remove:
+           print("Removing item "+str(key)+" of type: "+str(self.type))
+
+           if self.type == "object":
+               try:
+                   del self.value[key]
+               except:
+                   print(str(key)+" is not in "+self.key+": "+str(self.value))
+           elif isinstance( self.value, dict ):
+               self.value.pop(key)
+           else:
+               print("Cannot remove item from unknown type: "+str(self.type))
+
+       elif value == None:
            self.value[key] = value
            return
 
        #If we're an object, we have to update the child
-       if self.schema["bsonType"] == "object":
+       elif self.schema["bsonType"] == "object":
            if "properties" not in self.schema:
               self.schema["properties"] =  {}
 
@@ -941,6 +972,7 @@ class SmartWidget(SmartType):
        else:
            #No changes to the current value, carry on
            pass
+
 
    ##
    # Callback for removing an element frmo an array or a dictionary
