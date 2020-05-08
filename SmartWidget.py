@@ -6,6 +6,8 @@ version="0.0.1.0"
 import sys
 import argparse
 import collections
+import copy
+import time #SDF temp
 from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget, QLabel, QLineEdit, QFrame, QDialog, QComboBox, QRadioButton, QCheckBox, QScrollArea
 from PyQt5.QtCore import pyqtSlot
 from SmartType import SmartType
@@ -40,59 +42,77 @@ class ObjectDialog(QDialog):
     #
     def __init__(self, callback):
         super().__init__()
+      
+        self.initialized = False
+        self.isArray = False
+        self.value = {}
 
         #create the internal callback reference
         self.callback = callback
 
-        #The schema for an object is defined here. It determines what fields 
+        #The schema for an ref is defined here. It determines what fields 
         #show up in the dialog box
         #The enums for the bsonType of the properties is added programmatically 
         #after the defintion
-        self.objectSchema = {}
-        self.objectSchema["bsonType"] =  "object"
-        self.objectSchema["readOnly"] =  True
-        self.objectSchema["required"] = ["key", "bsonType"]
-        self.objectSchema["properties"]={}
-        self.objectSchema["properties"]["key"]={}
-        self.objectSchema["properties"]["key"]["bsonType"]="string"
-        self.objectSchema["properties"]["key"]["description"]="key or name of the new value"
-        self.objectSchema["properties"]["bsonType"]={}
-        self.objectSchema["properties"]["bsonType"]["description"]="base type for the variable"
-        self.objectSchema["properties"]["bsonType"]["enum"] = SmartType.types
-        self.objectSchema["properties"]["description"]={}
-        self.objectSchema["properties"]["description"]["bsonType"]="string"
-        self.objectSchema["properties"]["required"]={}
-        self.objectSchema["properties"]["required"]["bsonType"]="bool"
+        self.refSchema = {}
+        self.refSchema["bsonType"] =  "object"
+        self.refSchema["readOnly"] =  True
+        self.refSchema["required"] = ["key", "bsonType"]
+        self.refSchema["properties"]={}
+        self.refSchema["properties"]["key"]={}
+        self.refSchema["properties"]["key"]["bsonType"]="string"
+        self.refSchema["properties"]["key"]["description"]="key or name of the new value"
+        self.refSchema["properties"]["bsonType"]={}
+        self.refSchema["properties"]["bsonType"]["description"]="base type for the variable"
+        self.refSchema["properties"]["bsonType"]["enum"] = SmartType.types
+        self.refSchema["properties"]["description"]={}
+        self.refSchema["properties"]["description"]["bsonType"]="string"
+        self.refSchema["properties"]["required"]={}
+        self.refSchema["properties"]["required"]["bsonType"]="bool"
 
-        #array specific values will be a smart subwidget
-        self.arraySchema = {}
-        self.arraySchema["bsonType"] =  "object"
-        self.arraySchema["readOnly"] =  True
-        self.arraySchema["required"] = ["itemType"]
-        self.arraySchema["properties"]={}
-        self.arraySchema["properties"]["itemType"]={}
-        self.arraySchema["properties"]["itemType"]["enum"]=SmartType.types
-#SDF        self.arraySchema["properties"]["itemType"]["enum"]=SmartTypes.types.append["mixed"]
-        self.arraySchema["properties"]["itemType"]["description"]="Type of items in array"
+        self.objectSchema = copy.deepcopy(self.refSchema)
 
-        self.arraySchema["properties"]["minItems"]={}
-        self.arraySchema["properties"]["minItems"]["bsonType"]="int"
-        self.arraySchema["properties"]["minItems"]["description"]="minimum number of items in array"
+         #array specific fields
+        self.arrayFields = {}
+        self.arrayFields["items"]={}
+        self.arrayFields["items"]["bsonType"]="object"
+        self.arrayFields["items"]["readOnly"]=True
+#        self.arrayFields["items"]["required"]=["key"]
+        self.arrayFields["items"]["properties"]={}
+#        self.arrayFields["items"]["properties"]["key"]={}
+#        self.arrayFields["items"]["properties"]["key"]["bsonType"]="string"
+        self.arrayFields["items"]["properties"]["bsonType"]={}
+        self.arrayFields["items"]["properties"]["bsonType"]["enum"] = SmartType.types
+        self.arrayFields["items"]["properties"]["bsonType"]["description"] = "Supported type for array or any"
+        self.arrayFields["items"]["properties"]["minItems"]={}
+        self.arrayFields["items"]["properties"]["minItems"]["bsonType"]="int"
+        self.arrayFields["items"]["properties"]["minItems"]["description"]="Minimum number of items in array"
+        self.arrayFields["items"]["properties"]["maxItems"]={}
+        self.arrayFields["items"]["properties"]["maxItems"]["bsonType"]="int"
+        self.arrayFields["items"]["properties"]["maxItems"]["description"]="Maximum number of items in array"
 
-        self.arraySchema["properties"]["maxItems"]={}
-        self.arraySchema["properties"]["maxItems"]["bsonType"]="int"
-        self.arraySchema["properties"]["maxItems"]["description"]="maximum number of items in array"
+        #The Object Dialog will use a Vertical layout. 
+        self.layout = QVBoxLayout()
 
         self.draw()
+        self.initialized = True
         self.show()
 
     ##
     # \brief Function to draw the dialog
     #
     def draw(self) :
+#        self.drawing = True
 
-        #The Object Dialog will use a Vertical layout. 
-        self.layout = QVBoxLayout()
+        #Remove all widgets from the current layout
+        while self.layout.count():
+            item = self.layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+
+        print("Drawing: "+str(self.objectSchema))
 
         #Add the title to the layout
         title = QLabel()
@@ -100,7 +120,7 @@ class ObjectDialog(QDialog):
         self.layout.addWidget(title)
 
         #create a new smart widget based on the object schema without a value
-        self.subWidget = SmartWidget().init("New Object", {} ,self.objectSchema, self.update, showSchema=True)
+        self.subWidget = SmartWidget().init("New Object", self.value,self.objectSchema, self.update, showSchema=True)
   
         #Return on failure
         if self.subWidget == False:
@@ -126,7 +146,7 @@ class ObjectDialog(QDialog):
         self.layout.addWidget( controlFrame)
         self.setLayout(self.layout)
 
-
+#        self.drawing = False
     ##
     #  \brief handles an update of the subwidget. 
     #  \param [in] key name of the child
@@ -135,10 +155,31 @@ class ObjectDialog(QDialog):
     # This function is a callback used to update the value of a subwidget. It
     # is used in this class to change the options for array sub-types
     def update( self, key, value, remove=False):
+        if not self.initialized:
+            return
+
+        self.value = value
+
         print("Updating "+str(key)+" with "+str(value))
         if remove:
             print("ERROR Object update does not understand remove")
 
+        if value["bsonType"]=="array":
+            if self.isArray == False:
+                for k in self.arrayFields.keys():
+                    print(str(k)+" adding "+str(self.arrayFields[k]))
+                    self.objectSchema["properties"][k]=self.arrayFields[k]
+                self.isArray = True
+        else:
+            if self.isArray == True:
+                print("Changing array "+str(key)+" to refsChema:"+str(value))
+                self.objectSchema = copy.deepcopy(self.refSchema)
+                self.isArray = False
+
+
+        print("Update schema: "+str(self.objectSchema))
+
+        self.draw()
 
     ##
     #  \brief handles a submit event
@@ -669,9 +710,14 @@ class SmartWidget(SmartType):
                   for k  in self.schema["properties"]:
                      #Set the subWidget to false to we know if we are successful creating a new widget
                      subWidget = False
-                     try:
+#SDF                     try:
+                     if True:
                          #SDF If we're an enum, we need to set a default if it doesn't exist.
                          if "enum" in self.schema["properties"][k].keys():
+                             #IF no value, create a dict
+                             if self.value == None:
+                                 self.value = {}
+                                
                              if not k in self.value.keys():
                                  self.value[k] = self.schema["properties"][k]["enum"][0]
                              
@@ -682,7 +728,8 @@ class SmartWidget(SmartType):
                              subWidget = SmartWidget().init(str(k), self.value[k], self.schema["properties"][k], self.update)
                          else:
                              subWidget = SmartWidget().init(str(k), None, self.schema["properties"][k], self.update )
-                     except:
+#SDF                     except:
+                     else:
                          print("Exception: Failed to create widget for object key: "+str(k)+" and schema:"+str(self.schema["properties"][k]))
                          self.valid = False
                      
