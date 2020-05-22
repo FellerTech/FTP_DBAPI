@@ -13,9 +13,10 @@ from PyQt5.QtCore import pyqtSlot
 from SmartType import SmartType
 
 #Global comparator
-compare = lambda x, y: collections.Counter(x) == collections.Counter(y)
+#compare = lambda x, y: collections.Counter(x) == collections.Counter(y)
 
-
+##
+#  \brief Push Button wrapper
 class IndexButton(QPushButton):
     def __init__(self, value, index, callback):
         QPushButton.__init__(self, value)
@@ -76,20 +77,19 @@ class ObjectDialog(QDialog):
         self.arrayFields = {}
         self.arrayFields["items"]={}
         self.arrayFields["items"]["bsonType"]="object"
-        self.arrayFields["items"]["readOnly"]=True
-#        self.arrayFields["items"]["required"]=["key"]
+#SDF_OK?        self.arrayFields["items"]["readOnly"]=False
         self.arrayFields["items"]["properties"]={}
-#        self.arrayFields["items"]["properties"]["key"]={}
-#        self.arrayFields["items"]["properties"]["key"]["bsonType"]="string"
-        self.arrayFields["items"]["properties"]["bsonType"]={}
-        self.arrayFields["items"]["properties"]["bsonType"]["enum"] = SmartType.types
-        self.arrayFields["items"]["properties"]["bsonType"]["description"] = "Supported type for array or any"
         self.arrayFields["items"]["properties"]["minItems"]={}
         self.arrayFields["items"]["properties"]["minItems"]["bsonType"]="int"
         self.arrayFields["items"]["properties"]["minItems"]["description"]="Minimum number of items in array"
         self.arrayFields["items"]["properties"]["maxItems"]={}
         self.arrayFields["items"]["properties"]["maxItems"]["bsonType"]="int"
         self.arrayFields["items"]["properties"]["maxItems"]["description"]="Maximum number of items in array"
+        self.arrayFields["items"]["properties"]["bsonType"]={}
+        self.arrayFields["items"]["properties"]["bsonType"]["enum"] = SmartType.types
+        self.arrayFields["items"]["properties"]["bsonType"]["description"]="Maximum number of items in array"
+        self.arrayValues = {"bsonType":"int"}
+
 
         #The Object Dialog will use a Vertical layout. 
         self.layout = QVBoxLayout()
@@ -111,7 +111,6 @@ class ObjectDialog(QDialog):
             if widget is not None:
                 widget.deleteLater()
 
-
         print("Drawing: "+str(self.objectSchema))
 
         #Add the title to the layout
@@ -120,7 +119,7 @@ class ObjectDialog(QDialog):
         self.layout.addWidget(title)
 
         #create a new smart widget based on the object schema without a value
-        self.subWidget = SmartWidget().init("New Object", self.value,self.objectSchema, self.update, showSchema=True)
+        self.subWidget = SmartWidget().init("New Object", self.value, self.objectSchema, self.update, showSchema=True)
   
         #Return on failure
         if self.subWidget == False:
@@ -169,6 +168,13 @@ class ObjectDialog(QDialog):
                 for k in self.arrayFields.keys():
                     print(str(k)+" adding "+str(self.arrayFields[k]))
                     self.objectSchema["properties"][k]=self.arrayFields[k]
+
+                if not "items" in self.value.keys():
+                    self.value["items"] = {}
+                    self.value["items"]["bsonType"] = "string"
+                elif not "bsonType" in self.value["items"]:
+                    self.value["items"]["bsonType"] = "string"
+
                 self.isArray = True
         else:
             if self.isArray == True:
@@ -177,7 +183,7 @@ class ObjectDialog(QDialog):
                 self.isArray = False
 
 
-        print("Update schema: "+str(self.objectSchema))
+        print("Key: "+key+" Update schema: "+str(self.objectSchema))
 
         self.draw()
 
@@ -190,138 +196,30 @@ class ObjectDialog(QDialog):
         #Extract the values from the object
         values = self.subWidget.getValue()
 
+        print("ObjectDialog submitted "+str(values))
         #Try to extract a key from the values. 
-        try:
+#        try:
+        if True:
             key = values["key"]
             del values["key"]
+
+            #If we are an array, create an empty items
+            if values["bsonType"] == "array":
+                print("SSSS OUtput: "+str(values))
+                values["items"]={}
           
             if key != "":
                 self.callback(key, values)
             else:
                print("Invalid key!. Unable to update")
-        except:
+#        except:
+        else:
             print("Error: No key value entered. Cancelling")
+
+
     
         self.done(True)
-
 """
-##
-# \brief dialog for modifying dictionaries
-class AddArrayDialog(QDialog):
-    ##
-    #\brief Initialization function for the object dialog
-    #\param [in] callback callback for the submit function
-    def __init__(self, callback):
-       super().__init__()
-
-       self.callback = callback
-       self.layout = QVBoxLayout()
-
-       title = QLabel()
-       title.setText("Array Dialog")
-       self.layout.addWidget(title)
-
-       #Layout to specify the type of object 
-       typeLayout = QHBoxLayout()
-       typeLabel = QLabel()
-       typeLabel.setText("type")
-       typeLayout.addWidget(typeLabel)
-
-       self.types = QComboBox()
-       self.types.addItems(SmartType.types)
-       typeLayout.addWidget(self.types)
-
-       #Checkbox to see if we are required
-       reqLayout = QHBoxLayout()
-       reqLabel = QLabel()
-       reqLabel.setText("required")
-       self.reqCheck = QCheckBox()
-       reqLayout.addWidget(reqLabel)
-       reqLayout.addWidget(self.reqCheck)
-
-       #SDF add support for minItems, maxItems
-       #Text box to get min value
-       minLayout = QHBoxLayout()
-       minLabel = QLabel()
-       minLabel.setText("minValue")
-       self.minEdit = QLineEdit()
-       self.minEdit.setText("0")
-       minLayout.addWidget(minLabel)
-       minLayout.addWidget(self.minEdit)
-       
-       #Text box to get max value
-       maxLayout = QHBoxLayout()
-       maxLabel = QLabel()
-       maxLabel.setText("maxValue")
-       self.maxEdit = QLineEdit()
-       self.maxEdit.setText("0")
-       maxLayout.addWidget(maxLabel)
-       maxLayout.addWidget(self.maxEdit)
-
-       #Create submit button
-       controlLayout = QHBoxLayout()
-       submitButton = QPushButton("submit")
-       submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
-       controlLayout.addWidget(submitButton)
-       cancelButton = QPushButton("cancel")
-       cancelButton.clicked.connect( lambda: self.cancelButtonPressEvent())
-       controlLayout.addWidget(cancelButton)
-
-       #create layout
-       typeFrame = QFrame()
-       typeFrame.setLayout(typeLayout)
-       reqFrame = QFrame()
-       reqFrame.setLayout(reqLayout)
-       minFrame = QFrame()
-       minFrame.setLayout( minLayout)
-       maxFrame = QFrame()
-       maxFrame.setLayout( maxLayout)
-       controlFrame = QFrame()
-       controlFrame.setLayout(controlLayout)
-
-       self.layout.addWidget(typeFrame)
-       self.layout.addWidget( reqFrame )
-       self.layout.addWidget( minFrame )
-       self.layout.addWidget( maxFrame )
-       self.layout.addWidget( controlFrame)
-       self.setLayout(self.layout)
-
-       self.show()
-       self.exec_()
-
-    ##
-    # \brief Handles the submit button press event for an Array Dialog
-    def submitButtonPressEvent(self):
-       mytype = self.types.currentText()
-       req = self.reqCheck.isChecked()
-       minItems = str(self.minEdit.text())
-       maxItems = str(self.maxEdit.text())
-   
-       tplate = {}
-       tplate["bsonType"] = mytype
-
-       #SDF This should belong in the parent
-       parentMods = {}
-       parentMods["minItems"] = int(minItems)
-       parentMods["maxItems"] = int(maxItems)
-        
-
-       if mytype == "array":
-           arrayDialog = ObjectDialog(self.arrayCallback)
-           tplate["items"] = self.arraySchema  
-       elif mytype == "object":
-           tplate["properties"] = {}
-
-       self.callback(tplate, parentMods)
-       self.done(True)
-
-    ##
-    # \brief a callback for a new array type. Must specify sub-types
-    def arrayCallback( self, key, value, schema ):
-        self.arraySchema = schema
- 
-"""
-
 ##
 # \brief dialog for adding an element to an array
 # This class creates a pop-up window that allows users to add an element 
@@ -439,6 +337,7 @@ class ArrayDialog(QDialog):
     # \brief a callback for a new array type. Must specify sub-types
     def arrayCallback( self, key, value, schema ):
         self.arraySchema = schema
+"""
 
 ##
 #  \brief Class is used to draw a widget for a smart type
@@ -549,7 +448,8 @@ class SmartWidget(SmartType):
        self.draw(value)
 
        #Validate to check for schema mismatches.
-       self.valid = self.validate()
+#       self.valid = self.validate()
+       self.validate()
 
        self.initialized = True
 
@@ -579,6 +479,8 @@ class SmartWidget(SmartType):
        label = QLabel()
        label.setText(str(self.key)+":")
        self.layout.addWidget( label )
+
+       print("XXXXXXXXX schema:"+str(self.schema))
 
 
        #Check if we have a defined schema
@@ -612,6 +514,7 @@ class SmartWidget(SmartType):
                   #Get index of value
                   index = self.schema["enum"].index(value)
                   self.widget.setCurrentIndex(index)
+
               #Not in list, then we are not valid
               except:
                   self.valid = False
@@ -624,7 +527,6 @@ class SmartWidget(SmartType):
               #If we are successful, update callback
               self.ss = self.widget.styleSheet()
               self.widget.currentIndexChanged.connect( lambda: self.valueChange())
-
              
           #If we are an array, create a subwidget for each item. Add one extra 
           #for a new value if editable is an option
@@ -636,41 +538,47 @@ class SmartWidget(SmartType):
 
               self.ss = self.widget.styleSheet()
 
-              count = 0
-              if self.value != None:
-                  for item in self.value:
-                     if True:
-#SDF                  try:
-                        subWidget = SmartWidget().init("item: "+str(count), item, self.schema["items"], self.update)
-                     else:
-#                     except:
-                        self.valid = False
-                        subWidget = False
+              print("Array schema: "+str(self.schema))
+              print("Array value: "+str(self.value))
 
-                     if subWidget != False:
-                         self.subLayout.addWidget(subWidget.frame)
-                         self.subWidgets.append(subWidget)
-                         count = count + 1
-                     else:
-                         print("+++++ Failed to create an array widget for "+str(item))
-                         print("with schema: "+str(self.schema["items"]))
-                         exit()
-                         self.valid = False
-              #else:
-              #    print("~~~~~~~ No value")
+              #If we have a valid schema, render sub-elements
+              if self.schema["items"] != None and self.schema["items"] !={}:
 
-              #SDF Need to modify to limit to min and max elements in schema
-              #Add new, empty element
-              subWidget = SmartWidget().init("item: "+str(count), "", self.schema["items"], self.update )
-              if subWidget == False:
-                  print("Failed to create array widget for "+str(self.key))
+                  count = 0
+                  if self.value != None:
+                      for item in self.value:
+                         if True:
+#SDF                      try:
+                            subWidget = SmartWidget().init("item: "+str(count), item, self.schema["items"], self.update)
+                         else:
+#                         except:
+                            self.valid = False
+                            subWidget = False
 
-              self.subLayout.addWidget(subWidget.frame)
-              self.subWidgets.append(subWidget)
-              count = count + 1
+                         if subWidget != False:
+                             self.subLayout.addWidget(subWidget.frame)
+                             self.subWidgets.append(subWidget)
+                             count = count + 1
+                         else:
+                             print("+++++ Failed to create an array widget for "+str(item))
+                             print("with schema: "+str(self.schema["items"]))
+                             exit()
+                             self.valid = False
+                  else:
+                      print("~~~~~~~ No value")
 
-              #create an extra with an add button
-              addLayout = QHBoxLayout()
+                  #SDF Need to modify to limit to min and max elements in schema
+                  #Add new, empty element
+                  subWidget = SmartWidget().init("item: "+str(count), self.value, self.schema["items"], self.update )
+                  if subWidget == False:
+                      print("Failed to create array widget for "+str(self.key))
+
+                  self.subLayout.addWidget(subWidget.frame)
+                  self.subWidgets.append(subWidget)
+                  count = count + 1
+
+                  #create an extra with an add button
+                  addLayout = QHBoxLayout()
 
               #If we are not read only, include an add button
               readOnly = False
@@ -678,10 +586,10 @@ class SmartWidget(SmartType):
                   print("Trying readOnly")
                   readOnly = self.schema["readOnly"]
               except:
-                  print("Failed")
+                  print("readOnly not specified")
                   pass
 
-              if readOnly:
+              if not readOnly:
                  #SDF We are failing here. We need to add an item when it makes sense
                  addButton = QPushButton("+")
                  addButton.clicked.connect( lambda: self.addButtonPressEvent())
@@ -838,7 +746,8 @@ class SmartWidget(SmartType):
            #Any subwidgets are invalid, this object is not valid
            for w in self.subWidgets:
                if w.valid == False:
-                  print("Invalid widget: "+str(w.getKey())+"!")
+                  print("Invalid widget: "+str(w.getKey())+"! with value:"+str(w.getValue()))
+                  text = str(self.value)
                   result = False
 
        #If it's an object or an array check if all children are valid. If so
@@ -850,6 +759,7 @@ class SmartWidget(SmartType):
            for w in self.subWidgets:
                if w.valid == False:
                   print("Invalid widget: "+str(w.getKey())+"!")
+                  text = str(self.value)
                   result = False
 
        #Enum values are represented at the widget. If we are an enum, translate
@@ -876,11 +786,12 @@ class SmartWidget(SmartType):
 
        # On failure, set the valid variable to false and create a pink background
        if not result:
-          print("Req: "+str(self.required)+", A"+str(text)+"A")
-          if self.required == False and text == "":
+          if self.required == False and (text == "" or text == None):
               self.widget.setAutoFillBackground(False)
               self.widget.setStyleSheet(self.ss)
-          else:
+              self.valid = True
+          elif text !=None:
+              print( "Key:"+self.key+" Req:"+str(self.required)+", text"+str(text))
               print( "Invalid field. Type not "+self.schema["bsonType"])
               self.widget.setAutoFillBackground(True)
               self.widget.setStyleSheet("QLineEdit{background:pink;}")
@@ -986,8 +897,23 @@ class SmartWidget(SmartType):
           print("Cannot add an item without a schema")
           return
       if self.schema["bsonType"] == "array":
-          print("Adding an array not supported")
 #          arrayDialog = ArrayDialog(self.objectUpdate)
+
+           createSchema = False
+           if "items" not in self.schema:
+               createSchema = True
+           elif self.schema["items"] == None or self.schema["items"] == {}:
+               createSchema = True
+
+           #Support a mixed type
+#           elif self.schema["bsonType"] == "mixed"
+
+          
+           #if no schema or mixed schema, create a new schema object
+           if createSchema:
+               objectDialog = ObjectDialog(self.arraySchemaUpdate )
+
+
       elif self.schema["bsonType"] == "object":
           objectDialog = ObjectDialog(self.objectUpdate)
       else:
@@ -1005,12 +931,34 @@ class SmartWidget(SmartType):
        #Check if the key exists in the schema
        try:
            if key in self.schema["properties"].keys:
-               print("Must remove existing obejct to change it")
+               print("Must remove existing object to change it")
                return
        except:
            self.schema["properties"][key] = value
 
+
+       print("Updated schema for key "+str(key)+":"+str(self.schema))
+
        self.draw()
+
+   ##
+   #  \brief function for updating an array schema
+   #  \param [in] key   unique identified for the object
+   #  \param [in] value new value for the object
+   #
+   #  The object update is handled separately since changing the contents requires
+   #  schema modifications
+   def arraySchemaUpdate( self, key, value ):
+       #Add value to schema
+
+       #redraw
+       print("Array adding values: "+str(value))
+       self.schema["items"]=value
+       print("Updated schema for key "+str(key)+":"+str(self.schema))
+  
+       self.draw()
+
+
 
    ##
    #\brief This function notifies the object that one of its values has changed
@@ -1068,7 +1016,6 @@ class SmartWidget(SmartType):
 
            if self.value == None:
                self.value = []
-
            
            index = key[len("item:"):]
 
@@ -1078,7 +1025,7 @@ class SmartWidget(SmartType):
                self.value.append(value)
 
        else:
-           print("SmartWidget error: "+str(self.type)+" invalide for updates")
+           print("SmartWidget error: "+str(self.type)+" invalid for updates")
            return False
 
        #Once we have traversed back to the root widget, redraw all subwidgets
@@ -1120,7 +1067,8 @@ class unitTestViewer( QWidget ):
          "booleans":[{"value":{"key":True}, "schema": {"key":{"bsonType":"bool"}}},
                     {"value":{"key":True}, "schema": {"key":{"bsonType":"bool"}}}
          ],
-         "arrays":[{"value":{"key":["A","B","C"]}, "schema":{"key":{"bsonType":"array", "items":{"bsonType":"string"}}}},
+         "arrays":[{"value":None, "schema":{"key":{"bsonType":"array","items":{}}}}, 
+                   {"value":{"key":["A","B","C"]}, "schema":{"key":{"bsonType":"array", "items":{"bsonType":"string"}}}},
                    {"value":{"key":[1,2,3]},"schema": {"key":{"bsonType":"array", "items":{"bsonType":"int"}}}},
                    {"value":{"key":[1.1,2.1,3.1]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"double"}}}},
                    {"value":{"key":[True, False, True]}, "schema":{"key": {"bsonType":"array", "items":{"bsonType":"bool"}}}},
@@ -1190,10 +1138,14 @@ class unitTestViewer( QWidget ):
           keyLabel.setText(str(key))
           subLayout.addWidget(keyLabel)
           for item in self.testData[key]:
-              for k in item["value"]:
+              for k in item["schema"]:
                   #If were an object need to pass in the properties
 #                  widget = SmartWidget().init(k, item["value"][k], item["schema"][k], showSchema = True)
-                  widget = SmartWidget().init(k, item["value"][k], item["schema"][k], self.testUpdate, showSchema=True)
+                  if item["value"] == None:
+                      print("testing schema: "+str(item["schema"][k]))
+                      widget = SmartWidget().init(k, None, item["schema"][k], self.testUpdate, showSchema=True)
+                  else:
+                      widget = SmartWidget().init(k, item["value"][k], item["schema"][k], self.testUpdate, showSchema=True)
 
                   itemCount = itemCount + 1
                   if widget.valid is False:
