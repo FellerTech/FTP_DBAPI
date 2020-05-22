@@ -77,6 +77,7 @@ class ObjectDialog(QDialog):
         self.arrayFields = {}
         self.arrayFields["items"]={}
         self.arrayFields["items"]["bsonType"]="object"
+        self.arrayFields["items"]["readOnly"]=True
 #SDF_OK?        self.arrayFields["items"]["readOnly"]=False
         self.arrayFields["items"]["properties"]={}
         self.arrayFields["items"]["properties"]["minItems"]={}
@@ -110,8 +111,6 @@ class ObjectDialog(QDialog):
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
-
-        print("Drawing: "+str(self.objectSchema))
 
         #Add the title to the layout
         title = QLabel()
@@ -159,14 +158,12 @@ class ObjectDialog(QDialog):
 
         self.value = value
 
-        print("Updating "+str(key)+" with "+str(value))
         if remove:
             print("ERROR Object update does not understand remove")
 
         if value["bsonType"]=="array":
             if self.isArray == False:
                 for k in self.arrayFields.keys():
-                    print(str(k)+" adding "+str(self.arrayFields[k]))
                     self.objectSchema["properties"][k]=self.arrayFields[k]
 
                 if not "items" in self.value.keys():
@@ -182,9 +179,6 @@ class ObjectDialog(QDialog):
                 self.objectSchema = copy.deepcopy(self.refSchema)
                 self.isArray = False
 
-
-        print("Key: "+key+" Update schema: "+str(self.objectSchema))
-
         self.draw()
 
     ##
@@ -196,7 +190,6 @@ class ObjectDialog(QDialog):
         #Extract the values from the object
         values = self.subWidget.getValue()
 
-        print("ObjectDialog submitted "+str(values))
         #Try to extract a key from the values. 
 #        try:
         if True:
@@ -204,8 +197,7 @@ class ObjectDialog(QDialog):
             del values["key"]
 
             #If we are an array, create an empty items
-            if values["bsonType"] == "array":
-                print("SSSS OUtput: "+str(values))
+#            if values["bsonType"] == "array":
 #                values["items"]={}
           
             if key != "":
@@ -480,9 +472,6 @@ class SmartWidget(SmartType):
        label.setText(str(self.key)+":")
        self.layout.addWidget( label )
 
-       print("XXXXXXXXX schema:"+str(self.schema))
-
-
        #Check if we have a defined schema
        #If no schema is provided, the value is represented as uneditable text 
        if self.schema == None:
@@ -538,9 +527,6 @@ class SmartWidget(SmartType):
 
               self.ss = self.widget.styleSheet()
 
-              print("Array schema: "+str(self.schema))
-              print("Array value: "+str(self.value))
-
               #If we have a valid schema, render sub-elements
               if self.schema["items"] != None and self.schema["items"] !={}:
 
@@ -565,7 +551,8 @@ class SmartWidget(SmartType):
                              exit()
                              self.valid = False
                   else:
-                      print("~~~~~~~ No value")
+                      pass
+#                      print("~~~~~~~ No value")
 
                   #SDF Need to modify to limit to min and max elements in schema
                   #Add new, empty element
@@ -583,10 +570,8 @@ class SmartWidget(SmartType):
               #If we are not read only, include an add button
               readOnly = False
               try:
-                  print("Trying readOnly")
                   readOnly = self.schema["readOnly"]
               except:
-                  print("readOnly not specified")
                   pass
 
               if not readOnly:
@@ -791,7 +776,6 @@ class SmartWidget(SmartType):
               self.widget.setStyleSheet(self.ss)
               self.valid = True
           elif text !=None:
-              print( "Key:"+self.key+" Req:"+str(self.required)+", text"+str(text))
               print( "Invalid field. Type not "+self.schema["bsonType"])
               self.widget.setAutoFillBackground(True)
               self.widget.setStyleSheet("QLineEdit{background:pink;}")
@@ -936,9 +920,6 @@ class SmartWidget(SmartType):
        except:
            self.schema["properties"][key] = value
 
-
-       print("Updated schema for key "+str(key)+":"+str(self.schema))
-
        self.draw()
 
    ##
@@ -952,9 +933,7 @@ class SmartWidget(SmartType):
        #Add value to schema
 
        #redraw
-       print("Array adding values: "+str(value))
        self.schema["items"]=value
-       print("Updated schema for key "+str(key)+":"+str(self.schema))
   
        self.draw()
 
