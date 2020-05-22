@@ -206,7 +206,7 @@ class ObjectDialog(QDialog):
             #If we are an array, create an empty items
             if values["bsonType"] == "array":
                 print("SSSS OUtput: "+str(values))
-                values["items"]={}
+#                values["items"]={}
           
             if key != "":
                 self.callback(key, values)
