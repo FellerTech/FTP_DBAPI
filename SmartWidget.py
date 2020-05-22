@@ -527,6 +527,9 @@ class SmartWidget(SmartType):
 
               self.ss = self.widget.styleSheet()
 
+              if not "items" in self.schema.keys():
+                  self.schema["items"] = {}
+
               #If we have a valid schema, render sub-elements
               if self.schema["items"] != None and self.schema["items"] !={}:
 
