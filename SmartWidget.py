@@ -833,6 +833,7 @@ class SmartWidget(SmartType):
    def getValue(self):
        #If we are not valid, return No value
        if not self.valid:
+           print(self.key+" is not validated")
            return None
 
        return self.value
