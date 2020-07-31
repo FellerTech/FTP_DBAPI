@@ -24,7 +24,7 @@ class MainWindow( QWidget ):
     ## 
     # \brief Initialization Function
     def __init__(self):
-        super().__init__()
+        super(MainWindow, self).__init__()
 
         #Default variables
         self.valid = False                        #Field to determine if the value is valid
@@ -53,9 +53,15 @@ class MainWindow( QWidget ):
         #Remove all widgets from the current layout
         while self.mainLayout.count():
              item = self.mainLayout.takeAt(0)
+             self.mainLayout.removeItem(item)
              widget = item.widget()
              if widget is not None:
                   widget.deleteLater()
+
+             try:
+                 item.deleteLater()
+             except:
+                 pass
        
         #Create title
         self.titleLayout = QHBoxLayout()
@@ -94,30 +100,64 @@ class MainWindow( QWidget ):
 
         self.mainLayout.addLayout( self.sourceLayout )
 
+        self.valueLayout = QVBoxLayout()
+
+ 
         #If we have data, let's display it
-        if self.sourceValue != None:
+        if self.sourceSchema != None:
         
-            valueLayout = QHBoxLayout()
             valueTitle = QLabel()
-            valueTitle.setText("Value")
+            valueTitle.setText("Schema")
 
-            print("Source value: "+str(self.sourceValue))
-            if self.sourceSchema == None:
-                self.sourceSchema = {"bsonType":"object"}
-
+#            self.sourceSchema = {"bsonType":"object"}
+           
+            print("schema: "+str(self.sourceSchema))
             self.schemaWidget = SmartWidget().init("Schema", self.sourceValue, self.sourceSchema, showSchema = True)
-            valueLayout.addWidget( self.schemaWidget.frame )
-            self.mainLayout.addLayout( valueLayout )
-
-
-        #Add submit Button
-        submitButton = QPushButton("Submit")
-        submitButton.clicked.connect( lambda: self.submitCallback())
-        self.mainLayout.addWidget(submitButton)
-        
-
+            self.valueLayout.addWidget( self.schemaWidget.frame )
+ 
+        self.mainLayout.addLayout( self.valueLayout )
         self.mainLayout.addStretch(1)
+
+        #Add Button Layout
+        self.buttonLayout = QHBoxLayout()
+        submitButton = None
+        if self.sourceSchema != None:
+            #Add submit Button
+            submitButton = QPushButton("Submit")
+            submitButton.clicked.connect( lambda: self.submitCallback())
+            self.buttonLayout.addWidget(submitButton)
+
+        #Add cancel Button
+        cancelButton = QPushButton("Cancel")
+        cancelButton.clicked.connect( lambda: self.cancelCallback())
+        self.buttonLayout.addWidget(cancelButton)
+
+        self.mainLayout.addLayout( self.buttonLayout)
+#        self.mainLayout.addStretch(1)
         self.setLayout( self.mainLayout)
+
+    ##
+    # \brief callback for when the source type changes
+    #
+    def sourceChangeCallback( self ):
+        self.source = self.sourceCombo.itemText(self.sourceCombo.currentIndex())
+
+        if self.source == "none":
+            self.sourceSchema = {"bsonType":"object"}
+
+        #If we are a file  read the file contents as the value
+        elif self.source == "file":
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            self.sourceName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
+            print("Loading: "+str(self.sourceName))
+
+            with open(self.sourceName) as json_file: 
+                self.sourceSchema = json.load(json_file) 
+
+            print("Loaded Schema:"+str(self.sourceSchema))
+
+        self.draw()
 
     ##
     #\brief callback to get result from SmartWidget
@@ -127,33 +167,19 @@ class MainWindow( QWidget ):
     #
     def submitCallback(self):
         schema = self.schemaWidget.getSchema()
+
+        #Use save pop-up to save data
+
         print(str(time.time())+"- schema:")
         print(str(schema))
 
     ##
-    # \brief callback for when the source type changes
-    def sourceChangeCallback( self ):
-        self.source = self.sourceCombo.itemText(self.sourceCombo.currentIndex())
+    # \brief Cancels the change and exits
+    #
+    def cancelCallback(self):
+        print("Exited. No changes were saved")
+        sys.exit(1)   
 
-        if self.source == "none":
-            self.sourceValue = {}
-#            self.sourceValue["key"] = "name"
-#            self.sourceValue["bsonType"] = "object"
-        #If we are a file  read the file contents as the value
-        elif self.source == "file":
-            options = QFileDialog.Options()
-            options |= QFileDialog.DontUseNativeDialog
-            self.sourceName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
-            print("Loading: "+str(self.sourceName))
-
-
-            with open(self.sourceName) as json_file: 
-                self.sourceValue = json.load(json_file) 
-
-        self.draw()
-
-    ##
-    # \brief read the file into a JSON object
     
 
 ##
@@ -272,6 +298,7 @@ class SchemaEditor( QWidget ):
     ##
     # \brief draw all items in the window
     def draw( self ):
+      
         #Remove all widgets from the current layout
         while self.midLayout.count():
              item = self.midLayout.takeAt(0)
@@ -282,10 +309,10 @@ class SchemaEditor( QWidget ):
         
         collection = self.collCombo.currentText()
 
-        s = {"bsonType":"object"}
-        s["properties"] = deepcopy(self.schema)
+#        s = {"bsonType":"object"}
+#        s["properties"] = deepcopy(self.schema)
 
-        self.schemaWidget = SmartWidget().init("schema", self.schema, s, showSchema = True )
+        self.schemaWidget = SmartWidget().init("schema",{}, self.sourceSchema, showSchema = True )
  
         self.midLayout.addWidget(self.schemaWidget.frame)
 
