@@ -1181,7 +1181,12 @@ class unitTestViewer( QWidget ):
 
    def test2SubmitButtonPressEvent(self):
        value = self.test2Widget.getValue()
+       schema = self.test2Widget.getSchema()
+       print()
        print("Value: "+str(value))
+       print()
+       print("Schema: "+str(schema))
+       print()
 
    def submitButtonPressEvent(self):
        testPass = True

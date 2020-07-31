@@ -9,10 +9,164 @@ from collections import OrderedDict
 from copy import deepcopy
 import sys
 
-from PyQt5.QtWidgets import QWidget, QApplication, QFrame, QDesktopWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QComboBox
+from PyQt5.QtWidgets import QWidget, QApplication, QFrame, QDesktopWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QComboBox, QFileDialog, QTextEdit
 
 from ADB import ADB
 from SmartWidget import SmartWidget
+
+##
+# \class provides the main window used by this application. 
+#
+# The main window is the basis for the application. In its simplest state
+# it will have a drop-donw window to allow the user to select the schema 
+# source.
+class MainWindow( QWidget ):
+    ## 
+    # \brief Initialization Function
+    def __init__(self):
+        super().__init__()
+
+        #Default variables
+        self.valid = False                        #Field to determine if the value is valid
+        self.selectorLayout = None                #Layout used for selecting a specific source
+        self.sources = ["none", "text","file","database"]
+        self.source = "none"
+        self.sourceValue = None
+        self.sourceSchema = None
+
+        #Determine screen settings
+        geo         = self.frameGeometry()
+        self.width  = QDesktopWidget().availableGeometry().width();
+        self.height = QDesktopWidget().availableGeometry().height();
+
+        #Define window par meters
+        self.resize(self.width*.5, self.height*.5 )
+        self.setWindowTitle("Aqueti Schema Editor")
+        self.show()
+
+        self.mainLayout = QVBoxLayout()
+        self.draw()
+     
+
+    def draw(self):
+        #Remove existing objects
+        #Remove all widgets from the current layout
+        while self.mainLayout.count():
+             item = self.mainLayout.takeAt(0)
+             widget = item.widget()
+             if widget is not None:
+                  widget.deleteLater()
+       
+        #Create title
+        self.titleLayout = QHBoxLayout()
+        self.titleLayout.addStretch(1)
+        title = QLabel()
+        title.setText("Aqueti Schema Editor")
+        self.titleLayout.addWidget(title)
+        self.titleLayout.addStretch(1)
+        self.mainLayout.addLayout( self.titleLayout )
+
+        #############################################
+        # Layout to select a source
+        #############################################
+        self.sourceLayout = QHBoxLayout()
+        sourceTitle = QLabel()
+        sourceTitle.setText("Schema Source:")
+        self.sourceCombo = QComboBox()
+        self.sourceCombo.addItems(self.sources)
+
+        #Find what our current source is and set the appropriate index
+        index = 0
+        for i in range(0,self.sourceCombo.count()):
+           if self.sourceCombo.itemText(i)  == self.source:
+               index = i
+
+        self.sourceCombo.setCurrentIndex(index)
+#        self.sourceCombo.currentIndexChanged.connect(self.sourceChangeCallback)
+
+        #Add a submitSource Button
+        selectSourceButton = QPushButton("Select")
+        selectSourceButton.clicked.connect( lambda: self.sourceChangeCallback())
+
+        self.sourceLayout.addWidget( sourceTitle )
+        self.sourceLayout.addWidget(self.sourceCombo)
+        self.sourceLayout.addWidget(selectSourceButton)
+
+        self.mainLayout.addLayout( self.sourceLayout )
+
+        #If we have data, let's display it
+        if self.sourceValue != None:
+        
+            valueLayout = QHBoxLayout()
+            valueTitle = QLabel()
+            valueTitle.setText("Value")
+
+            print("Source value: "+str(self.sourceValue))
+            if self.sourceSchema == None:
+                self.sourceSchema = {"bsonType":"object"}
+
+            self.schemaWidget = SmartWidget().init("Schema", self.sourceValue, self.sourceSchema, showSchema = True)
+            valueLayout.addWidget( self.schemaWidget.frame )
+            self.mainLayout.addLayout( valueLayout )
+
+
+        #Add submit Button
+        submitButton = QPushButton("Submit")
+        submitButton.clicked.connect( lambda: self.submitCallback())
+        self.mainLayout.addWidget(submitButton)
+        
+
+        self.mainLayout.addStretch(1)
+        self.setLayout( self.mainLayout)
+
+    ##
+    #\brief callback to get result from SmartWidget
+    #
+    # This function assumes that the schema is done. It will produce a popup
+    # asking where and how to save the data
+    #
+    def submitCallback(self):
+        schema = self.schemaWidget.getSchema()
+        print(str(time.time())+"- schema:")
+        print(str(schema))
+
+    ##
+    # \brief callback for when the source type changes
+    def sourceChangeCallback( self ):
+        self.source = self.sourceCombo.itemText(self.sourceCombo.currentIndex())
+
+        if self.source == "none":
+            self.sourceValue = {}
+#            self.sourceValue["key"] = "name"
+#            self.sourceValue["bsonType"] = "object"
+        #If we are a file  read the file contents as the value
+        elif self.source == "file":
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            self.sourceName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
+            print("Loading: "+str(self.sourceName))
+
+
+            with open(self.sourceName) as json_file: 
+                self.sourceValue = json.load(json_file) 
+
+        self.draw()
+
+    ##
+    # \brief read the file into a JSON object
+    
+
+##
+# \class Widget that allows a user to select a schema from a database
+#
+class DatabaseWindow( QWidget ):
+    def __init__(self):
+        # set default values
+        uriMap = {}
+        self.dbs = []
+        self.dbase = None
+        self.collection = None
+
 
 ##
 # \class This class allows users to edit schemas
@@ -131,14 +285,16 @@ class SchemaEditor( QWidget ):
         s = {"bsonType":"object"}
         s["properties"] = deepcopy(self.schema)
 
-        self.schemaWidget = SmartWidget().init("schema", self.schema, s, updateCallback = widgetCallback, showSchema = True )
+        self.schemaWidget = SmartWidget().init("schema", self.schema, s, showSchema = True )
  
         self.midLayout.addWidget(self.schemaWidget.frame)
 
     ##
     #\brief callback to get result from SmartWidget
-    def widgetCallback(self):
+    def submitCallback(self, key, value):
+        schema = self.schemaWidget.getSchema()
         print("Widget Callback")
+        print(str(schema))
 
     ##
     #\brief Generat aa widget to select a collection
@@ -273,8 +429,9 @@ def main():
     app = QApplication( sys.argv )
 
     print("Creating scheme editor with URI: "+str(uri))
-    window = SchemaEditor()
-    window.init(uri)
+#    window = SchemaEditor()
+#    window.init(uri)
+    window = MainWindow()
 
     sys.exit(app.exec_())
 
