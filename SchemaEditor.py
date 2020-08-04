@@ -9,7 +9,7 @@ from collections import OrderedDict
 from copy import deepcopy
 import sys
 
-from PyQt5.QtWidgets import QWidget, QApplication, QFrame, QDesktopWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QComboBox, QFileDialog, QTextEdit
+from PyQt5.QtWidgets import QWidget, QApplication, QFrame, QDesktopWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QComboBox, QFileDialog, QTextEdit, QMainWindow, QSpacerItem, QSizePolicy
 
 from ADB import ADB
 from SmartWidget import SmartWidget
@@ -30,7 +30,10 @@ class MainWindow( QWidget ):
         self.valid = False                        #Field to determine if the value is valid
         self.selectorLayout = None                #Layout used for selecting a specific source
         self.sources = ["none", "text","file","database"]
-        self.source = "none"
+        self.source = {"type":None}
+        self.dests = ["console", "file"]
+        self.dest = {"type":"console"}
+     
         self.sourceValue = None
         self.sourceSchema = None
 
@@ -44,38 +47,54 @@ class MainWindow( QWidget ):
         self.setWindowTitle("Aqueti Schema Editor")
         self.show()
 
-        self.mainLayout = QVBoxLayout()
+        #create Layouts in UI
+        self.titleLayout  = QHBoxLayout()
+        self.mainLayout   = QVBoxLayout()
+        self.sourceLayout = QHBoxLayout()
+        self.destLayout   = QHBoxLayout()
+        self.valueLayout  = QVBoxLayout()
+        self.buttonLayout = QHBoxLayout()
+
+        #Create title
+        title = QLabel()
+        title.setText("Aqueti Schema Editor")
+        self.titleLayout.addWidget(title)
+
+        #Add Submit Button
+        self.submitButton = QPushButton("Submit")
+        self.submitButton.clicked.connect( lambda: self.submitCallback())
+        self.buttonLayout.addWidget(self.submitButton)
+
+        #Add cancel Button
+        cancelButton = QPushButton("Cancel")
+        cancelButton.clicked.connect( lambda: self.cancelCallback())
+        self.buttonLayout.addWidget(cancelButton)
+
+        #Add Layouts and draw
+        self.mainLayout.addLayout( self.titleLayout )
+        self.mainLayout.addLayout( self.sourceLayout )
+        self.mainLayout.addLayout( self.destLayout)
+        self.mainLayout.addLayout( self.valueLayout )
+        self.mainLayout.addStretch(1)
+        self.mainLayout.addLayout( self.buttonLayout)
         self.draw()
      
-
-    def draw(self):
-        #Remove existing objects
+    ##
+    # \brief updates the source Layout
+    def updateSourceLayout(self):
+        #Remove current layout information
         #Remove all widgets from the current layout
-        while self.mainLayout.count():
-             item = self.mainLayout.takeAt(0)
-             self.mainLayout.removeItem(item)
+        while self.sourceLayout.count():
+             item = self.sourceLayout.takeAt(0)
+             self.sourceLayout.removeItem(item)
              widget = item.widget()
              if widget is not None:
                   widget.deleteLater()
-
              try:
                  item.deleteLater()
              except:
                  pass
-       
-        #Create title
-        self.titleLayout = QHBoxLayout()
-        self.titleLayout.addStretch(1)
-        title = QLabel()
-        title.setText("Aqueti Schema Editor")
-        self.titleLayout.addWidget(title)
-        self.titleLayout.addStretch(1)
-        self.mainLayout.addLayout( self.titleLayout )
 
-        #############################################
-        # Layout to select a source
-        #############################################
-        self.sourceLayout = QHBoxLayout()
         sourceTitle = QLabel()
         sourceTitle.setText("Schema Source:")
         self.sourceCombo = QComboBox()
@@ -84,11 +103,10 @@ class MainWindow( QWidget ):
         #Find what our current source is and set the appropriate index
         index = 0
         for i in range(0,self.sourceCombo.count()):
-           if self.sourceCombo.itemText(i)  == self.source:
-               index = i
+            if self.sourceCombo.itemText(i)  == self.source["type"]:
+                index = i
 
         self.sourceCombo.setCurrentIndex(index)
-#        self.sourceCombo.currentIndexChanged.connect(self.sourceChangeCallback)
 
         #Add a submitSource Button
         selectSourceButton = QPushButton("Select")
@@ -98,9 +116,76 @@ class MainWindow( QWidget ):
         self.sourceLayout.addWidget(self.sourceCombo)
         self.sourceLayout.addWidget(selectSourceButton)
 
-        self.mainLayout.addLayout( self.sourceLayout )
+    ##
+    # \brief updates the destination layout
+    #
+    def updateDestLayout(self):
+        #Remove current layout information
+        #Remove all widgets from the current layout
+        while self.destLayout.count():
+             item = self.destLayout.takeAt(0)
+             self.destLayout.removeItem(item)
+             widget = item.widget()
+             if widget is not None:
+                  widget.deleteLater()
+             try:
+                 item.deleteLater()
+             except:
+                 pass
 
-        self.valueLayout = QVBoxLayout()
+        #############################################
+        # Layout to select a destination
+        #############################################
+        destTitle = QLabel()
+        destTitle.setText("OutputType:")
+        self.destCombo = QComboBox()
+        self.destCombo.addItems(self.dests)
+
+        #Find what our current dest is and set the appropriate index
+        index = 0
+        for i in range(0,self.destCombo.count()):
+           if self.destCombo.itemText(i)  == self.dest["type"]:
+               index = i
+
+        self.destCombo.setCurrentIndex(index)
+
+        self.destLayout.addWidget(destTitle)
+        self.destLayout.addWidget(self.destCombo)
+
+        ####
+        # Fill in details base on dest tpye
+        ####
+        if self.dest["type"] == "console":
+            pass
+        elif self.dest["type"] == "file":
+            fileLabel = QLabel()
+            fileLabel.setText("file: ")
+
+            try:
+                name = self.dest["filename"]
+            except:
+                name = ""
+
+            self.fileNameBox = QTextEdit()
+            self.fileNameBox.setText(name)
+            
+            self.destLayout.addWidget(fileLabel)
+            self.destLayout.addWidget(self.fileNameBox)
+
+    ##
+    # \brief Update the value layout
+    def updateValueLayout(self):
+        #Remove all widgets from the current layout
+        while self.valueLayout.count():
+             item = self.valueLayout.takeAt(0)
+             self.valueLayout.removeItem(item)
+             widget = item.widget()
+             if widget is not None:
+                  widget.deleteLater()
+             try:
+                 item.deleteLater()
+             except:
+                 pass
 
  
         #If we have data, let's display it
@@ -109,50 +194,56 @@ class MainWindow( QWidget ):
             valueTitle = QLabel()
             valueTitle.setText("Schema")
 
-#            self.sourceSchema = {"bsonType":"object"}
-           
-            print("schema: "+str(self.sourceSchema))
             self.schemaWidget = SmartWidget().init("Schema", self.sourceValue, self.sourceSchema, showSchema = True)
             self.valueLayout.addWidget( self.schemaWidget.frame )
- 
-        self.mainLayout.addLayout( self.valueLayout )
-        self.mainLayout.addStretch(1)
 
-        #Add Button Layout
-        self.buttonLayout = QHBoxLayout()
-        submitButton = None
-        if self.sourceSchema != None:
-            #Add submit Button
-            submitButton = QPushButton("Submit")
-            submitButton.clicked.connect( lambda: self.submitCallback())
-            self.buttonLayout.addWidget(submitButton)
+        #Add stretcher
+#        stretcher = QSpacerItem(20,100, QSizePolicy.Expanding)
+#        self.valueLayout.addItem(stretcher)
+        
 
-        #Add cancel Button
-        cancelButton = QPushButton("Cancel")
-        cancelButton.clicked.connect( lambda: self.cancelCallback())
-        self.buttonLayout.addWidget(cancelButton)
+        #Disable the submit button if we don't have a schema
+        if self.sourceSchema == None:
+            self.submitButton.setEnabled(False)
+        else:
+            self.submitButton.setEnabled(True)
+            
 
-        self.mainLayout.addLayout( self.buttonLayout)
-#        self.mainLayout.addStretch(1)
+#        self.mainLayout.addLayout( self.buttonLayout)
         self.setLayout( self.mainLayout)
+
+    ##
+    # \brief redraws all dynamic layouts
+    def draw(self):
+        self.updateDestLayout()
+        self.updateSourceLayout()
+        self.updateValueLayout()
+    
+
 
     ##
     # \brief callback for when the source type changes
     #
     def sourceChangeCallback( self ):
-        self.source = self.sourceCombo.itemText(self.sourceCombo.currentIndex())
+        #Clear the schema to disable the submit button
+        self.sourceSchema = None
 
-        if self.source == "none":
+
+        self.source["type"] = self.sourceCombo.itemText(self.sourceCombo.currentIndex())
+
+        if self.source["type"] == "none":
             self.sourceSchema = {"bsonType":"object"}
 
         #If we are a file  read the file contents as the value
-        elif self.source == "file":
+        elif self.source["type"] == "file":
             options = QFileDialog.Options()
             options |= QFileDialog.DontUseNativeDialog
-            self.sourceName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
-            print("Loading: "+str(self.sourceName))
+            sourceName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
 
-            with open(self.sourceName) as json_file: 
+            self.source["name"] = str(sourceName)
+            print("Loading: "+str(self.source["name"]))
+
+            with open( self.source["name"] ) as json_file: 
                 self.sourceSchema = json.load(json_file) 
 
             print("Loaded Schema:"+str(self.sourceSchema))
@@ -169,9 +260,18 @@ class MainWindow( QWidget ):
         schema = self.schemaWidget.getSchema()
 
         #Use save pop-up to save data
-
+        self.saveWindow = SaveDataWindow(self.source, schema, self.saveCallback )
+     
+     
         print(str(time.time())+"- schema:")
         print(str(schema))
+
+    ##
+    # \brief Function called after data is saved
+    #
+    def saveCallback(self, success):
+         print("Data Result: "+str(success))
+
 
     ##
     # \brief Cancels the change and exits
@@ -180,7 +280,181 @@ class MainWindow( QWidget ):
         print("Exited. No changes were saved")
         sys.exit(1)   
 
-    
+##
+# \brief Class that contains the pop-up window for saving data
+#
+class SaveDataWindow(QWidget):
+    def __init__(self, dest, schema, callback, parent = None ):   
+        super(SaveDataWindow, self).__init__()
+
+        self.dests = ["console", "text","file","database"]
+        self.dest = dest  
+        self.schema = schema
+
+        #Determine screen settings
+        geo         = self.frameGeometry()
+        self.width  = QDesktopWidget().availableGeometry().width();
+        self.height = QDesktopWidget().availableGeometry().height();
+
+        #Define window par meters
+        self.resize(self.width*.5, self.height*.5 )
+        self.setWindowTitle("Aqueti Schema Editor")
+
+        #
+        self.mainLayout = QVBoxLayout()
+        self.titleLayout = QHBoxLayout()
+        self.destLayout = QHBoxLayout()
+ 
+        #Create title
+        title = QLabel()
+        title.setText("Schema Saving Dialog")
+        self.titleLayout.addWidget(title)
+        self.mainLayout.addLayout(self.titleLayout)
+
+        #Destination Layout
+        self.destLayout = QHBoxLayout()
+        self.mainLayout.addLayout(self.destLayout)
+
+        #Add Button Layout
+        self.buttonLayout = QHBoxLayout()
+        self.submitButton = QPushButton("Save")
+        self.submitButton.clicked.connect( lambda: self.saveButtonCallback())
+        self.buttonLayout.addWidget(self.submitButton)
+        cancelButton = QPushButton("Cancel")
+        cancelButton.clicked.connect( lambda: self.cancelButtonCallback())
+        self.buttonLayout.addWidget(cancelButton)
+        self.mainLayout.addLayout( self.buttonLayout)
+        self.setLayout( self.mainLayout)
+        self.show()
+
+        self.updateDestLayout()
+        self.draw()
+
+    ##
+    # \brief updates the destinatino layout
+    #
+    def updateDestLayout(self):
+        #Remove current layout information
+        #Remove all widgets from the current layout
+        while self.destLayout.count():
+             item = self.destLayout.takeAt(0)
+             self.destLayout.removeItem(item)
+             widget = item.widget()
+             if widget is not None:
+                  widget.deleteLater()
+             try:
+                 item.deleteLater()
+             except:
+                 pass
+
+        #############################################
+        # Layout to select a destination
+        #############################################
+        destTitle = QLabel()
+        destTitle.setText("OutputType:")
+        self.destCombo = QComboBox()
+        self.destCombo.addItems(self.dests)
+
+        #Find what our current dest is and set the appropriate index
+        index = 0
+        for i in range(0,self.destCombo.count()):
+           if self.destCombo.itemText(i)  == self.dest["type"]:
+               index = i
+
+        self.destCombo.setCurrentIndex(index)
+
+        self.destLayout.addWidget(destTitle)
+        self.destLayout.addWidget(self.destCombo)
+
+        ####
+        # Fill in details base on source tpye
+        ####
+        if self.dest["type"] == "console":
+            pass
+        elif self.dest["type"] == "file":
+            fileLabel = QLabel()
+            fileLabel.setText("file: ")
+
+            try:
+                name = self.dest["filename"]
+            except:
+                name = ""
+
+            self.fileNameBox = QTextEdit()
+            self.fileNameBox.setText(name)
+            
+            self.destLayout.addWidget(fileLabel)
+            self.destLayout.addWidget(self.fileNameBox)
+
+
+
+    ## 
+    # \brief Function to draw the object
+    def draw(self):
+
+        #Add a submitDest Button
+        selectDestButton = QPushButton("Select")
+        selectDestButton.clicked.connect( lambda: self.destChangeCallback())
+
+        self.destLayout.addWidget( destTitle )
+        self.destLayout.addWidget(self.destCombo)
+        self.destLayout.addWidget(selectDestButton)
+
+        self.destLayout.addLayout( self.destLayout )
+
+
+    ##
+    # \brief function that is called when the source is changed
+    #
+    def destChangeCallback(self):
+        print("Changing dest")
+        newType = self.destCombo.itemText(self.destCombo.currentIndex())
+
+        print("New Type: "+str(newType))
+
+        if newType != self.dest["type"]:
+            self.dest = {}
+
+        self.dest["type"] = newType
+
+        if self.dest["type"] == "console":
+            pass
+        
+        elif self.dest["type"] == "file":
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            destName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
+
+            self.dest["filename"] = str(destName)
+
+        else:
+            print("Unsupported Type")
+
+        self.draw()
+
+    ##
+    # \brief callback for the Cancel button
+    #
+    def cancelButtonCallback(self):
+        self.close()
+
+    ##
+    # \brief callback for a save button press
+    #
+    def saveButtonCallback(self):   
+        if self.dest["type"] == "console":
+            print()
+            print("Schema ("+str(time.time())+")")
+            print(str(self.schema))
+
+        elif self.dest["type"] == "file":
+            with open( self.dest["filename"], 'w' ) as outfile: 
+                json.dump(self.schema, outfile)
+
+        else:
+             print("Source type: "+str(self.dest["type"])+" is not currently supported")
+
+        self.close()
 
 ##
 # \class Widget that allows a user to select a schema from a database
@@ -192,249 +466,6 @@ class DatabaseWindow( QWidget ):
         self.dbs = []
         self.dbase = None
         self.collection = None
-
-
-##
-# \class This class allows users to edit schemas
-#
-class SchemaEditor( QWidget ):
-    def __init__(self):
-        
-        uriMap = {}
-        self.dbs = []
-        self.dbase = None
-        self.collection = None
-
-        #This defines the informatiaon needed for an object.
-        #The enums for the bsonType of the properties is added programmatically 
-        #after the defintion
-        self.objectSchema = {}
-        self.objectSchema["bsonType"]="object"
-        self.objectSchema["properties"]={}
-        self.objectSchema["properties"]["bsonType"]={}
-        self.objectSchema["properties"]["bsonType"]["description"] = "base type for the variable"
-        self.objectSchema["properties"]["bsonType"]["enum"]=SmartWidget().types
-
-        #This defines the information needed for an array
-        #The enums for the bsonType of the items is added programmatically 
-        #after the defintion
-        self.arraySchema = {}
-        self.arraySchema["bsonType"] = "object"
-        self.arraySchema["minItems"] = {}
-        self.arraySchema["minItems"]["bsonType"] = "int"
-        self.arraySchema["minItems"]["description"] = "minimum number of items required"
-        self.arraySchema["maxItems"] = {}
-        self.arraySchema["maxItems"]["bsonType"] = "int"
-        self.arraySchema["maxItems"]["description"] = "maximum number of items allowed"
-        self.arraySchema["properties"] = {}
-        self.arraySchema["properties"]["bsonType"]={}
-        self.arraySchema["properties"]["bsonType"]["description"] = "base type for object"
-        self.arraySchema["properties"]["bsonType"]["enum"] = SmartWidget().types
-
-
-    def init( self, uri ):
-        print("Initializing")
-        #URI Value
-        self.adb = ADB(uri)
-
-        super().__init__()
-
-        #Determine screen settings
-        geo         = self.frameGeometry()
-        self.width  = QDesktopWidget().availableGeometry().width();
-        self.height = QDesktopWidget().availableGeometry().height();
-
-        #Define window par meters
-        self.resize(self.width*.5, self.height*.5 )
-        self.setWindowTitle("Aqueti Schema Editor")
-        self.show()
-
-        self.mainLayout = QVBoxLayout()
-
-        #Create title
-        self.titleLayout = QHBoxLayout()
-        self.titleLayout.addStretch(1)
-        title = QLabel()
-        title.setText("Aqueti Schema Editor")
-        self.titleLayout.addWidget(title)
-        self.titleLayout.addStretch(1)
-        self.mainLayout.addLayout( self.titleLayout )
-
-        #create the selector layout (allow user to select database / collection)
-        self.dbFrame = QFrame()
-        self.dbFrame.setLayout(self.genDBSelectorWidget())
-        self.collFrame = QFrame()
-        self.collFrame.setLayout( self.genCollSelectorWidget())
-
-        selectorFrame = QFrame()
-        selectorLayout = QHBoxLayout()
-        selectorLayout.addWidget( self.dbFrame)
-        selectorLayout.addWidget( self.collFrame)
-
-        self.mainLayout.addLayout(selectorLayout)
-        
-        #The middle section will have a scroll area
-        scrollArea = QScrollArea()
-        scrollWidget = QWidget()
-
-        scrollArea.setWidget(scrollWidget)
-        scrollArea.setWidgetResizable(True)
-
-        scrollLayout = QVBoxLayout()
-        scrollLayout.addWidget(scrollArea)
-        #Create a middle section
-        self.midLayout = QVBoxLayout()
-        scrollWidget.setLayout(self.midLayout)
-        self.mainLayout.addLayout( scrollLayout )
-
-        #submitButton
-        submitButton = QPushButton("Submit")
-        submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
-        self.mainLayout.addWidget(submitButton)
-
-        self.setLayout( self.mainLayout)
-        print("Finishing init")
-
-    ##
-    # \brief draw all items in the window
-    def draw( self ):
-      
-        #Remove all widgets from the current layout
-        while self.midLayout.count():
-             item = self.midLayout.takeAt(0)
-             widget = item.widget()
-             if widget is not None:
-                  widget.deleteLater()
-       
-        
-        collection = self.collCombo.currentText()
-
-#        s = {"bsonType":"object"}
-#        s["properties"] = deepcopy(self.schema)
-
-        self.schemaWidget = SmartWidget().init("schema",{}, self.sourceSchema, showSchema = True )
- 
-        self.midLayout.addWidget(self.schemaWidget.frame)
-
-    ##
-    #\brief callback to get result from SmartWidget
-    def submitCallback(self, key, value):
-        schema = self.schemaWidget.getSchema()
-        print("Widget Callback")
-        print(str(schema))
-
-    ##
-    #\brief Generat aa widget to select a collection
-    def genCollSelectorWidget(self):
-        self.dbase = self.dbCombo.currentText()
-        print("Using :"+self.dbase)
-        self.adb.setDatabase( self.dbase )
-
-        #the database to use
-        self.collLayout = QHBoxLayout()
-        info = QLabel()
-        info.setText("Collection")
-
-        self.collCombo = QComboBox()
-        self.collCombo.addItems( self.adb.getCollections())
-
-        print("Getting collections for "+self.dbase)
-
-        submitButton = QPushButton("UpdateColl")
-        submitButton.clicked.connect( lambda: self.updateCollButtonPressEvent())
-
-        self.collLayout.addWidget(info)
-        self.collLayout.addWidget(self.collCombo)
-        self.collLayout.addWidget(submitButton)
-
-        self.collLayout.addStretch(1)
-        return self.collLayout
-
-    ##
-    # \brief Generate the database selector widget
-    def genDBSelectorWidget(self):
-        #the database to use
-        self.dbLayout = QHBoxLayout()
-        info = QLabel()
-        info.setText("Database")
-
-        self.dbCombo = QComboBox()
-        self.dbCombo.addItems( self.adb.getDatabaseList())
-
-        submitButton = QPushButton("UpdateDB")
-        submitButton.clicked.connect( lambda: self.updateDBButtonPressEvent())
-#        self.dbLayout.addWidget(submitButton)
-
-        self.dbLayout.addWidget(info)
-        self.dbLayout.addWidget(self.dbCombo)
-        self.dbLayout.addWidget(submitButton)
-#        self.dbLayout.addStretch(1)
-
-        return self.dbLayout
-
-    ##
-    # \brief handles database updates
-    def updateCollButtonPressEvent(self):
-        value = self.collCombo.currentText()
-        if self.collection == value:
-            print("collections match")
-        else:
-            self.collection = value    
-            print("Collection: "+str(self.collection))
-  
-         
-            try:
-                self.schema = self.adb.getSchema(self.collection)
-#                self.value  = self.adb.getValue( self.collection )
-
-                print("Got schema: "+str(self.schema))
-            except:
-                print("No schema found for collection "+str(self.collection))
-                self.schema = {}
-
-            self.draw()
-
-    ##
-    # \brief handles database updates
-    def updateDBButtonPressEvent(self):
-        value = self.dbCombo.currentText()
-        if self.dbase == value:
-            print("Databases match")
-        else:
-            print("Setting database to "+value )
-            self.dbase = value
-            self.adb.setDatabase( self.dbase )
-            self.collCombo.clear()
-            self.collCombo.addItems( self.adb.getCollections())
-
-            self.collection = self.collCombo.currentText()
-            self.schema = self.adb.getSchema(self.collection)
-
-            print("Got schema2: "+str(self.schema))
-
-
-            self.draw()
-
-    ##
-    # \brief handless a submit button event
-    def submitButtonPressEvent(self):
-        print("Submission")
-        try:
-            schema = self.schemaWidget.getSchema()
-            value  = self.schemaWidget.getValue()
-            result = self.adb.setSchema( self.collection, schema["properties"] )
-            print("output schema:"+str(schema))
-        except:
-            result = False
-        
-        if not result:
-            print("Failed to set schema")
-        else:
-            print("Schema set")
-      
-        
-        self.close()
-
 
 
 def main():
