@@ -55,6 +55,17 @@ class MainWindow( QWidget ):
         self.valueLayout  = QVBoxLayout()
         self.buttonLayout = QHBoxLayout()
 
+        #Create frames
+        self.sourceFrame = QFrame()
+        self.destFrame   = QFrame()
+        self.valueFrame  = QFrame()
+        self.sourceFrame.setFrameStyle(QFrame.Box)
+        self.destFrame.setFrameStyle(QFrame.Box)
+
+        self.sourceFrame.setLayout(self.sourceLayout)
+        self.destFrame.setLayout(self.destLayout)
+        self.valueFrame.setLayout(self.valueLayout)
+
         #Create title
         title = QLabel()
         title.setText("Aqueti Schema Editor")
@@ -72,9 +83,12 @@ class MainWindow( QWidget ):
 
         #Add Layouts and draw
         self.mainLayout.addLayout( self.titleLayout )
-        self.mainLayout.addLayout( self.sourceLayout )
-        self.mainLayout.addLayout( self.destLayout)
-        self.mainLayout.addLayout( self.valueLayout )
+#        self.mainLayout.addLayout( self.sourceLayout )
+#        self.mainLayout.addLayout( self.destLayout)
+#        self.mainLayout.addLayout( self.valueLayout )
+        self.mainLayout.addWidget( self.sourceFrame )
+        self.mainLayout.addWidget( self.destFrame )
+        self.mainLayout.addWidget( self.valueFrame )
         self.mainLayout.addStretch(1)
         self.mainLayout.addLayout( self.buttonLayout)
         self.draw()
@@ -96,7 +110,7 @@ class MainWindow( QWidget ):
                  pass
 
         sourceTitle = QLabel()
-        sourceTitle.setText("Schema Source:")
+        sourceTitle.setText("Source:")
         self.sourceCombo = QComboBox()
         self.sourceCombo.addItems(self.sources)
 
@@ -137,7 +151,7 @@ class MainWindow( QWidget ):
         # Layout to select a destination
         #############################################
         destTitle = QLabel()
-        destTitle.setText("OutputType:")
+        destTitle.setText("Destination:")
         self.destCombo = QComboBox()
         self.destCombo.addItems(self.dests)
 
