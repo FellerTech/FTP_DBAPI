@@ -71,6 +71,23 @@ class MainWindow( QWidget ):
         title.setText("Aqueti Schema Editor")
         self.titleLayout.addWidget(title)
 
+        #Add persistent source items
+        sourceTitle = QLabel()
+        sourceTitle.setText("Source:")
+        self.sourceCombo = QComboBox()
+        self.sourceCombo.addItems(self.sources)
+        self.sourceCombo.currentTextChanged.connect(lambda: self.sourceChangeCallback())
+        selectSourceButton = QPushButton("Load")
+#        selectSourceButton.clicked.connect( lambda: self.sourceChangeCallback())
+        self.sourceLayout.addWidget( sourceTitle )
+        self.sourceLayout.addWidget(self.sourceCombo)
+
+        self.sourceMetaLayout = QHBoxLayout()
+        self.sourceMetaLayout.setSizeConstraint(QHBoxLayout.SetMinimumSize)
+#        self.sourceMetaLayout.addStretch(1)
+        self.sourceLayout.addLayout(self.sourceMetaLayout)
+        self.sourceLayout.addWidget(selectSourceButton)
+
         #Add Submit Button
         self.submitButton = QPushButton("Submit")
         self.submitButton.clicked.connect( lambda: self.submitCallback())
@@ -83,9 +100,6 @@ class MainWindow( QWidget ):
 
         #Add Layouts and draw
         self.mainLayout.addLayout( self.titleLayout )
-#        self.mainLayout.addLayout( self.sourceLayout )
-#        self.mainLayout.addLayout( self.destLayout)
-#        self.mainLayout.addLayout( self.valueLayout )
         self.mainLayout.addWidget( self.sourceFrame )
         self.mainLayout.addWidget( self.destFrame )
         self.mainLayout.addWidget( self.valueFrame )
@@ -98,9 +112,9 @@ class MainWindow( QWidget ):
     def updateSourceLayout(self):
         #Remove current layout information
         #Remove all widgets from the current layout
-        while self.sourceLayout.count():
-             item = self.sourceLayout.takeAt(0)
-             self.sourceLayout.removeItem(item)
+        while self.sourceMetaLayout.count():
+             item = self.sourceMetaLayout.takeAt(0)
+             self.sourceMetaLayout.removeItem(item)
              widget = item.widget()
              if widget is not None:
                   widget.deleteLater()
@@ -108,11 +122,6 @@ class MainWindow( QWidget ):
                  item.deleteLater()
              except:
                  pass
-
-        sourceTitle = QLabel()
-        sourceTitle.setText("Source:")
-        self.sourceCombo = QComboBox()
-        self.sourceCombo.addItems(self.sources)
 
         #Find what our current source is and set the appropriate index
         index = 0
@@ -122,13 +131,34 @@ class MainWindow( QWidget ):
 
         self.sourceCombo.setCurrentIndex(index)
 
-        #Add a submitSource Button
-        selectSourceButton = QPushButton("Select")
-        selectSourceButton.clicked.connect( lambda: self.sourceChangeCallback())
+        #Add fields based on source type
+        if self.source["type"] == "file":
+            #Add filename
+            fileLabel = QLabel()
+            fileLabel.setText("file: ")
 
-        self.sourceLayout.addWidget( sourceTitle )
-        self.sourceLayout.addWidget(self.sourceCombo)
-        self.sourceLayout.addWidget(selectSourceButton)
+            try:
+                name = self.source["filename"]
+            except:
+                name = ""
+
+            self.sourceFilenameBox = QTextEdit()
+            self.sourceFilenameBox.setText(name)
+#            self.sourceFilenameBox.readOnly = True
+#            self.sourceFilenameBox.sizeHint()
+#            self.sourceFilenameBox.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+ 
+            self.sourceMetaLayout.addWidget(fileLabel)
+            self.sourceMetaLayout.addWidget(self.sourceFilenameBox)
+            
+
+#        #Add a submitSource Button
+#        selectSourceButton = QPushButton("Load")
+#        selectSourceButton.clicked.connect( lambda: self.sourceChangeCallback())
+
+#        self.sourceLayout.addWidget(selectSourceButton)
+
+#        self.sourceLayout.addStretch(1)
 
     ##
     # \brief updates the destination layout
@@ -151,7 +181,7 @@ class MainWindow( QWidget ):
         # Layout to select a destination
         #############################################
         destTitle = QLabel()
-        destTitle.setText("Destination:")
+        destTitle.setText("Dest:")
         self.destCombo = QComboBox()
         self.destCombo.addItems(self.dests)
 
@@ -165,6 +195,7 @@ class MainWindow( QWidget ):
 
         self.destLayout.addWidget(destTitle)
         self.destLayout.addWidget(self.destCombo)
+        self.destLayout.addStretch(1)
 
         ####
         # Fill in details base on dest tpye
@@ -211,19 +242,12 @@ class MainWindow( QWidget ):
             self.schemaWidget = SmartWidget().init("Schema", self.sourceValue, self.sourceSchema, showSchema = True)
             self.valueLayout.addWidget( self.schemaWidget.frame )
 
-        #Add stretcher
-#        stretcher = QSpacerItem(20,100, QSizePolicy.Expanding)
-#        self.valueLayout.addItem(stretcher)
-        
-
         #Disable the submit button if we don't have a schema
         if self.sourceSchema == None:
             self.submitButton.setEnabled(False)
         else:
             self.submitButton.setEnabled(True)
-            
 
-#        self.mainLayout.addLayout( self.buttonLayout)
         self.setLayout( self.mainLayout)
 
     ##
@@ -239,10 +263,11 @@ class MainWindow( QWidget ):
     # \brief callback for when the source type changes
     #
     def sourceChangeCallback( self ):
+
+        #SDF Add popup to notify of schema loss
+
         #Clear the schema to disable the submit button
         self.sourceSchema = None
-
-
         self.source["type"] = self.sourceCombo.itemText(self.sourceCombo.currentIndex())
 
         if self.source["type"] == "none":
@@ -254,15 +279,16 @@ class MainWindow( QWidget ):
             options |= QFileDialog.DontUseNativeDialog
             sourceName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
 
-            self.source["name"] = str(sourceName)
-            print("Loading: "+str(self.source["name"]))
+            self.source["filename"] = str(sourceName)
+            print("Loading: "+str(self.source["filename"]))
 
-            with open( self.source["name"] ) as json_file: 
+            with open( self.source["filename"] ) as json_file: 
                 self.sourceSchema = json.load(json_file) 
 
             print("Loaded Schema:"+str(self.sourceSchema))
 
-        self.draw()
+        self.updateSourceLayout()
+        self.updateValueLayout()
 
     ##
     #\brief callback to get result from SmartWidget
@@ -273,9 +299,22 @@ class MainWindow( QWidget ):
     def submitCallback(self):
         schema = self.schemaWidget.getSchema()
 
+        if self.dest["type"] == "console":
+            print()
+            print("Schema: ("+str(time.time())+")")
+            print(json.dumps(schema))
+
+        elif self.dest["type"] == "file":
+            with open( self.dest["filename"], 'w' ) as outfile: 
+                json.dump(schema, outfile)
+        else:
+             print("Source type: "+str(self.dest["type"])+" is not currently supported")
+
+        self.close()
+
         #Use save pop-up to save data
-        self.saveWindow = SaveDataWindow(self.source, schema, self.saveCallback )
-     
+        #self.saveWindow = SaveDataWindow(self.source, schema, self.saveCallback )
+
      
         print(str(time.time())+"- schema:")
         print(str(schema))
@@ -464,7 +503,6 @@ class SaveDataWindow(QWidget):
         elif self.dest["type"] == "file":
             with open( self.dest["filename"], 'w' ) as outfile: 
                 json.dump(self.schema, outfile)
-
         else:
              print("Source type: "+str(self.dest["type"])+" is not currently supported")
 
