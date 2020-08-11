@@ -11,6 +11,7 @@ import time #SDF temp
 from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget, QLabel, QLineEdit, QFrame, QDialog, QComboBox, QRadioButton, QCheckBox, QScrollArea
 from PyQt5.QtCore import pyqtSlot
 from SmartType import SmartType
+import json
 
 #Global comparator
 #compare = lambda x, y: collections.Counter(x) == collections.Counter(y)
@@ -538,7 +539,8 @@ class SmartWidget(SmartType):
                       for item in self.value:
                          if True:
 #SDF                      try:
-                            subWidget = SmartWidget().init("item: "+str(count), item, self.schema["items"], self.update)
+#                            subWidget = SmartWidget().init("item: "+str(count), item, self.schema["items"], self.update)
+                            subWidget = SmartWidget().init(str(count), item, self.schema["items"], self.update)
                          else:
 #                         except:
                             self.valid = False
@@ -559,7 +561,8 @@ class SmartWidget(SmartType):
 
                   #SDF Need to modify to limit to min and max elements in schema
                   #Add new, empty element
-                  subWidget = SmartWidget().init("item: "+str(count), self.value, self.schema["items"], self.update )
+#                  subWidget = SmartWidget().init("item: "+str(count), self.value, self.schema["items"], self.update )
+                  subWidget = SmartWidget().init(str(count), self.value, self.schema["items"], self.update )
                   if subWidget == False:
                       print("Failed to create array widget for "+str(self.key))
 
@@ -952,17 +955,39 @@ class SmartWidget(SmartType):
    def update( self, key, value, remove=False):
        self.valueChanged = True
 
-       #Remove object
+       #Remove value/schema from the current array
        if remove:
            print("Removing item "+str(key)+" of type: "+str(self.type))
 
+
+           #Try to remove schema and value references from an object
            if self.type == "object":
+               #remove value reference
                try:
                    del self.value[key]
                except:
-                   print(str(key)+" is not in "+self.key+": "+str(self.value))
-           elif isinstance( self.value, dict ):
-               self.value.pop(key)
+                   print("AAA"+str(key)+" is not a value in "+self.key+": "+str(self.value))
+
+
+               #remove schema reference
+               readOnly = False
+               try:
+                   readOnly = self.schema["readOnly"]
+               except:
+                   pass
+               if not readOnly:
+                   try:
+                       del self.schema["properties"][key]
+                   except:
+                       print(str(key)+" is not in "+self.key+": "+str(self.schema["properties"]))
+
+           #Try to remove schema and value references from an array
+           elif self.type == "array":
+               print("PROCESSING ARRAY")
+
+               index = int(key)
+               del self.value[index]
+ 
            else:
                print("Cannot remove item from unknown type: "+str(self.type))
 
@@ -978,6 +1003,7 @@ class SmartWidget(SmartType):
            if self.value == None:
                self.value = {}
 
+           """
            #Check if we actually change the value
            try:
                #This if the key is already in value and its value matched, no change
@@ -991,6 +1017,10 @@ class SmartWidget(SmartType):
            #The exception occures when the key did not exist
            except:
                self.value[key] = value
+           """
+
+           print("Setting value for: "+str(key)+" to: "+str(value))
+           self.value[key] = value
 
        #Array processing
        elif self.schema["bsonType"] == "array":
@@ -1000,10 +1030,10 @@ class SmartWidget(SmartType):
            if self.value == None:
                self.value = []
            
-           index = key[len("item:"):]
+           index = str(key)
 
            try:
-               self.value[int(index)] = str(value)
+               self.value[key] = str(value)
            except:
                self.value.append(value)
 
@@ -1018,6 +1048,7 @@ class SmartWidget(SmartType):
        elif self.initialized == True and self.valueChanged == True:
            self.updateCallback( self.key, self.value)
        else:
+           print("No change for "+str(self.key))
            #No changes to the current value, carry on
            pass
 

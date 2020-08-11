@@ -192,6 +192,7 @@ class MainWindow( QWidget ):
                index = i
 
         self.destCombo.setCurrentIndex(index)
+        self.destCombo.currentTextChanged.connect(lambda: self.destChangeCallback())
 
         self.destLayout.addWidget(destTitle)
         self.destLayout.addWidget(self.destCombo)
@@ -217,6 +218,34 @@ class MainWindow( QWidget ):
             self.destLayout.addWidget(fileLabel)
             self.destLayout.addWidget(self.fileNameBox)
 
+    ##
+    # \brief function that is called when the source is changed
+    #
+    def destChangeCallback(self):
+        print("Changing dest")
+        newType = self.destCombo.itemText(self.destCombo.currentIndex())
+
+        print("New Type: "+str(newType))
+
+        if newType != self.dest["type"]:
+            self.dest = {}
+
+        self.dest["type"] = newType
+
+        if self.dest["type"] == "console":
+            pass
+        
+        elif self.dest["type"] == "file":
+            options = QFileDialog.Options()
+            options |= QFileDialog.DontUseNativeDialog
+            destName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
+
+            self.dest["filename"] = str(destName)
+
+        else:
+            print("Unsupported Type")
+
+        self.draw()
     ##
     # \brief Update the value layout
     def updateValueLayout(self):
@@ -302,11 +331,12 @@ class MainWindow( QWidget ):
         if self.dest["type"] == "console":
             print()
             print("Schema: ("+str(time.time())+")")
-            print(json.dumps(schema))
+            print(json.dumps(schema, indent=4))
 
         elif self.dest["type"] == "file":
+            print("Writing to: "+str(self.dest["filename"]))
             with open( self.dest["filename"], 'w' ) as outfile: 
-                json.dump(schema, outfile)
+                json.dump(schema, outfile, indent=4)
         else:
              print("Source type: "+str(self.dest["type"])+" is not currently supported")
 
@@ -447,7 +477,7 @@ class SaveDataWindow(QWidget):
 
         #Add a submitDest Button
         selectDestButton = QPushButton("Select")
-        selectDestButton.clicked.connect( lambda: self.destChangeCallback())
+        selectDestButton.currentIndexChanged.connect( lambda: self.destChangeCallback())
 
         self.destLayout.addWidget( destTitle )
         self.destLayout.addWidget(self.destCombo)
@@ -456,34 +486,6 @@ class SaveDataWindow(QWidget):
         self.destLayout.addLayout( self.destLayout )
 
 
-    ##
-    # \brief function that is called when the source is changed
-    #
-    def destChangeCallback(self):
-        print("Changing dest")
-        newType = self.destCombo.itemText(self.destCombo.currentIndex())
-
-        print("New Type: "+str(newType))
-
-        if newType != self.dest["type"]:
-            self.dest = {}
-
-        self.dest["type"] = newType
-
-        if self.dest["type"] == "console":
-            pass
-        
-        elif self.dest["type"] == "file":
-            options = QFileDialog.Options()
-            options |= QFileDialog.DontUseNativeDialog
-            destName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
-
-            self.dest["filename"] = str(destName)
-
-        else:
-            print("Unsupported Type")
-
-        self.draw()
 
     ##
     # \brief callback for the Cancel button
@@ -495,6 +497,9 @@ class SaveDataWindow(QWidget):
     # \brief callback for a save button press
     #
     def saveButtonCallback(self):   
+        print("Saving:"+str(self.dest))
+
+
         if self.dest["type"] == "console":
             print()
             print("Schema ("+str(time.time())+")")
