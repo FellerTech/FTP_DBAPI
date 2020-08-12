@@ -142,7 +142,7 @@ class ObjectDialog(QDialog):
         self.layout.addWidget(title)
 
         #create a new smart widget based on the object schema without a value
-        self.subWidget = SmartWidget().init("New Object", self.value, self.objectSchema, self.update, showSchema=True)
+        self.subWidget = SmartWidget().init("New Object", self.value, self.objectSchema, self.update, showSchema = self.showSchema)
   
         #Return on failure
         if self.subWidget == False:
@@ -349,7 +349,7 @@ class SmartWidget(SmartType):
    #  The updateCallback isn't assigned until the last step to allow the validate
    #  function to be called before updates can occur.
    #
-   def init(self, key, value, schema = None, updateCallback=None, showSchema = True):
+   def init(self, key, value, schema = None, updateCallback=None, showSchema = False ):
        self.showSchema     = showSchema
        self.updateCallback = updateCallback
        self.required       = False
@@ -368,7 +368,6 @@ class SmartWidget(SmartType):
        self.frame.setLineWidth(1)
 
        self.valid = False 
-       self.showSchema = showSchema
 
        if value == {}:
            value = None
@@ -475,7 +474,7 @@ class SmartWidget(SmartType):
                          if True:
 #SDF                      try:
 #                            subWidget = SmartWidget().init("item: "+str(count), item, self.schema["items"], self.update)
-                            subWidget = SmartWidget().init(str(count), item, self.schema["items"], self.update)
+                            subWidget = SmartWidget().init(str(count), item, self.schema["items"], self.update, showSchema = self.showSchema)
                          else:
 #                         except:
                             self.valid = False
@@ -663,13 +662,6 @@ class SmartWidget(SmartType):
                typeLabel = QLabel()  
                typeLabel.setText( "type:"+str(self.schema["bsonType"]))
                self.layout.addWidget( typeLabel )
-      
-           """
-           if "required" in self.schema:
-               reqCheck = QCheckBox("required")
-               reqCheck.setChecked(self.schema["required"])
-               self.layout.addWidget( reqCheck )
-           """
 
            descLabel = QLabel()  
            if "description" in self.schema:

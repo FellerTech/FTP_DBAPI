@@ -143,6 +143,7 @@ class MainWindow( QWidget ):
                 name = ""
 
             self.sourceFilenameBox = QTextEdit()
+            self.sourceFilenameBox.setSizePolicy( QSizePolicy.Expanding, QSizePolicy.Maximum)
             self.sourceFilenameBox.setText(name)
 #            self.sourceFilenameBox.readOnly = True
 #            self.sourceFilenameBox.sizeHint()
@@ -268,7 +269,7 @@ class MainWindow( QWidget ):
             valueTitle = QLabel()
             valueTitle.setText("Schema")
 
-            self.schemaWidget = SmartWidget().init("Schema", self.sourceValue, self.sourceSchema, showSchema = True)
+            self.schemaWidget = SmartWidget().init("Schema", self.sourceValue, self.sourceSchema, showSchema=False)
             self.valueLayout.addWidget( self.schemaWidget.frame )
 
         #Disable the submit button if we don't have a schema
