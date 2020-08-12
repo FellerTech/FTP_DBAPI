@@ -67,6 +67,8 @@ class ObjectDialog(QDialog):
         self.refSchema["properties"]["bsonType"]={}
         self.refSchema["properties"]["bsonType"]["description"]="base type for the variable"
         self.refSchema["properties"]["bsonType"]["enum"] = SmartType.types
+#SDf add enum support
+        self.refSchema["properties"]["bsonType"]["enum"].append("enum")
         self.refSchema["properties"]["description"]={}
         self.refSchema["properties"]["description"]["bsonType"]="string"
         self.refSchema["properties"]["required"]={}
@@ -92,6 +94,25 @@ class ObjectDialog(QDialog):
         self.arrayFields["items"]["properties"]["bsonType"]["description"]="Maximum number of items in array"
         self.arrayValues = {"bsonType":"int"}
 
+
+        #"schema":{"key":{"enum":["e1","e2"], "bsonType":"string"}}}
+
+        self.enumFields = {}
+        self.enumFields["values"] = {}
+        self.enumFields["values"]["bsonType"] = "object"
+        self.enumFields["values"]["properties"] = {}
+        self.enumFields["values"]["properties"]["bsonType"] = {}
+        self.enumFields["values"]["properties"]["bsonType"]["enum"] = SmartType.types
+        self.enumFields["values"]["properties"]["bsonType"]["description"] = "Types of values in the array"
+
+        self.enumFields["values"]["properties"]["items"] = {}
+        self.enumFields["values"]["properties"]["items"]["bsonType"] = "array"
+        self.enumFields["values"]["properties"]["items"]["items"] = {}
+        self.enumFields["values"]["properties"]["items"]["items"]["bsonType"] = "string"
+
+
+
+        
 
         #The Object Dialog will use a Vertical layout. 
         self.layout = QVBoxLayout()
@@ -145,7 +166,6 @@ class ObjectDialog(QDialog):
         self.layout.addWidget( controlFrame)
         self.setLayout(self.layout)
 
-#        self.drawing = False
     ##
     #  \brief handles an update of the subwidget. 
     #  \param [in] key name of the child
@@ -153,11 +173,15 @@ class ObjectDialog(QDialog):
     #
     # This function is a callback used to update the value of a subwidget. It
     # is used in this class to change the options for array sub-types
-    def update( self, key, value, remove=False):
+    def update( self, key, value, schema=None, remove=False):
         if not self.initialized:
             return
 
         self.value = value
+
+        if schema != None:
+            print("New Schema: "+json.dumps(schema, indent=4))
+            exit(1)
 
         if remove:
             print("ERROR Object update does not understand remove")
@@ -174,6 +198,27 @@ class ObjectDialog(QDialog):
                     self.value["items"]["bsonType"] = "string"
 
                 self.isArray = True
+            
+        #SDF
+        #Add enum support
+        elif value["bsonType"]=="enum":
+
+            if self.isArray == False:
+                for k in self.enumFields.keys():
+                    self.objectSchema["properties"][k]= copy.deepcopy(self.enumFields[k])
+
+                #SDF
+                if not "items" in self.value.keys():
+                    self.value["items"] = {}
+                    self.value["items"]["bsonType"] = "string"
+                elif not "bsonType" in self.value["items"]:
+                    self.value["items"]["bsonType"] = "string"
+                #END SDF
+
+                self.isArray = True
+
+        #End SDF
+           
         else:
             if self.isArray == True:
                 print("Changing array "+str(key)+" to refsChema:"+str(value))
@@ -189,148 +234,35 @@ class ObjectDialog(QDialog):
     #
     def submitButtonPressEvent(self):
         #Extract the values from the object
-        values = self.subWidget.getValue()
+        value = self.subWidget.getValue()
+#        schema = self.subWidget.getSchema()
 
-        #Try to extract a key from the values. 
-#        try:
-        if True:
-            key = values["key"]
-            del values["key"]
+        #If we are an enum, construct a schema
+        #"enums":[{"value":{"key":"test"}, "schema":{"key":{"enum":["e1","e2"], "bsonType":"string"}}}
+        if value["bsonType"] == "enum":
+            key = value["key"]
+            schema = {}
+            schema["enum"] = value["values"]["items"] 
+            schema["bsonType"] = value["values"]["bsonType"]
 
-            #If we are an array, create an empty items
-#            if values["bsonType"] == "array":
-#                values["items"]={}
-          
-            if key != "":
-                self.callback(key, values)
-            else:
-               print("Invalid key!. Unable to update")
-#        except:
-        else:
-            print("Error: No key value entered. Cancelling")
+            self.callback(key, schema)
 
+        else:         
+            #Try to extract a key from the values. 
+            try:
+                key = value["key"]
+                del value["key"]
+
+                if key != "":
+                    self.callback(key, value)
+                else:
+                   print("Invalid key!. Unable to update")
+             
+            except:
+                print("Error: No key value entered. Canceling")
 
     
         self.done(True)
-"""
-##
-# \brief dialog for adding an element to an array
-# This class creates a pop-up window that allows users to add an element 
-# to an array. 
-#
-class ArrayDialog(QDialog):
-    ##
-    #\brief Initialization function for the object dialog
-    #\param [in] callback callback for the submit function
-    def __init__(self, callback):
-        super().__init__()
-
-        self.callback = callback
-
-        #The schema for an object is defined here. It determines what fields 
-        #show up in the dialog box
-        #The enums for the bsonType of the properties is added programmatically 
-        #after the defintion
-        self.arraySchema = {}
-        self.arraySchema["bsonType"] =  "array"
-        self.arraySchema["readOnly"] =  True
-        self.arraySchema["required"] = ["key", "bsonType"]
-        self.arraySchema["properties"]={}
-        self.arraySchema["properties"]["key"]={}
-        self.arraySchema["properties"]["key"]["bsonType"]="string"
-        self.arraySchema["properties"]["key"]["description"]="key or name of the new value"
-        self.arraySchema["properties"]["bsonType"]={}
-        self.arraySchema["properties"]["bsonType"]["description"]="base type for the variable"
-        self.arraySchema["properties"]["bsonType"]["enum"] = SmartType.types
-
-        self.arraySchema["properties"]["description"]={}
-        self.arraySchema["properties"]["description"]["bsonType"]="string"
-
-        self.arraySchema["properties"]["minItems"]={}
-        self.arraySchema["properties"]["minItems"]["bsonType"]="int"
-        self.arraySchema["properties"]["minItems"]["description"]="minimum number of items in array"
-
-        self.arraySchema["properties"]["maxItems"]={}
-        self.arraySchema["properties"]["maxItems"]["bsonType"]="int"
-        self.arraySchema["properties"]["maxItems"]["description"]="maximum number of items in array"
-
-
-
-        self.layout = QVBoxLayout()
-
-        title = QLabel()
-        title.setText("Array Dialog")
-        self.layout.addWidget(title)
-
-        #Layout to specify the type of object 
-        typeLayout = QHBoxLayout()
-        typeLabel = QLabel()
-        typeLabel.setText("type")
-        typeLayout.addWidget(typeLabel)
-
-        self.types = QComboBox()
-        self.types.addItems(SmartType.types)
-        typeLayout.addWidget(self.types)
-
-        #Checkbox to see if we are required
-        reqLayout = QHBoxLayout()
-        reqLabel = QLabel()
-        reqLabel.setText("required")
-        self.reqCheck = QCheckBox()
-        reqLayout.addWidget(reqLabel)
-        reqLayout.addWidget(self.reqCheck)
-
-        #SDF add support for minItems, maxItems
-
-        #Create submit button
-        controlLayout = QHBoxLayout()
-        submitButton = QPushButton("submit")
-        submitButton.clicked.connect( lambda: self.submitButtonPressEvent())
-        controlLayout.addWidget(submitButton)
-        cancelButton = QPushButton("cancel")
-        cancelButton.clicked.connect( lambda: self.cancelButtonPressEvent())
-        controlLayout.addWidget(cancelButton)
-
-        #create layout
-        typeFrame = QFrame()
-        typeFrame.setLayout(typeLayout)
-        reqFrame = QFrame()
-        reqFrame.setLayout(reqLayout)
-        controlFrame = QFrame()
-        controlFrame.setLayout(controlLayout)
-
-        self.layout.addWidget(typeFrame)
-        self.layout.addWidget( reqFrame )
-        self.layout.addWidget( controlFrame)
-        self.setLayout(self.layout)
-
-        self.show()
-        self.exec_()
-
-    ##
-    # \brief Handles the submit button press event for an Array Dialog
-    def submitButtonPressEvent(self):
-        mytype = self.types.currentText()
-        req = self.reqCheck.isChecked()
-
-        tplate = {}
-        tplate["bsonType"] = mytype
-#        tplate["required"] = req
-        if mytype == "array":
-            arrayDialog = ObjectDialog(self.arrayCallback)
-            tplate["items"] = self.arraySchema  
-        elif mytype == "object":
-            tplate["properties"] = {}
-
-        self.callback(tplate)
-
-        self.done(True)
-
-    ##
-    # \brief a callback for a new array type. Must specify sub-types
-    def arrayCallback( self, key, value, schema ):
-        self.arraySchema = schema
-"""
 
 ##
 #  \brief Class is used to draw a widget for a smart type
@@ -516,7 +448,7 @@ class SmartWidget(SmartType):
 
               #If we are successful, update callback
               self.ss = self.widget.styleSheet()
-              self.widget.currentIndexChanged.connect( lambda: self.valueChange())
+              self.widget.currentTextChanged.connect( lambda: self.valueChange())
              
           #If we are an array, create a subwidget for each item. Add one extra 
           #for a new value if editable is an option
@@ -756,6 +688,7 @@ class SmartWidget(SmartType):
        #Enum values are represented at the widget. If we are an enum, translate
        #the selection to our value using the setStringAsValue function.
        elif self.type == "enum":
+           #Check if schema is of enum type
            text = self.widget.currentText()
            result = self.setValue(text)
 
@@ -918,14 +851,16 @@ class SmartWidget(SmartType):
    #
    #  The object update is handled separately since changing the contents requires
    #  schema modifications
-   def objectUpdate( self, key, value ):
+   def objectUpdate( self, key, value, schema = None ):
        #Check if the key exists in the schema
        try:
            if key in self.schema["properties"].keys:
                print("Must remove existing object to change it")
                return
        except:
-           self.schema["properties"][key] = value
+           pass
+
+       self.schema["properties"][key] = value
 
        self.draw()
 
@@ -952,13 +887,15 @@ class SmartWidget(SmartType):
    #\param [in] value new value for the child
    #
    #This function is called when a child is updated
-   def update( self, key, value, remove=False):
+   def update( self, key, value, schema = None, remove=False):
        self.valueChanged = True
+
+       if schema != None:
+           print("New shcema: "+json.dumps(schema, indent=4))
+           exit(1)
 
        #Remove value/schema from the current array
        if remove:
-           print("Removing item "+str(key)+" of type: "+str(self.type))
-
 
            #Try to remove schema and value references from an object
            if self.type == "object":
@@ -983,10 +920,12 @@ class SmartWidget(SmartType):
 
            #Try to remove schema and value references from an array
            elif self.type == "array":
-               print("PROCESSING ARRAY")
-
-               index = int(key)
-               del self.value[index]
+               if value != None:
+                   print("PROCESSING ARRAY")
+                   print("VALUE:"+str(self.value))
+                 
+                   index = int(key)
+                   del self.value[index]
  
            else:
                print("Cannot remove item from unknown type: "+str(self.type))
@@ -995,31 +934,26 @@ class SmartWidget(SmartType):
            self.value[key] = value
            return
 
+
        #If we're an object, we have to update the child
        elif self.schema["bsonType"] == "object":
+           #Construct ENUM schema here based on value
+ 
+           #SDF ENUM UPDATE
+           #If the value bsonType is enum, we need to construct the schema appropriately
+           #This happens here because we change the underlying schema.
+           if schema != None:
+              print("NEW SCHEMA: "+json.dumps(schema, indent=4))
+              exit(1)
+              self.schema = schema
+           #EndSDF
+
            if "properties" not in self.schema:
               self.schema["properties"] =  {}
 
            if self.value == None:
                self.value = {}
 
-           """
-           #Check if we actually change the value
-           try:
-               #This if the key is already in value and its value matched, no change
-               if self.value[key] == value:
-                   self.valueChanged = False
-
-               #Otherwise, set the new value
-               else:
-                   self.value[key] = value
-
-           #The exception occures when the key did not exist
-           except:
-               self.value[key] = value
-           """
-
-           print("Setting value for: "+str(key)+" to: "+str(value))
            self.value[key] = value
 
        #Array processing
