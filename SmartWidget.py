@@ -8,9 +8,10 @@ import argparse
 import collections
 import copy
 import time #SDF temp
-from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget, QLabel, QLineEdit, QFrame, QDialog, QComboBox, QRadioButton, QCheckBox, QScrollArea
+from PyQt5.QtWidgets import QWidget, QToolTip, QPushButton, QMessageBox, QApplication, QVBoxLayout, QHBoxLayout, QDesktopWidget, QLabel, QLineEdit, QFrame, QDialog, QComboBox, QRadioButton, QCheckBox, QScrollArea, QSpacerItem, QSizePolicy
 from PyQt5.QtCore import pyqtSlot
 from SmartType import SmartType
+from PyQt5.QtCore import Qt
 import json
 
 #Global comparator
@@ -68,7 +69,8 @@ class ObjectDialog(QDialog):
         self.refSchema["properties"]["bsonType"]["description"]="base type for the variable"
         self.refSchema["properties"]["bsonType"]["enum"] = SmartType.types
 #SDf add enum support
-        self.refSchema["properties"]["bsonType"]["enum"].append("enum")
+        if "enum" not in self.refSchema["properties"]["bsonType"]["enum"]:
+            self.refSchema["properties"]["bsonType"]["enum"].append("enum")
         self.refSchema["properties"]["description"]={}
         self.refSchema["properties"]["description"]["bsonType"]="string"
         self.refSchema["properties"]["required"]={}
@@ -358,6 +360,7 @@ class SmartWidget(SmartType):
        #Create a frame and apply a horizontal layout. This is the basic form of
        #all SmartWidgets
        self.frame = QFrame ()                              #!< Frame around entry
+
        self.layout = QHBoxLayout()                         #!< Display out.
        self.frame.setLayout(self.layout)
        self.frame.adjustSize()
@@ -517,19 +520,25 @@ class SmartWidget(SmartType):
                  addButton = QPushButton("+")
                  addButton.clicked.connect( lambda: self.addButtonPressEvent())
                  self.subLayout.addWidget(addButton)
+#                 addButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
           
           #We are an object schema
           elif self.schema["bsonType"] == "object":
+
               #Create a frame and Vertical Layout for the Widget
-              self.widget = QFrame()
+              self.objWidget = QFrame()
+#              self.objWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+#              self.objWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+
               self.valid = True
               self.subWidgets = []
+
               self.subLayout = QVBoxLayout()
 
-              self.ss = self.widget.styleSheet()
+              self.ss = self.objWidget.styleSheet()
 
               #If we ahve a schema pupulate the layout with sub widgets
               if self.schema != None:
@@ -584,12 +593,38 @@ class SmartWidget(SmartType):
               if not readOnly:
                   #addButton
                   addButton = QPushButton("+")
+#                  addButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
                   addButton.clicked.connect( lambda: self.addButtonPressEvent())
                   self.subLayout.addWidget(addButton)
 
+#              spacer = QSpacerItem(0,0, hPolicy=QSizePolicy.Maximum)
+#              self.subLayout.addItem(spacer)
+
+#              self.subLayout.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+
               self.subLayout.addStretch(1)
-              self.widget.setLayout(self.subLayout)
+              self.objWidget.setLayout(self.subLayout)
+
+
            
+              #SCROLL
+              #Create Scroll area
+              self.subScrollArea = QScrollArea()
+              
+#              self.subScrollArea.setSizeAdjustPolicy(QScrollArea.AdjustToContents)
+#              self.subScrollArea.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+#              self.subScrollArea.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+              self.subScrollArea.updateGeometry()
+              self.subScrollArea.setWidget( self.objWidget)
+              self.subScrollArea.setWidgetResizable(True)
+
+              self.widget = self.subScrollArea
+              
+
+#              self.subScrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+#              self.subScrollArea.setWidgetResizable(True)
+#              self.setCentralWidget(self.
+
           #Bool schema
           elif self.schema["bsonType"] == "bool":
               self.widget = QRadioButton()
@@ -646,7 +681,6 @@ class SmartWidget(SmartType):
        #Add remove button to allow people to remove values
        removeButton = IndexButton("-", self.key, self.remove)
        self.layout.addWidget( removeButton )
-       self.layout.addStretch(1)
 
        return self
 
