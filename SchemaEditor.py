@@ -9,7 +9,7 @@ from collections import OrderedDict
 from copy import deepcopy
 import sys
 
-from PyQt5.QtWidgets import QWidget, QApplication, QFrame, QDesktopWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QComboBox, QFileDialog, QTextEdit, QMainWindow, QSpacerItem, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QApplication, QFrame, QDesktopWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QComboBox, QFileDialog, QLineEdit, QMainWindow, QSpacerItem, QSizePolicy
 
 #from ADB import ADB
 from SmartWidget import SmartWidget
@@ -86,15 +86,28 @@ class MainWindow( QWidget ):
         self.sourceCombo.addItems(self.sources)
         self.sourceCombo.currentTextChanged.connect(lambda: self.sourceChangeCallback())
         selectSourceButton = QPushButton("Load")
-#        selectSourceButton.clicked.connect( lambda: self.sourceChangeCallback())
         self.sourceLayout.addWidget( sourceTitle )
         self.sourceLayout.addWidget(self.sourceCombo)
 
         self.sourceMetaLayout = QHBoxLayout()
         self.sourceMetaLayout.setSizeConstraint(QHBoxLayout.SetMinimumSize)
-#        self.sourceMetaLayout.addStretch(1)
         self.sourceLayout.addLayout(self.sourceMetaLayout)
         self.sourceLayout.addWidget(selectSourceButton)
+
+        #Add persistent dest
+        destTitle = QLabel()
+        destTitle.setText("Dest:")
+        self.destCombo = QComboBox()
+        self.destCombo.addItems(self.dests)
+        self.destCombo.currentTextChanged.connect(lambda: self.destChangeCallback())
+        selectDestButton = QPushButton("Load")
+        self.destLayout.addWidget( destTitle )
+        self.destLayout.addWidget(self.destCombo)
+
+        self.destMetaLayout = QHBoxLayout()
+        self.destMetaLayout.setSizeConstraint(QHBoxLayout.SetMinimumSize)
+        self.destLayout.addLayout(self.destMetaLayout)
+        self.destLayout.addWidget(selectDestButton)
 
         #Add Submit Button
         self.submitButton = QPushButton("Submit")
@@ -152,8 +165,8 @@ class MainWindow( QWidget ):
             except:
                 name = ""
 
-            self.sourceFilenameBox = QTextEdit()
-            self.sourceFilenameBox.setSizePolicy( QSizePolicy.Expanding, QSizePolicy.Maximum)
+            self.sourceFilenameBox = QLineEdit()
+            self.sourceFilenameBox.setSizePolicy( QSizePolicy.Expanding, QSizePolicy.Minimum)
             self.sourceFilenameBox.setText(name)
 #            self.sourceFilenameBox.readOnly = True
 #            self.sourceFilenameBox.sizeHint()
@@ -177,9 +190,9 @@ class MainWindow( QWidget ):
     def updateDestLayout(self):
         #Remove current layout information
         #Remove all widgets from the current layout
-        while self.destLayout.count():
-             item = self.destLayout.takeAt(0)
-             self.destLayout.removeItem(item)
+        while self.destMetaLayout.count():
+             item = self.destMetaLayout.takeAt(0)
+             self.destMetaLayout.removeItem(item)
              widget = item.widget()
              if widget is not None:
                   widget.deleteLater()
@@ -187,7 +200,7 @@ class MainWindow( QWidget ):
                  item.deleteLater()
              except:
                  pass
-
+        """
         #############################################
         # Layout to select a destination
         #############################################
@@ -195,6 +208,7 @@ class MainWindow( QWidget ):
         destTitle.setText("Dest:")
         self.destCombo = QComboBox()
         self.destCombo.addItems(self.dests)
+        """
 
         #Find what our current dest is and set the appropriate index
         index = 0
@@ -205,9 +219,9 @@ class MainWindow( QWidget ):
         self.destCombo.setCurrentIndex(index)
         self.destCombo.currentTextChanged.connect(lambda: self.destChangeCallback())
 
-        self.destLayout.addWidget(destTitle)
-        self.destLayout.addWidget(self.destCombo)
-        self.destLayout.addStretch(1)
+#        self.destLayout.addWidget(destTitle)
+#        self.destLayout.addWidget(self.destCombo)
+#        self.destLayout.addStretch(1)
 
         ####
         # Fill in details base on dest tpye
@@ -223,17 +237,18 @@ class MainWindow( QWidget ):
             except:
                 name = ""
 
-            self.fileNameBox = QTextEdit()
+            self.fileNameBox = QLineEdit()
             self.fileNameBox.setText(name)
             
-            self.destLayout.addWidget(fileLabel)
-            self.destLayout.addWidget(self.fileNameBox)
+#            self.destMetaLayout.addWidget(fileLabel)
+            self.destMetaLayout.addWidget(self.fileNameBox)
 
     ##
     # \brief function that is called when the source is changed
     #
     def destChangeCallback(self):
         print("Changing dest")
+
         newType = self.destCombo.itemText(self.destCombo.currentIndex())
 
         print("New Type: "+str(newType))
@@ -474,7 +489,7 @@ class SaveDataWindow(QWidget):
             except:
                 name = ""
 
-            self.fileNameBox = QTextEdit()
+            self.fileNameBox = QLineEdit()
             self.fileNameBox.setText(name)
             
             self.destLayout.addWidget(fileLabel)

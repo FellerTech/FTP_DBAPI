@@ -372,10 +372,9 @@ class SmartWidget(SmartType):
        if value == {}:
            value = None
 
-       self.draw(value)
+       self.draw()
 
        #Validate to check for schema mismatches.
-#       self.valid = self.validate()
        self.validate()
 
        self.initialized = True
@@ -393,7 +392,7 @@ class SmartWidget(SmartType):
    #  should only be called on created or when a new value or schema is applied
    #  to this object.
    #
-   def draw(self, value = None):
+   def draw(self):
 
        #Remove all widgets from the current layout
        while self.layout.count():
@@ -492,12 +491,10 @@ class SmartWidget(SmartType):
                              self.valid = False
                   else:
                       pass
-#                      print("~~~~~~~ No value")
 
                   #SDF Need to modify to limit to min and max elements in schema
                   #Add new, empty element
-#                  subWidget = SmartWidget().init("item: "+str(count), self.value, self.schema["items"], self.update )
-                  subWidget = SmartWidget().init(str(count), self.value, self.schema["items"], self.update )
+                  subWidget = SmartWidget().init(str(count), None, self.schema["items"], self.update )
                   if subWidget == False:
                       print("Failed to create array widget for "+str(self.key))
 
@@ -514,7 +511,7 @@ class SmartWidget(SmartType):
                   readOnly = self.schema["readOnly"]
               except:
                   pass
-
+              
               if not readOnly:
                  #SDF We are failing here. We need to add an item when it makes sense
                  addButton = QPushButton("+")
@@ -651,6 +648,7 @@ class SmartWidget(SmartType):
                   self.widget.setText(str(self.value))
 
               self.widget.editingFinished.connect( lambda: self.valueChange())
+#              self.widget.selectionChanged.connect( lambda: self.valueChange())
 
           #create layout
           self.layout.addWidget( self.widget )
@@ -809,6 +807,7 @@ class SmartWidget(SmartType):
    #  
    #  This funciton remove these child with teh specified key
    def remove(self, key ):
+       print("removing "+str(key))
        self.updateCallback( key, None, remove=True )
 
 
@@ -915,15 +914,19 @@ class SmartWidget(SmartType):
    def update( self, key, value, schema = None, remove=False):
        self.valueChanged = True
 
+       print("Update: "+key+" (R: "+str(remove)+") with value "+str(value))
+
        if schema != None:
            print("New shcema: "+json.dumps(schema, indent=4))
            exit(1)
 
        #Remove value/schema from the current array
        if remove:
+           
 
            #Try to remove schema and value references from an object
            if self.type == "object":
+               print("Removing object")
                #remove value reference
                try:
                    del self.value[key]
@@ -945,12 +948,15 @@ class SmartWidget(SmartType):
 
            #Try to remove schema and value references from an array
            elif self.type == "array":
-               if value != None:
-                   print("PROCESSING ARRAY")
-                   print("VALUE:"+str(self.value))
+               print("PROCESSING ARRAY")
+               print("VALUE:"+str(self.value))
+#               if value != None:
                  
-                   index = int(key)
+               index = int(key)
+               try:
                    del self.value[index]
+               except:
+                   pass
  
            else:
                print("Cannot remove item from unknown type: "+str(self.type))
@@ -1011,7 +1017,7 @@ class SmartWidget(SmartType):
            #No changes to the current value, carry on
            pass
 
-
+   """
    ##
    # Callback for removing an element frmo an array or a dictionary
    def removeButtonPressEvent( self, index):
@@ -1021,6 +1027,7 @@ class SmartWidget(SmartType):
        else:
           print("No callback specified. Unable to remove")
 
+   """
 
 class unitTestViewer( QWidget ):
    def __init__(self ):

@@ -31,7 +31,7 @@ class MainWindow( QWidget ):
         self.selectorLayout = None                #Layout used for selecting a specific source
         self.sources= ["none", "text","file","database"]
         self.schemaSource = {"type":None}
-        self.source= {"type":None}
+        self.sourceSource = {"type":None}
         self.dests = ["console", "file"]
         self.dest = {"type":"console"}
      
@@ -193,6 +193,46 @@ class MainWindow( QWidget ):
             self.schemaMetaLayout.addWidget(fileLabel)
             self.schemaMetaLayout.addWidget(self.schemaFilenameBox)
             
+    ##
+    # \brief updates the Source Layout
+    def updateSourceLayout(self):
+        #Remove current layout information
+        #Remove all widgets from the current layout
+        while self.sourceMetaLayout.count():
+             item = self.sourceMetaLayout.takeAt(0)
+             self.sourceMetaLayout.removeItem(item)
+             widget = item.widget()
+             if widget is not None:
+                  widget.deleteLater()
+             try:
+                 item.deleteLater()
+             except:
+                 pass
+
+        #Find what our current source is and set the appropriate index
+        index = 0
+        for i in range(0,self.sourceCombo.count()):
+            if self.sourceCombo.itemText(i)  == self.sourceSource["type"]:
+                index = i
+
+        self.sourceCombo.setCurrentIndex(index)
+
+        #Add fields based on source type
+        if self.sourceSource["type"] == "file":
+            #Add filename
+            fileLabel = QLabel()
+            fileLabel.setText("file: ")
+
+            try:
+                name = self.sourceSource["filename"]
+            except:
+                name = ""
+
+            self.sourceFilenameBox = QLineEdit()
+            self.sourceFilenameBox.setSizePolicy( QSizePolicy.Expanding, QSizePolicy.Minimum)
+            self.sourceFilenameBox.setText(name)
+            self.sourceMetaLayout.addWidget(fileLabel)
+            self.sourceMetaLayout.addWidget(self.sourceFilenameBox)
 
     ##
     # \brief updates the destination layout
@@ -335,12 +375,11 @@ class MainWindow( QWidget ):
             schemaSourceName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
 
             self.schemaSource["filename"] = str(schemaSourceName)
-            print("Loading: "+str(self.schemaSource["filename"]))
+            print("Loading Schema: "+str(self.schemaSource["filename"]))
 
             with open( self.schemaSource["filename"] ) as json_file: 
                 self.schema = json.load(json_file) 
 
-            print("Loaded Schema:"+str(json.dumps(self.schema, indent=4)))
 
         self.updateSchemaLayout()
         self.updateValueLayout()
@@ -350,30 +389,27 @@ class MainWindow( QWidget ):
     #
     def sourceChangeCallback( self ):
 
-        #SDF Add popup to notify of schema loss
-
-        #Clear the schema to disable the submit button
+        #Clear the source to disable the submit button
         self.value = None
-        self.source["type"] = self.schemaCombo.itemText(self.schemaCombo.currentIndex())
+        self.sourceSource["type"] = self.sourceCombo.itemText(self.sourceCombo.currentIndex())
 
-        if self.source["type"] == "none":
-            self.schema = {"bsonType":"object"}
+        if self.sourceSource["type"] == "none":
+            self.value = {"bsonType":"object"}
 
         #If we are a file  read the file contents as the value
-        elif self.source["type"] == "file":
+        elif self.sourceSource["type"] == "file":
             options = QFileDialog.Options()
             options |= QFileDialog.DontUseNativeDialog
             sourceName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;JSON Files (*.json)", options=options)
 
-            self.source["filename"] = str(sourceName)
-            print("Loading: "+str(self.source["filename"]))
+            self.sourceSource["filename"] = str(sourceName)
+            print("Loading Data: "+str(self.sourceSource["filename"]))
 
-            with open( self.source["filename"] ) as json_file: 
-                self.schema = json.load(json_file) 
+            with open( self.sourceSource["filename"] ) as json_file: 
+                self.value = json.load(json_file) 
 
-            print("Loaded Schema:"+str(json.dumps(self.schema, indent=4)))
 
-        self.updateSchemaLayout()
+        self.updateSourceLayout()
         self.updateValueLayout()
 
     ##
