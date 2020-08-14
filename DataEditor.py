@@ -44,7 +44,7 @@ class MainWindow( QWidget ):
 
         #Define window par meters
         self.resize(self.width*.5, self.height*.5 )
-        self.setWindowTitle("Aqueti Schema Editor")
+        self.setWindowTitle("Aqueti Data Editor")
         self.show()
 
         #create Layouts in UI
@@ -59,11 +59,11 @@ class MainWindow( QWidget ):
         self.sourceFrame = QFrame()
         self.destFrame   = QFrame()
         self.valueFrame  = QFrame()
-        self.sourceFrame.setFrameStyle(QFrame.Box)
+        self.schemaFrame.setFrameStyle(QFrame.Box)
         self.valueFrame.setFrameStyle(QFrame.Box)
         self.destFrame.setFrameStyle(QFrame.Box)
 
-        self.sourceFrame.setLayout(self.sourceLayout)
+        self.schemaFrame.setLayout(self.schemaLayout)
         self.destFrame.setLayout(self.destLayout)
         self.valueFrame.setLayout(self.valueLayout)
         self.valueFrame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -79,22 +79,22 @@ class MainWindow( QWidget ):
         title.setText("Aqueti Schema Editor")
         self.titleLayout.addWidget(title)
 
-        #Add persistent source items
-        sourceTitle = QLabel()
-        sourceTitle.setText("Source:")
-        self.sourceCombo = QComboBox()
-        self.sourceCombo.addItems(self.sources)
-        self.sourceCombo.currentTextChanged.connect(lambda: self.sourceChangeCallback())
+        #Add persistent schema items
+        schemaTitle = QLabel()
+        schemaTitle.setText("Schema:")
+        self.schemaCombo = QComboBox()
+        self.schemaCombo.addItems(self.schemas)
+        self.schemaCombo.currentTextChanged.connect(lambda: self.schemaChangeCallback())
         selectSourceButton = QPushButton("Load")
-#        selectSourceButton.clicked.connect( lambda: self.sourceChangeCallback())
-        self.sourceLayout.addWidget( sourceTitle )
-        self.sourceLayout.addWidget(self.sourceCombo)
+#        selectSourceButton.clicked.connect( lambda: self.schemaChangeCallback())
+        self.schemaLayout.addWidget( schemaTitle )
+        self.schemaLayout.addWidget(self.schemaCombo)
 
-        self.sourceMetaLayout = QHBoxLayout()
-        self.sourceMetaLayout.setSizeConstraint(QHBoxLayout.SetMinimumSize)
-#        self.sourceMetaLayout.addStretch(1)
-        self.sourceLayout.addLayout(self.sourceMetaLayout)
-        self.sourceLayout.addWidget(selectSourceButton)
+        self.schemaMetaLayout = QHBoxLayout()
+        self.schemaMetaLayout.setSizeConstraint(QHBoxLayout.SetMinimumSize)
+#        self.schemaMetaLayout.addStretch(1)
+        self.schemaLayout.addLayout(self.schemaMetaLayout)
+        self.schemaLayout.addWidget(selectSourceButton)
 
         #Add Submit Button
         self.submitButton = QPushButton("Submit")
@@ -108,7 +108,7 @@ class MainWindow( QWidget ):
 
         #Add Layouts and draw
         self.mainLayout.addLayout( self.titleLayout )
-        self.mainLayout.addWidget( self.sourceFrame )
+        self.mainLayout.addWidget( self.schemaFrame )
         self.mainLayout.addWidget( self.destFrame )
 
 #        self.mainLayout.addWidget( self.valueFrame )
@@ -122,9 +122,9 @@ class MainWindow( QWidget ):
     def updateSourceLayout(self):
         #Remove current layout information
         #Remove all widgets from the current layout
-        while self.sourceMetaLayout.count():
-             item = self.sourceMetaLayout.takeAt(0)
-             self.sourceMetaLayout.removeItem(item)
+        while self.schemaMetaLayout.count():
+             item = self.schemaMetaLayout.takeAt(0)
+             self.schemaMetaLayout.removeItem(item)
              widget = item.widget()
              if widget is not None:
                   widget.deleteLater()
@@ -133,43 +133,31 @@ class MainWindow( QWidget ):
              except:
                  pass
 
-        #Find what our current source is and set the appropriate index
+        #Find what our current schema is and set the appropriate index
         index = 0
-        for i in range(0,self.sourceCombo.count()):
-            if self.sourceCombo.itemText(i)  == self.source["type"]:
+        for i in range(0,self.schemaCombo.count()):
+            if self.schemaCombo.itemText(i)  == self.schema["type"]:
                 index = i
 
-        self.sourceCombo.setCurrentIndex(index)
+        self.schemaCombo.setCurrentIndex(index)
 
-        #Add fields based on source type
-        if self.source["type"] == "file":
+        #Add fields based on schema type
+        if self.schema["type"] == "file":
             #Add filename
             fileLabel = QLabel()
             fileLabel.setText("file: ")
 
             try:
-                name = self.source["filename"]
+                name = self.schema["filename"]
             except:
                 name = ""
 
-            self.sourceFilenameBox = QTextEdit()
-            self.sourceFilenameBox.setSizePolicy( QSizePolicy.Expanding, QSizePolicy.Maximum)
-            self.sourceFilenameBox.setText(name)
-#            self.sourceFilenameBox.readOnly = True
-#            self.sourceFilenameBox.sizeHint()
-#            self.sourceFilenameBox.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
- 
-            self.sourceMetaLayout.addWidget(fileLabel)
-            self.sourceMetaLayout.addWidget(self.sourceFilenameBox)
+            self.schemaFilenameBox = QTextEdit()
+            self.schemaFilenameBox.setSizePolicy( QSizePolicy.Expanding, QSizePolicy.Maximum)
+            self.schemaFilenameBox.setText(name)
+            self.schemaMetaLayout.addWidget(fileLabel)
+            self.schemaMetaLayout.addWidget(self.schemaFilenameBox)
             
-
-#        #Add a submitSource Button
-#        selectSourceButton = QPushButton("Load")
-#        selectSourceButton.clicked.connect( lambda: self.sourceChangeCallback())
-
-#        self.sourceLayout.addWidget(selectSourceButton)
-
-#        self.sourceLayout.addStretch(1)
 
     ##
     # \brief updates the destination layout
@@ -541,22 +529,25 @@ def main():
     uri = "localhost:27017"
 
     parser = argparse.ArgumentParser(description="Database Script")
-    parser.add_argument('-uri', action='store', dest='uri', help='URI of the mongodb system')
-    parser.add_argument('-dbase', action='store', dest='dbase', help='database to reference')
-    parser.add_argument('-test', action='store_true', dest='test', help='unit test')
+#    parser.add_argument('-uri', action='store', dest='uri', help='URI of the mongodb system')
+#    parser.add_argument('-dbase', action='store', dest='dbase', help='database to reference')
+
+
+#    parser.add_argument('-test', action='store_true', dest='test', help='unit test')
 
     args=parser.parse_args()
+
+    """
     if args.uri:
         uri = args.uri
 
     if args.dbase:
         dbase =args.dbase
+    """
 
     app = QApplication( sys.argv )
 
     print("Creating scheme editor with URI: "+str(uri))
-#    window = SchemaEditor()
-#    window.init(uri)
     window = MainWindow()
 
     sys.exit(app.exec_())

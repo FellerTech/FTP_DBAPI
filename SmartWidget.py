@@ -142,7 +142,7 @@ class ObjectDialog(QDialog):
         self.layout.addWidget(title)
 
         #create a new smart widget based on the object schema without a value
-        self.subWidget = SmartWidget().init("New Object", self.value, self.objectSchema, self.update, showSchema = True )
+        self.subWidget = SmartWidget().init("New Object", self.value, self.objectSchema, self.update, showSchema = True)
   
         #Return on failure
         if self.subWidget == False:
@@ -359,13 +359,13 @@ class SmartWidget(SmartType):
 
        #Create a frame and apply a horizontal layout. This is the basic form of
        #all SmartWidgets
-       self.frame = QFrame ()                              #!< Frame around entry
 
        self.layout = QHBoxLayout()                         #!< Display out.
        self.frame.setLayout(self.layout)
        self.frame.adjustSize()
        self.frame.setFrameStyle( 1 )
        self.frame.setLineWidth(1)
+       self.frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
        self.valid = False 
 
@@ -456,6 +456,7 @@ class SmartWidget(SmartType):
           #for a new value if editable is an option
           elif self.schema["bsonType"] == "array":
               self.widget = QFrame()
+              self.widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
               self.valid = True
               self.subLayout = QVBoxLayout()
               self.subWidgets = []
@@ -519,6 +520,7 @@ class SmartWidget(SmartType):
                  addButton = QPushButton("+")
                  addButton.clicked.connect( lambda: self.addButtonPressEvent())
                  self.subLayout.addWidget(addButton)
+#                 addButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
               self.subLayout.addStretch(1)
               self.widget.setLayout(self.subLayout)
@@ -528,12 +530,14 @@ class SmartWidget(SmartType):
 
               #Create a frame and Vertical Layout for the Widget
               self.objWidget = QFrame()
-#              self.objWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+              self.objWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+#              self.objWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
 
               self.valid = True
               self.subWidgets = []
 
               self.subLayout = QVBoxLayout()
+
               self.ss = self.objWidget.styleSheet()
 
               #If we ahve a schema pupulate the layout with sub widgets
@@ -589,14 +593,21 @@ class SmartWidget(SmartType):
               if not readOnly:
                   #addButton
                   addButton = QPushButton("+")
+#                  addButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
                   addButton.clicked.connect( lambda: self.addButtonPressEvent())
                   self.subLayout.addWidget(addButton)
 
-#              self.subLayout.addStretch(1)
+#              spacer = QSpacerItem(0,0, hPolicy=QSizePolicy.Maximum)
+#              self.subLayout.addItem(spacer)
+
+#              self.subLayout.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+
+              self.subLayout.addStretch(1)
               self.objWidget.setLayout(self.subLayout)
 
 
-           
+              #SDF need to clean this up and switch self.objWidget back to self.widget             
+              """
               #SCROLL
               #Create Scroll area
               self.subScrollArea = QScrollArea()
@@ -606,7 +617,12 @@ class SmartWidget(SmartType):
               self.subScrollArea.setWidgetResizable(True)
 
               self.widget = self.subScrollArea
+              """
+
+              self.widget = self.objWidget
               
+
+
           #Bool schema
           elif self.schema["bsonType"] == "bool":
               self.widget = QRadioButton()
@@ -1112,7 +1128,7 @@ class unitTestViewer( QWidget ):
                       self.testWidgets.append(widget)
 
           self.mainLayout.addLayout(subLayout)
-#       self.mainLayout.addStretch(1)
+       self.mainLayout.addStretch(1)
  
        #submitButton
        submitButton = QPushButton("submit")
