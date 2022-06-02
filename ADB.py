@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import argparse
+import copy
 from datetime import datetime
 from pymongo import MongoClient
 from bson import json_util
@@ -25,8 +26,8 @@ class ADB:
     # \brief Removes a database
     # \param [in] dbase name of the database to remove
     def removeDatabase( self, dbase ):
-#        self.db["client"].dropDatabase( dbase )
-        self.db.client.drop_database(dbase)
+        print("Dropping " + dbase)
+        self.client.drop_database(dbase)
 
     ##
     # \brief Sets the specified database
@@ -35,6 +36,8 @@ class ADB:
 
         #SDF check return code!
         self.dbase = dbase
+
+        return True
         
     ##
     # Function to return current database name
@@ -44,13 +47,18 @@ class ADB:
     ##
     # \brief returns a list of databases
     def getDatabaseList(self):
-        return self.client.database_names()
+        names = []
+        for db in self.client.list_databases():
+            names.append( db["name"] )
+
+        return names
 
     def getCollections(self):
        if self.dbase is None:
            return []
 
-       return self.client[self.dbase].collection_names()
+       return self.client[self.dbase].list_collection_names()
+
     ##
     # \brief Function to get the specified indexes for the given database
     def getIndexes(self, collection):
@@ -141,21 +149,28 @@ class ADB:
       
         if "_id" in query:
             query["_id"] = ObjectId(query["_id"])
-        for doc in self.db[collection].find(query).limit(limit):
+
+        print("NEWQ: "+str(query))
+        results = self.db[collection].find(query).limit(limit)
+        for doc in results:
             if "_id" in doc.keys():
                 #All "_id" fields are converted to strings on queries. They must
                 #be re-converted on insert
                 doc["_id"] = str(doc["_id"])
            
                 docs.append(doc)
+
+                print("DOC: "+str(doc))
              
         return docs
 
     ##
     # \brief inserts a document into the database
     # \return False on failure. On success, new object as entered into database
+    #
     def insertDocument( self, collection, doc, update = True ):
        duplicate = False
+       match = False
 
        #to object Ids
        if "_id" in doc.keys():
@@ -163,9 +178,15 @@ class ADB:
             print("new id on insert:"+str(doc["_id"]))
 
             #If there is a key, see if it exists
-            matches = self.getDocuments(collection, {"_id":doc["_id"]})
+            matches = self.getDocuments(collection, {"_id":ObjectId(doc["_id"])})
             if len(matches) > 0:
                 duplicate = True
+
+                for item in matches:
+                    print("ITEM: " + str(item))
+                    if item == doc:
+                        print("INFO: Exact match exists, no insert is needed")
+                        return True
 
        if duplicate and not update:
             print("Document exists with update disabled. Unable to insert")
@@ -175,12 +196,36 @@ class ADB:
             print("Updating an existing record")
             try:
                 query = {"_id":ObjectId(doc["_id"])}
-                self.db[collection].update(query, doc)
+                print("QUERY: "+str(query))
+                print("SCHEMA: "+json.dumps(self.getSchema(collection)))
+                print("DOC  : "+str(doc))
+
+               
+                rc = self.db[collection].update_one(query, {"$set" : doc})
+                print("OUTPUT: "+str(rc.modified_count));
+                print("MATCHED: "+str(rc.matched_count));
+                print("RAW:     "+str(rc.raw_result));
                 doc["_id"] = str(doc["_id"])
+
+
+                #If nothin is modified need to check for no changes
+                if rc.matched_count == 1 and rc.modified_count == 0:
+                    entry = self.getDocuments(collection, query)
+
+                    if entry != doc:
+                        print("WARNING: Records match")
+
+                elif rc.modified_count != 1:
+                    print("ERROR: Failed to update existing document")
+                    return False
+                else:
+                    print("ERROR: Modified " + str(rc.modified_count)
+                            + "records!"
+                            )
             except:
-                print("Failed to update and existing docuement")
-                doc["_id"] = str(doc["_id"])
+                print("ERROR: Attempting to update existing document")
                 return False
+
        else:
             print("Inserting a new document"+str(doc))
             try:
@@ -196,13 +241,15 @@ class ADB:
                 doc["_id"] = str(result.inserted_id)
                 
             except:
-                print("insert exception for "+str(doc))
+                print("insert exception for new document: "+str(doc))
                 return False
 
-       return doc
+       return True
 
 
 def test(uri, testDB = "adbTestDB" ):
+    result = {"success": True, "messages" : [] }
+
 
     print("Unit test")
     testData = ({
@@ -248,15 +295,26 @@ def test(uri, testDB = "adbTestDB" ):
 
     
     #print list of databases
-    print("Database List:"+str(adb.getDatabaseList()))   
+    dbList = adb.getDatabaseList()   
+    print("Database List:"+str(dbList))   
 
-    
-    adb.setDatabase(testDB)
+    #Make sure database is empty
+    if testDB in dbList:
+        print("removing database: "+testDB)
+        adb.removeDatabase(testDB)
+
+
+    rc = adb.setDatabase(testDB)
+    if not rc:
+        result["messages"].append("ERROR: Unable to set database to "+testDB)
+        result["success"] = False
+        return result
+
 
     collections = adb.getCollections()
     if len(collections) > 0 :
         print("adbTest database is not empty")
-#        return False
+        result["messages"].append("WARNING: " +testDB+ " is not empty")
 
     #create test1 collection
     collection1 = "temp"
@@ -268,16 +326,21 @@ def test(uri, testDB = "adbTestDB" ):
 
     # Loop through all items in testData
     for key in keys:
-        adb.createCollection( collection1 )
+        #adb.createCollection( collection1 )
 
         #Loop through each entry for the specified key
         for item in testData[key]:
+            adb.removeCollection( collection1 )
+            adb.createCollection( collection1 )
+
             value = item["value"]
             schema = item["schema"]
 
             #Set the schema to the specified item schema
             print("Setting schema to "+str(schema))
             adb.setSchema( collection1, schema )
+
+            print("SCHEMA: "+json.dumps(schema))
 
             #Loop through all testData values and try to set. Should only
             #success if schemas match
@@ -289,54 +352,76 @@ def test(uri, testDB = "adbTestDB" ):
 
                    doc = item2["value"]
                    print("New Doc: "+str(doc))
-                   doc2 = adb.insertDocument( collection1, doc)
-                   print("Post Insert: "+str(doc))
-                   if (doc2 != False ) and item2["schema"] != item["schema"]:
-                       print("Error: Succeeded with schema mismatch for "+str(key)+"["+str(count)+"]:")
-                       print("schema:"+str(item["schema"]))
-                       print("schema2:"+str(item2["schema"]))
-                       return False
-                   elif (doc2 == False) and item2["schema"] == item["schema"]:
-                       print("Error: Failed with schema match "+str(key))
-                       print("schema:"+str(item["schema"]))
-                       print("schema2:"+str(item2["schema"]))
-                       return False
- 
-                   #It looks like we failed for a good reason. Continue to the next iter                  
-                   elif doc2 == False:
+                   rc = adb.insertDocument( collection1, doc)
+                   print("Post Insert: "+str(rc) + ", "+str(doc))
+
+                   #If success with a schema mismatch, then genrate an error
+                   if (rc != False ) and item2["schema"] != item["schema"]:
+                       result["messages"].append("ERROR: Succeeded with schema "
+                           + "mismatch for "+str(key)+"["+str(count)+"]\n"
+                           + "\t\tschema1: "+ str(item["schema"]) + "\n"
+                           + "\t\tschema2: "+ str(item2["schema"]) + "\n"
+                           + "\t\tdoc:     "+ str(doc)
+                           )
+                         
+                       result["success"] = False
+                       return result
+
+                   #If failure with a matched schema, generate an error
+                   elif (rc == False) and item2["schema"] == item["schema"]:
+                       message = str("ERROR: Failed with schema match "+str(key) 
+                               + " ==> " + str(rc) + "\n" 
+                               + "\t\tschema:"+str(item["schema"]) + "\n" 
+                               + "\t\tdoc   :"+str(doc)
+                               )
+
+                       result["messages"].append(message)
+                       result["success"] = False
+                       return result
+
+                   #It looks like we failed for a good reason. Continue 
+                   elif rc == False:
                        continue
 
                    #We were successful. We need to query inserted value to make sure it 
                    #matches
                    #We should have a valid schema. Let's compare values
-                   query = {"_id":doc["_id"]}
+                   #query = {"_id":doc["_id"]}
+                   query = copy.deepcopy(doc)
+                   print("QUER: "+str(query))
                    docs = adb.getDocuments( collection1, query, 10 )
 
                    #We should have only one answer
                    if len(docs) != 1:
-                       print("Get documents returned "+str(len(docs))+" instead of 1 document")
-                       return False
+                       result["messages"].append("Get documents returned "
+                           + str(len(docs))+" instead of 1 document"
+                           )
+                       result["success"] = False
+                       return result
+
                    
                    if doc != docs[0]:
-                       print("Document mismatch")
-                       print("Doc1:"+str(doc))
-                       print("Doc2:"+str(docs[0]))
-                       return False
+                       result["messages"].append("ERROR: Document mismatch:\n "
+                               + "Doc1:"+str(doc) + "\n"
+                               + "Doc2:"+str(docs[0])
+                               )
+                       result["success"] = False
+                       return result
 
                    count = count +1
   
     
-#        print("Removing collection: "+str(collection1)) 
-#        adb.removeCollection( collection1 )
+            print("Removing collection: "+str(collection1)) 
+            adb.removeCollection( collection1 )
 
 
     #remove test1 collection
-#    adb.removeCollection( collection1 )
+    #adb.removeCollection( collection1 )
 
     #remove test database
-#    adb.removeDatabase(testDB)
+    adb.removeDatabase(testDB)
 
-    return True
+    return result
 
 def main():
     dbase = "test"
@@ -359,10 +444,14 @@ def main():
     #############################################
     if args.test:
         result = test(uri)
-        if result:
+
+        if result["success"] == True:
             print("Unit test successfully passed")
         else:
             print("Unit test failed")
+
+        for message in result["messages"]:
+            print("\t- "+message)
         return result
 
     """
