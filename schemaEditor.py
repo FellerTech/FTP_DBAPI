@@ -51,6 +51,12 @@ class SchemaEditor( QWidget ):
         self.arraySchema["properties"]["bsonType"]["description"] = "base type for object"
         self.arraySchema["properties"]["bsonType"]["enum"] = SmartWidget().types
 
+        #This defines information needed to specify a collection
+        self.collectionSchema = {"bsonType":"string"}
+        #self.collectionSchema["properties"]["bsonType"] = "string"
+
+        ## Reserved values
+        self.new_collection = "new collection"
      
 
     def init( self, uri ):
@@ -66,7 +72,7 @@ class SchemaEditor( QWidget ):
         self.height = QDesktopWidget().availableGeometry().height();
 
         #Define window par meters
-        self.resize(self.width*.5, self.height*.5 )
+        self.resize(int(self.width/2), int(self.height/2 ))
         self.setWindowTitle("Aqueti Schema Editor")
         self.show()
 
@@ -157,6 +163,10 @@ class SchemaEditor( QWidget ):
         self.collCombo = QComboBox()
         self.collCombo.addItems( self.adb.getCollections())
 
+        #Add option for a new collection
+        self.collCombo.addItems([self.new_collection])
+
+
         print("Getting collections for "+self.dbase)
 
         submitButton = QPushButton("UpdateColl")
@@ -192,9 +202,32 @@ class SchemaEditor( QWidget ):
         return self.dbLayout
 
     ##
+    # \brief callback for when a new collection is added
+    #
+    def newCollectionCallback(self):
+        #Extract value from the widget
+        newColl = self.collectionWidget.getValue()
+        print("NEW COLL: "+str(newColl))
+
+        #Add collection to database
+        adb.createCollection( newColl )
+
+    ##
     # \brief handles database updates
+    # 
     def updateCollButtonPressEvent(self):
         value = self.collCombo.currentText()
+
+        #If a new selection is choses, use a popup
+        if value == self.new_collection:
+            self.collectionWidget = SmartWidget().init("collection"
+                    , None
+                    , self.collectionSchema
+                    , self.newCollectionCallback
+                    , showSchema = True 
+                    )
+
+
         if self.collection == value:
             print("collections match")
         else:
@@ -225,6 +258,7 @@ class SchemaEditor( QWidget ):
             self.adb.setDatabase( self.dbase )
             self.collCombo.clear()
             self.collCombo.addItems( self.adb.getCollections())
+            self.collCombo.addItems([self.new_collection])
 
             self.collection = self.collCombo.currentText()
             self.schema = self.adb.getSchema(self.collection)

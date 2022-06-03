@@ -172,6 +172,10 @@ class ADB:
        duplicate = False
        match = False
 
+       #TODO Validate document
+       # Keys cannot have special characters
+
+
        #to object Ids
        if "_id" in doc.keys():
             doc["_id"] = ObjectId(doc["_id"])
@@ -228,20 +232,29 @@ class ADB:
 
        else:
             print("Inserting a new document"+str(doc))
-            try:
-                print("Inserting: "+str(doc))
+            if True:
+#            try:
+                #print("Inserting: "+str(doc))
+                print("Collection: "+str(collection))
+                print("\n")
+#                if "_id" in doc.keys():
+#                    doc["_id"] = str(doc["_id"])
+                print("DOC:\n"+json.dumps(doc, indent=2))
+                print("\n")
 
                 #Extrin
                 result = self.db[collection].insert_one(doc)
+
                 print("Result: "+str(result.acknowledged))
                 if not result.acknowledged:
                      print("Failed to insert data")
                      return False
                 print("NEW ID:"+str(result.inserted_id))
                 doc["_id"] = str(result.inserted_id)
-                
-            except:
-                print("insert exception for new document: "+str(doc))
+            else:               
+#            except Exception as e:
+#                print("ERROR: insert exception for new document with error: "+str(e))
+                #print("insert exception for new document "+str(doc))
                 return False
 
        return True
@@ -424,13 +437,39 @@ def test(uri, testDB = "adbTestDB" ):
     return result
 
 def main():
-    dbase = "test"
     uri = "localhost:27017"
+    dbase = "test"
+    collection = "temp"
 
     parser = argparse.ArgumentParser(description="Database Script")
-    parser.add_argument('-uri', action='store', dest='uri', help='URI of the mongodb system')
-    parser.add_argument('-dbase', action='store', dest='dbase', help='database to reference')
-    parser.add_argument('-test', action='store_true', dest='test', help='unit test')
+    parser.add_argument('-uri'
+            , action='store'
+            , dest='uri'
+            , help='URI of the mongodb system. Default = '+uri
+            )
+    parser.add_argument('-db'
+            , action='store'
+            , dest='dbase'
+            , help='database to reference'
+            )
+
+    parser.add_argument('-c'
+            , action='store'
+            , dest='coll'
+            , help='collection to reference'
+            )
+
+    parser.add_argument('-if'
+            , action='store'
+            , dest='inputFile'
+            , help='insert the specified json file as a document'
+            )
+
+    parser.add_argument('-test'
+            , action='store_true'
+            , dest='test'
+            , help='run unit test'
+            )
     args=parser.parse_args()
     
     if args.uri:
@@ -439,8 +478,13 @@ def main():
     if args.dbase:
         dbase =args.dbase
 
+    if args.coll:
+        collection = args.coll
+
     #############################################
     # Begin testing
+    # This test options superceded all other options.
+    # The program will exit on completion.
     #############################################
     if args.test:
         result = test(uri)
@@ -452,17 +496,33 @@ def main():
 
         for message in result["messages"]:
             print("\t- "+message)
-        return result
 
-    """
+        exit()
+
+    #############################################
+    # Begin processing
+    #############################################
     #create database object
     adb = ADB(uri)
 
     #Specify the database to use
-    adb.setDatabase(dbase);
+    adb.setDatabase(dbase)
+
+
+    #Load data
+    if args.inputFile:
+        fptr = open( args.inputFile )
+        data = json.load(fptr)
+        fptr.close()
+
+
+    rc = adb.insertDocument(collection, data)
+    if not rc:
+        print("ERROR: Failed to insert "+args.inputFile)
 
 
 
+    """
     #start queries
     query = {}
     query["streamIds"] = "XX00000000000000070019-300729315229696-3"
